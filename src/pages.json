@@ -1,0 +1,15 @@
+{
+	"pages": [],
+	"subPackages": [
+		{
+			"root": "pages-sub",
+			"pages": []
+		}
+	],
+	"globalStyle": {
+		"navigationBarTextStyle": "black",
+		"navigationBarTitleText": "智能学习平台",
+		"navigationBarBackgroundColor": "#F8F8F8",
+		"backgroundColor": "#F8F8F8"
+	}
+}
