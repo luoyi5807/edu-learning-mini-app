@@ -1,15 +1,43 @@
 {
-	"pages": [],
+	"pages": [
+		{
+			"path": "placeholder/index",
+			"style": {
+				"navigationBarTitleText": "智能学习平台"
+			}
+		},
+		{
+			"path": "pages/index/index",
+			"style": {
+				"navigationBarTitleText": "智能学习平台",
+				"navigationStyle": "custom"
+			}
+		}
+	],
 	"subPackages": [
 		{
 			"root": "pages-sub",
-			"pages": []
+			"pages": [
+				{
+					"path": "splash/splash",
+					"style": {
+						"navigationBarTitleText": "",
+						"navigationStyle": "custom"
+					}
+				},
+				{
+					"path": "auth/login",
+					"style": {
+						"navigationBarTitleText": "账号登录"
+					}
+				}
+			]
 		}
 	],
 	"globalStyle": {
 		"navigationBarTextStyle": "black",
 		"navigationBarTitleText": "智能学习平台",
-		"navigationBarBackgroundColor": "#F8F8F8",
-		"backgroundColor": "#F8F8F8"
+		"navigationBarBackgroundColor": "#FFFFFF",
+		"backgroundColor": "#F7F9FC"
 	}
 }
