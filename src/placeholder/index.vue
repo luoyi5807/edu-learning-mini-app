@@ -2,8 +2,9 @@
 import { onLoad } from '@dcloudio/uni-app'
 
 onLoad(() => {
+	// 蓝本启动流程：placeholder → splash → (有token ? main : login)
 	setTimeout(() => {
-		uni.reLaunch({ url: '/pages/index/index' })
+		uni.reLaunch({ url: '/pages-sub/splash/splash' })
 	}, 300)
 })
 </script>
@@ -14,6 +15,6 @@ onLoad(() => {
 
 <style lang="scss" scoped>
 page {
-  background-color: #F7F9FC;
+  background-color: $edu-bg;
 }
 </style>

@@ -74,3 +74,81 @@ $uni-color-subtitle: #555; // 二级标题颜色
 $uni-font-size-subtitle: 18px;
 $uni-color-paragraph: #3f536e; // 文章段落颜色
 $uni-font-size-paragraph: 15px;
+
+/* ==========================================================
+   智能学习平台 · 设计系统 tokens
+   对齐《参考安卓的效果实现.md》第二章（严格实采样）
+   ========================================================== */
+
+/* 品牌色板 */
+$edu-primary: #3677EF;
+$edu-primary-dark: #2A5FD0;
+$edu-primary-container: #DCE8FF;
+$edu-brand-blue-light: #5B9BFF;
+$edu-brand-navy: #282840;
+$edu-accent-yellow: #F0B000;
+$edu-accent-coral: #D04030;
+$edu-accent-pink: #F0B0B0;
+$edu-accent-teal: #00B0C0;
+
+/* 中性色 · 浅色模式 */
+$edu-bg: #F7F9FC;
+$edu-surface: #FFFFFF;
+$edu-surface-variant: #F0F3F8;
+$edu-text-primary: #1A1A1A;
+$edu-text-secondary: #666666;
+$edu-text-hint: #999999;
+$edu-divider: #EEEEEE;
+$edu-outline: #DADCE0;
+$edu-error-container: #FDE0DF;
+$edu-error-text: #7F1D1B;
+
+/* 底栏四色 */
+$edu-tab-unselected: #9A9AA3;
+$edu-tab-home-fg: #282840;      $edu-tab-home-bg: #E3E8FB;
+$edu-tab-video-fg: #0E6E78;     $edu-tab-video-bg: #D9F0F3;
+$edu-tab-community-fg: #A8453C; $edu-tab-community-bg: #FBE4E0;
+$edu-tab-profile-fg: #96650C;   $edu-tab-profile-bg: #FBEFD2;
+
+/* 页面渐变：strong 用于登录/启动/详情/空态 */
+@mixin eduPageGradientStrong {
+  background: linear-gradient(180deg,
+    #FFFFFF 0%, #FFFBF2 12%, #F8F0ED 34%, #FDF5F5 72%, #FFFFFF 100%);
+}
+/* 页面渐变：weak 用于长列表页（首页/社区） */
+@mixin eduPageGradientWeak {
+  background: linear-gradient(180deg,
+    #F8F0ED 0%, #FFFBF2 10%, #F7F9FC 28%, #F7F9FC 100%);
+}
+/* 卡片/胶囊轻渐变（暖白，融入奶油底） */
+@mixin eduSurfaceWash {
+  background: linear-gradient(180deg, #FFFCF7 0%, #FEF8F4 100%);
+}
+/* 选中态轻渐变 */
+@mixin eduSurfaceWashSelected {
+  background: linear-gradient(180deg, rgba(220,232,255,0.7) 0%, #FFFFFF 100%);
+}
+/* 品牌主渐变 */
+@mixin eduBrandGradient {
+  background: linear-gradient(135deg, #5B9BFF 0%, #3677EF 100%);
+}
+/* 功能区块浅渐变 */
+@mixin eduWarmYellowGradient { background: linear-gradient(135deg, #FFF8E8 0%, #FFFDF8 100%); }
+@mixin eduSoftTealGradient   { background: linear-gradient(135deg, #DCF2F5 0%, #F4FBFC 100%); }
+@mixin eduSoftPinkGradient   { background: linear-gradient(135deg, #FDE7E3 0%, #FFF7F5 100%); }
+@mixin eduSoftBlueGradient   { background: linear-gradient(135deg, #E3ECFD 0%, #F6F9FF 100%); }
+
+/* 柔光圆 GlowOrb（径向多段模拟，禁模糊） */
+@mixin eduGlowOrb($size) {
+  position: absolute;
+  width: $size;
+  height: $size;
+  border-radius: 50%;
+  pointer-events: none;
+  background: radial-gradient(circle,
+    rgba(255,255,255,0.95) 0%,
+    rgba(255,255,255,0.6)  35%,
+    rgba(220,229,239,0.22) 62%,
+    rgba(220,229,239,0.07) 82%,
+    transparent 100%);
+}

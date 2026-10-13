@@ -1,48 +1,46 @@
 <template>
 	<view class="login-page">
-		<!-- Logo -->
-		<view class="logo-area">
-			<image class="logo-img" src="/static/logo.png" mode="aspectFit" />
+		<!-- 顶部柔光圆 600rpx, TopCenter, top 16rpx -->
+		<view class="glow-orb"></view>
+
+		<!-- 顶部 96rpx 留白 -->
+		<view class="top-spacer"></view>
+
+		<!-- 品牌区 -->
+		<view class="brand-area">
+			<image class="brand-logo" src="/static/logo.png" mode="aspectFit" />
+			<text class="brand-title">登录</text>
+			<text class="brand-subtitle">欢迎使用，请登录以继续</text>
 		</view>
 
-		<!-- 标题区 -->
-		<view class="header">
-			<text class="header-title">登录</text>
-			<text class="header-subtitle">欢迎使用，请登录以继续</text>
-			<text class="header-section">使用账号登录</text>
-		</view>
+		<!-- 说明文字（左对齐） -->
+		<text class="section-tip">使用账号登录</text>
 
 		<!-- 表单区 -->
 		<view class="form-area">
-			<!-- 手机号 -->
-			<view class="input-box" :class="{ 'input-focused': phoneFocused, 'input-error': phoneError }">
-				<view class="input-icon">
-					<text class="icon-text">👤</text>
-				</view>
+			<!-- 用户名（手机/邮箱/账号三合一） -->
+			<view class="auth-field" :class="{ 'field-focused': userFocused, 'field-error': userError }">
+				<view class="field-icon"><text class="icon-text">👤</text></view>
 				<input
-					class="input-field"
-					type="number"
-					maxlength="11"
-					v-model="phone"
-					placeholder="手机号"
-					placeholder-class="input-placeholder"
-					@focus="phoneFocused = true"
-					@blur="handlePhoneBlur"
+					class="field-input"
+					v-model="username"
+					placeholder="用户名"
+					placeholder-class="field-placeholder"
+					@focus="userFocused = true"
+					@blur="handleUserBlur"
 				/>
 			</view>
-			<text v-if="phoneError" class="error-text">{{ phoneErrorText }}</text>
+			<text v-if="userError" class="error-text">{{ userErrorText }}</text>
 
 			<!-- 密码 -->
-			<view class="input-box" :class="{ 'input-focused': pwdFocused, 'input-error': pwdError }">
-				<view class="input-icon">
-					<text class="icon-text">🔒</text>
-				</view>
+			<view class="auth-field" :class="{ 'field-focused': pwdFocused, 'field-error': pwdError }">
+				<view class="field-icon"><text class="icon-text">🔒</text></view>
 				<input
-					class="input-field"
+					class="field-input"
 					:password="!passwordVisible"
 					v-model="password"
 					placeholder="密码"
-					placeholder-class="input-placeholder"
+					placeholder-class="field-placeholder"
 					@focus="pwdFocused = true"
 					@blur="handlePwdBlur"
 				/>
@@ -63,16 +61,16 @@
 				<text class="forgot-link" @tap="handleForgot">忘记密码</text>
 			</view>
 
-			<!-- 登录按钮 -->
+			<!-- 主按钮（loading 变「登录中...」并禁用） -->
 			<view
 				class="login-btn"
-				:class="{ 'btn-disabled': !isFormValid, 'btn-pressed': btnPressed }"
+				:class="{ 'btn-disabled': !isFormValid || loading, 'btn-pressed': btnPressed }"
 				@touchstart="btnPressed = true"
 				@touchend="btnPressed = false"
 				@touchcancel="btnPressed = false"
 				@tap="handleLogin"
 			>
-				<text class="btn-text">登录</text>
+				<text class="btn-text">{{ loading ? '登录中...' : '登录' }}</text>
 			</view>
 		</view>
 
@@ -87,33 +85,27 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 
-const phone = ref<string>('')
+const username = ref<string>('')
 const password = ref<string>('')
 const rememberMe = ref<boolean>(false)
 
-const phoneFocused = ref<boolean>(false)
+const userFocused = ref<boolean>(false)
 const pwdFocused = ref<boolean>(false)
-const phoneError = ref<boolean>(false)
-const phoneErrorText = ref<string>('')
+const userError = ref<boolean>(false)
+const userErrorText = ref<string>('')
 const pwdError = ref<boolean>(false)
 const pwdErrorText = ref<string>('')
 const passwordVisible = ref<boolean>(false)
 const btnPressed = ref<boolean>(false)
+const loading = ref<boolean>(false)
 
-const PHONE_REG = /^1[3-9]\d{9}$/
-
-function validatePhone(): boolean {
-	if (!phone.value) {
-		phoneErrorText.value = '手机号不能为空'
-		phoneError.value = true
+function validateUsername(): boolean {
+	if (!username.value) {
+		userErrorText.value = '用户名不能为空'
+		userError.value = true
 		return false
 	}
-	if (!PHONE_REG.test(phone.value)) {
-		phoneErrorText.value = '请输入正确的11位手机号'
-		phoneError.value = true
-		return false
-	}
-	phoneError.value = false
+	userError.value = false
 	return true
 }
 
@@ -124,7 +116,7 @@ function validatePassword(): boolean {
 		return false
 	}
 	if (password.value.length < 6) {
-		pwdErrorText.value = '密码至少为6位字符'
+		pwdErrorText.value = '密码至少为 6 位字符'
 		pwdError.value = true
 		return false
 	}
@@ -133,12 +125,12 @@ function validatePassword(): boolean {
 }
 
 const isFormValid = computed<boolean>(() => {
-	return PHONE_REG.test(phone.value) && password.value.length >= 6
+	return !!username.value && password.value.length >= 6
 })
 
-function handlePhoneBlur() {
-	phoneFocused.value = false
-	if (phone.value) validatePhone()
+function handleUserBlur() {
+	userFocused.value = false
+	if (username.value) validateUsername()
 }
 
 function handlePwdBlur() {
@@ -151,16 +143,22 @@ function togglePasswordVisibility() {
 }
 
 function handleLogin() {
+	if (loading.value) return
 	if (!isFormValid.value) {
-		validatePhone()
+		validateUsername()
 		validatePassword()
 		return
 	}
-	uni.showToast({
-		title: '表单校验通过，待接入登录接口',
-		icon: 'none',
-		duration: 2000
-	})
+	loading.value = true
+	// TODO: 接入 POST /api/v1/auth/login 后替换此段
+	setTimeout(() => {
+		uni.setStorageSync('accessToken', 'mock-token-' + Date.now())
+		loading.value = false
+		uni.showToast({ title: '登录成功（mock）', icon: 'success', duration: 800 })
+		setTimeout(() => {
+			uni.reLaunch({ url: '/pages/index/index' })
+		}, 800)
+	}, 1200)
 }
 
 function handleForgot() {
@@ -173,159 +171,154 @@ function goToRegister() {
 </script>
 
 <style lang="scss" scoped>
-$color-primary: #3677EF;
-$color-primary-press: #2A5FD0;
-$color-error: #D04030;
-$color-bg: #F7F9FC;
-$color-card: #FFFFFF;
-$color-text-primary: #1A1A1A;
-$color-text-secondary: #666666;
-$color-text-placeholder: #999999;
-$color-divider: #EEEEEE;
-
 .login-page {
+	position: relative;
 	display: flex;
 	flex-direction: column;
 	align-items: center;
 	min-height: 100vh;
-	background: linear-gradient(180deg, #FFFFFF 0%, $color-bg 100%);
-	padding: 0 64rpx;
 	box-sizing: border-box;
+	padding: 0 56rpx;
+	overflow: hidden;
+	@include eduPageGradientStrong;
 }
 
-/* Logo */
-.logo-area {
-	padding-top: 120rpx;
-	margin-bottom: 40rpx;
+/* 顶部柔光圆 */
+.glow-orb {
+	@include eduGlowOrb(600rpx);
+	top: 16rpx;
+	left: 50%;
+	transform: translateX(-50%);
+	z-index: 0;
 }
 
-.logo-img {
-	width: 140rpx;
-	height: 140rpx;
-	border-radius: 28rpx;
+.top-spacer {
+	height: 96rpx;
+	flex-shrink: 0;
 }
 
-/* 标题 */
-.header {
+.brand-area {
+	position: relative;
+	z-index: 1;
 	display: flex;
 	flex-direction: column;
 	align-items: center;
-	margin-bottom: 64rpx;
-}
-
-.header-title {
-	font-size: 52rpx;
-	font-weight: 700;
-	color: $color-text-primary;
 	margin-bottom: 20rpx;
 }
 
-.header-subtitle {
+.brand-logo {
+	width: 128rpx;
+	height: 128rpx;
+	border-radius: 24rpx;
+	margin-bottom: 32rpx;
+}
+
+.brand-title {
+	font-size: 52rpx;
+	font-weight: 700;
+	color: $edu-text-primary;
+	margin-bottom: 16rpx;
+}
+
+.brand-subtitle {
 	font-size: 28rpx;
-	color: $color-text-secondary;
-	margin-bottom: 40rpx;
+	color: $edu-text-secondary;
 }
 
-.header-section {
-	font-size: 26rpx;
-	color: $color-text-secondary;
+.section-tip {
+	position: relative;
+	z-index: 1;
+	display: block;
+	align-self: flex-start;
+	font-size: 30rpx;
+	color: $edu-text-secondary;
+	margin-top: 24rpx;
 }
 
-/* 表单区 */
 .form-area {
+	position: relative;
+	z-index: 1;
 	width: 100%;
 }
 
-.input-box {
+.auth-field {
 	display: flex;
 	align-items: center;
 	width: 100%;
-	height: 100rpx;
-	background-color: $color-card;
-	border-radius: 50rpx;
-	border: 2rpx solid $color-divider;
-	padding: 0 32rpx;
+	height: 96rpx;
+	border-radius: 48rpx;
+	border: 2rpx solid $edu-divider;
+	padding: 0 28rpx;
 	box-sizing: border-box;
-	margin-top: 32rpx;
+	margin-top: 28rpx;
 	transition: border-color 0.2s;
-	box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.03);
+	@include eduSurfaceWash;
 }
 
-.input-focused {
-	border-color: $color-primary;
-}
+.field-focused { border-color: $edu-primary; }
+.field-error   { border-color: $edu-accent-coral; }
 
-.input-error {
-	border-color: $color-error;
-}
-
-.input-icon {
-	width: 48rpx;
+.field-icon {
+	width: 44rpx;
 	display: flex;
 	align-items: center;
 	justify-content: center;
-	margin-right: 20rpx;
+	margin-right: 16rpx;
 }
 
-.icon-text {
-	font-size: 36rpx;
-}
+.icon-text { font-size: 32rpx; }
 
-.input-field {
+.field-input {
 	flex: 1;
-	height: 100rpx;
-	line-height: 100rpx;
+	height: 96rpx;
+	line-height: 96rpx;
 	font-size: 30rpx;
-	color: $color-text-primary;
+	color: $edu-text-primary;
 	background: transparent;
 	border: none;
 }
 
-.input-placeholder {
-	color: $color-text-placeholder;
+.field-placeholder {
+	color: $edu-text-hint;
 	font-size: 30rpx;
 }
 
 .eye-btn {
 	width: 64rpx;
-	height: 100rpx;
+	height: 96rpx;
 	display: flex;
 	align-items: center;
 	justify-content: center;
 }
 
-.eye-icon {
-	font-size: 36rpx;
-}
+.eye-icon { font-size: 32rpx; }
 
-/* 错误提示 */
 .error-text {
 	display: block;
-	font-size: 24rpx;
-	color: $color-error;
+	font-size: 26rpx;
+	color: $edu-error-text;
 	margin-top: 12rpx;
 	padding-left: 40rpx;
 }
 
-/* 记住我 / 忘记密码 */
 .options-row {
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
-	margin-top: 32rpx;
-	margin-bottom: 48rpx;
+	margin-top: 20rpx;
 	padding: 0 8rpx;
 }
 
 .checkbox-wrap {
 	display: flex;
 	align-items: center;
+	min-height: 44rpx;
 }
 
 .checkbox {
 	width: 36rpx;
 	height: 36rpx;
-	border: 2rpx solid $color-text-placeholder;
+	border: 2rpx solid $edu-text-hint;
 	border-radius: 6rpx;
 	display: flex;
 	align-items: center;
@@ -334,75 +327,74 @@ $color-divider: #EEEEEE;
 }
 
 .checkbox-checked {
-	background-color: $color-primary;
-	border-color: $color-primary;
+	background-color: $edu-primary;
+	border-color: $edu-primary;
 }
 
 .check-mark {
-	font-size: 24rpx;
+	font-size: 22rpx;
 	color: #FFFFFF;
 }
 
 .option-text {
 	font-size: 26rpx;
-	color: $color-text-secondary;
+	color: $edu-text-secondary;
 }
 
 .forgot-link {
-	font-size: 26rpx;
-	color: $color-primary;
+	font-size: 30rpx;
+	color: $edu-primary;
 }
 
-/* 登录按钮 */
 .login-btn {
 	width: 100%;
-	height: 100rpx;
+	height: 96rpx;
 	display: flex;
 	align-items: center;
 	justify-content: center;
-	background-color: $color-primary;
-	border-radius: 50rpx;
-	transition: background-color 0.15s;
+	border-radius: 48rpx;
+	margin-top: 40rpx;
+	transition: all 0.15s;
+	@include eduBrandGradient;
 	box-shadow: 0 8rpx 24rpx rgba(54, 119, 239, 0.3);
 }
 
 .btn-pressed {
-	background-color: $color-primary-press;
+	background: linear-gradient(135deg, #3677EF 0%, #2A5FD0 100%);
 }
 
 .btn-disabled {
-	background-color: $color-divider;
+	background: $edu-divider;
 	box-shadow: none;
 
-	.btn-text {
-		color: $color-text-placeholder;
-	}
+	.btn-text { color: $edu-text-hint; }
 }
 
 .btn-text {
 	font-size: 32rpx;
-	font-weight: 500;
+	font-weight: 600;
 	color: #FFFFFF;
 }
 
-/* 底部注册 */
 .footer-link {
+	position: relative;
+	z-index: 1;
 	display: flex;
 	align-items: center;
 	justify-content: center;
-	margin-top: 64rpx;
+	margin-top: 36rpx;
 	padding-bottom: 80rpx;
 }
 
 .footer-text {
 	font-size: 28rpx;
-	color: $color-text-secondary;
+	color: $edu-text-secondary;
 }
 
 .register-link {
 	font-size: 28rpx;
-	color: $color-primary;
-	font-weight: 500;
+	color: $edu-primary;
+	font-weight: 600;
 	margin-left: 8rpx;
 }
 </style>
