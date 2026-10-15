@@ -28,7 +28,15 @@
 				{
 					"path": "auth/login",
 					"style": {
-						"navigationBarTitleText": "账号登录"
+						"navigationBarTitleText": "账号登录",
+						"navigationStyle": "custom"
+					}
+				},
+				{
+					"path": "auth/register",
+					"style": {
+						"navigationBarTitleText": "账号注册",
+						"navigationStyle": "custom"
 					}
 				},
 				{
@@ -70,6 +78,118 @@
 					"path": "note/notes",
 					"style": {
 						"navigationBarTitleText": "笔记本",
+						"navigationStyle": "custom"
+					}
+				},
+				{
+					"path": "mine/blog-home",
+					"style": {
+						"navigationBarTitleText": "我的主页",
+						"navigationStyle": "custom"
+					}
+				},
+				{
+					"path": "mine/edit-profile",
+					"style": {
+						"navigationBarTitleText": "编辑主页",
+						"navigationStyle": "custom"
+					}
+				},
+				{
+					"path": "checkin/record",
+					"style": {
+						"navigationBarTitleText": "签到记录",
+						"navigationStyle": "custom"
+					}
+				},
+				{
+					"path": "checkin/points-rules",
+					"style": {
+						"navigationBarTitleText": "积分获取规则",
+						"navigationStyle": "custom"
+					}
+				},
+				{
+					"path": "mine/settings",
+					"style": {
+						"navigationBarTitleText": "设置",
+						"navigationStyle": "custom"
+					}
+				},
+				{
+					"path": "mine/courses",
+					"style": {
+						"navigationBarTitleText": "我的课程",
+						"navigationStyle": "custom"
+					}
+				},
+				{
+					"path": "mine/downloads",
+					"style": {
+						"navigationBarTitleText": "我的下载",
+						"navigationStyle": "custom"
+					}
+				},
+				{
+					"path": "article/my",
+					"style": {
+						"navigationBarTitleText": "我的发布",
+						"navigationStyle": "custom"
+					}
+				},
+				{
+					"path": "todo/todos",
+					"style": {
+						"navigationBarTitleText": "待办",
+						"navigationStyle": "custom"
+					}
+				},
+				{
+					"path": "article/detail",
+					"style": {
+						"navigationBarTitleText": "文章详情",
+						"navigationStyle": "custom"
+					}
+				},
+				{
+					"path": "article/publish",
+					"style": {
+						"navigationBarTitleText": "发布文章",
+						"navigationStyle": "custom"
+					}
+				},
+				{
+					"path": "article/tag",
+					"style": {
+						"navigationBarTitleText": "标签",
+						"navigationStyle": "custom"
+					}
+				},
+				{
+					"path": "search/search",
+					"style": {
+						"navigationBarTitleText": "搜索",
+						"navigationStyle": "custom"
+					}
+				},
+				{
+					"path": "notification/notification",
+					"style": {
+						"navigationBarTitleText": "通知",
+						"navigationStyle": "custom"
+					}
+				},
+				{
+					"path": "course/detail",
+					"style": {
+						"navigationBarTitleText": "课程详情",
+						"navigationStyle": "custom"
+					}
+				},
+				{
+					"path": "player/player",
+					"style": {
+						"navigationBarTitleText": "",
 						"navigationStyle": "custom"
 					}
 				}

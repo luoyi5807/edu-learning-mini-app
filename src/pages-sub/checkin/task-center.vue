@@ -67,6 +67,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { onLoad, onPageScroll } from '@dcloudio/uni-app'
+import { AD_FREE_PRODUCTS } from '@/composables/pointsRule'
 
 /* ===== 顶部栏高度（含状态栏 + 胶囊区） ===== */
 const statusBarHeight = ref<number>(0)
@@ -102,11 +103,11 @@ const todayTask = ref({ taskId: 1, taskName: '每日签到', checkinType: 1, rew
 const hasAdFree = ref<boolean>(false)
 const adFreeMinutes = ref<number>(0)
 
-// 兑换商品
+// 兑换商品（与积分规则页同源）
 interface ExchangeProduct { id: number; name: string; costPoints: number; minutes: number }
-const exchangeProducts = ref<ExchangeProduct[]>([
-  { id: 1, name: '免广告 30 分钟', costPoints: 10, minutes: 30 }
-])
+const exchangeProducts = ref<ExchangeProduct[]>(
+  AD_FREE_PRODUCTS.map((p, idx) => ({ id: idx + 1, name: p.label, costPoints: p.points, minutes: p.minutes }))
+)
 
 /* ===== 交互 ===== */
 function goBack() {
@@ -116,7 +117,7 @@ function goBack() {
 }
 
 function goRecord() {
-  uni.showToast({ title: '签到记录页开发中', icon: 'none' })
+  uni.navigateTo({ url: '/pages-sub/checkin/record' })
 }
 
 // POST checkins（checkinType=1 点击即签；此处乐观更新，失败回滚）
@@ -140,13 +141,7 @@ function handleCheckin() {
 }
 
 function showRules() {
-  uni.showModal({
-    title: '积分规则',
-    content: '1. 每日签到得积分，连续签到有额外奖励；\n2. 完成学习、发布文章等任务可获积分；\n3. 积分可兑换免广告时长，兑换后即时生效。',
-    showCancel: false,
-    confirmText: '知道了',
-    confirmColor: '#3677EF'
-  })
+  uni.navigateTo({ url: '/pages-sub/checkin/points-rules' })
 }
 
 function handleExchange(p: ExchangeProduct) {

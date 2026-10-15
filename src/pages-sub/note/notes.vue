@@ -62,15 +62,15 @@
     </view>
 
     <!-- 空态 -->
-    <view class="empty" v-else>
-      <text class="empty-text">还没有笔记，去记录第一篇吧</text>
-    </view>
+    <EmptyState v-else text="还没有笔记，去记录第一篇吧" />
   </view>
 </template>
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import { onLoad, onPageScroll } from '@dcloudio/uni-app'
+import { onLoad, onShow, onPageScroll } from '@dcloudio/uni-app'
+import EmptyState from '@/components/EmptyState.vue'
+import { getNotesApi, type NoteDto } from '@/api/notes'
 
 /* ===== 顶部栏高度（含状态栏 + 胶囊区） ===== */
 const statusBarHeight = ref<number>(0)
@@ -101,36 +101,25 @@ const filterTabs: FilterTab[] = [
 ]
 const activeFilter = ref<number>(0)
 
-/* ===== Mock 笔记（字段对齐 NoteDto，接口 GET notes?sourceType&keyword 零改动） ===== */
-interface Note {
-  noteId: number
-  title: string
-  summary: string
-  sourceType: number   // 1 文章  2 视频
-  sourceId: number
-  videoTimestamp?: string
-  createTime: string
+/* ===== 笔记数据：GET notes（api/notes.ts，详情页记笔记后自动同步） ===== */
+const notes = ref<NoteDto[]>([])
+
+async function loadNotes() {
+  notes.value = (await getNotesApi()) || []
 }
 
-const notes = ref<Note[]>([
-  { noteId: 1, title: '协程取消的三个关键点', summary: '1) 取消是协作式的\n2) 挂起点才会检查取消状态\n3) CancellationException 需捕获处理', sourceType: 1, sourceId: 101, createTime: '2026-09-17 21:30' },
-  { noteId: 2, title: 'JMM 与可见性', summary: 'volatile 保证可见性与有序性，不保证原子性。synchronized 三者都保证。', sourceType: 2, sourceId: 1, videoTimestamp: '22:00', createTime: '2026-09-16 20:15' },
-  { noteId: 3, title: '组合优于继承的实例', summary: '用策略模式替换掉三层继承，测试用例从 12 个减到 4 个。', sourceType: 2, sourceId: 5, videoTimestamp: '8:00', createTime: '2026-09-15 19:00' },
-  { noteId: 4, title: '接口设计笔记', summary: '分页统一用 pageNum/pageSize；写操作一律带幂等 Token。', sourceType: 1, sourceId: 103, createTime: '2026-09-13 11:20' }
-])
-
-const filteredNotes = computed<Note[]>(() => {
+const filteredNotes = computed<NoteDto[]>(() => {
   const kw = keyword.value.trim()
   return notes.value.filter((n) => {
     if (activeFilter.value !== 0 && n.sourceType !== activeFilter.value) return false
-    if (kw && !(n.title.includes(kw) || n.summary.includes(kw))) return false
+    if (kw && !(n.title.includes(kw) || (n.summary || '').includes(kw))) return false
     return true
   })
 })
 
 // 奇偶分列，还原两列错落瀑布流
-const leftList = computed<Note[]>(() => filteredNotes.value.filter((_, i) => i % 2 === 0))
-const rightList = computed<Note[]>(() => filteredNotes.value.filter((_, i) => i % 2 === 1))
+const leftList = computed<NoteDto[]>(() => filteredNotes.value.filter((_, i) => i % 2 === 0))
+const rightList = computed<NoteDto[]>(() => filteredNotes.value.filter((_, i) => i % 2 === 1))
 
 /* ===== 交互 ===== */
 function goBack() {
@@ -140,17 +129,17 @@ function goBack() {
 }
 
 // 视频笔记 → 播放器对应进度；文章笔记 → 文章详情
-function openNote(n: Note) {
+function openNote(n: NoteDto) {
   if (n.sourceType === 2) {
     uni.showToast({ title: `跳播放器进度 ${n.videoTimestamp}（开发中）`, icon: 'none' })
   } else {
-    uni.showToast({ title: `文章详情开发中`, icon: 'none' })
+    uni.navigateTo({ url: `/pages-sub/article/detail?articleId=${n.sourceId}` })
   }
 }
 
 onLoad(() => {
-  // 接口接入：GET notes?sourceType=&keyword=
 })
+onShow(() => { loadNotes() })
 </script>
 
 <style lang="scss" scoped>

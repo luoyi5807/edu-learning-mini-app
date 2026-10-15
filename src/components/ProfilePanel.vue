@@ -1,6 +1,6 @@
 <template>
   <view class="profile-panel">
-    <view class="profile-card" @tap="handleEditProfile">
+    <view class="profile-card" @tap="handleGoBlogHome">
       <view v-if="profileLoading" class="profile-loading">
         <text class="profile-loading-text">正在加载资料…</text>
       </view>
@@ -56,38 +56,143 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, reactive, onMounted, onUnmounted } from 'vue'
+import { useAuthStore } from '@/store/auth'
+import { getSignCalendarApi, resolveFileUrl } from '@/api/user'
+import { todayKey } from '@/config/apiStatus'
+import { getToken } from '@/utils/request'
 
+const auth = useAuthStore()
 const profileLoading = ref<boolean>(false)
-const user = ref({
-  nickname: '张三',
-  avatar: '',
-  avatarChar: '张',
-  bio: '热爱学习，正在补 Android 和算法。',
-  gender: '男',
-  fansCount: 356,
-  continueSignDay: 7,
-  signedToday: false
+
+const user = reactive({
+	nickname: '',
+	avatar: '',
+	avatarChar: '',
+	bio: '',
+	gender: '未知',
+	fansCount: 0,
+	continueSignDay: 0,
+	signedToday: false
 })
 
 function formatCount(n: number): string {
-  if (n >= 10000) return (n / 10000).toFixed(1) + '万'
-  return String(n)
+	if (n >= 10000) return (n / 10000).toFixed(1) + '万'
+	return String(n)
+}
+
+function resolveGender(sex?: string): string {
+	if (sex === '0') return '男'
+	if (sex === '1') return '女'
+	return '未知'
+}
+
+async function loadProfile() {
+	profileLoading.value = true
+	try {
+		if (!auth.state.user) await auth.fetchUserInfo()
+		const u = auth.state.user
+		if (u) {
+			user.nickname = u.nickName || u.userName || '用户'
+			user.avatarChar = (user.nickname || 'U').charAt(0)
+			user.avatar = resolveFileUrl(u.avatar)
+			user.gender = resolveGender(u.sex)
+			user.bio = u.remark || '还没有个人简介~'
+		} else {
+			user.nickname = '未登录'
+			user.avatarChar = '客'
+		}
+		await loadSignInfo()
+	} catch (e: any) {
+		// 蓝本 4.7：错误文案需区分「未登录」与「网络问题」
+		if (!getToken()) {
+			user.nickname = '未登录'
+			user.avatarChar = '客'
+			user.bio = '登录后可查看学习进度与签到记录'
+		} else if (e && (e.code === 401 || e.code === 403)) {
+			user.nickname = '登录已过期'
+			user.avatarChar = '客'
+			user.bio = '请重新登录后再试'
+		} else {
+			user.nickname = '资料加载失败'
+			user.avatarChar = '客'
+			user.bio = '网络连接异常，请检查后端服务是否已启动'
+		}
+	} finally {
+		profileLoading.value = false
+	}
+}
+
+/** 连续签到天数与今日签到状态：GET user/sign-calendar（API_READY 控制真假） */
+async function loadSignInfo() {
+	const t = new Date()
+	const res = await getSignCalendarApi(t.getFullYear(), t.getMonth() + 1)
+	user.continueSignDay = res.continueSignDay || 0
+	user.signedToday = (res.signedDates || []).indexOf(todayKey()) >= 0
+}
+
+onMounted(() => {
+	loadProfile()
+	uni.$on('profile:updated', loadProfile)
+	uni.$on('panel:refresh', handlePanelRefresh)
+})
+
+onUnmounted(() => {
+	uni.$off('profile:updated', loadProfile)
+	uni.$off('panel:refresh', handlePanelRefresh)
+})
+
+/** 从签到页返回时 Tab 不会重建，靠事件主动刷新签到状态 */
+function handlePanelRefresh() {
+	loadSignInfo()
 }
 
 interface MenuItem { key: string; label: string; icon?: string }
 const menuGroup1: MenuItem[] = [
-  { key: 'task', label: '任务中心', icon: '📋' },
+  { key: 'courses', label: '我的课程', icon: '🎬' },
   { key: 'stats', label: '学习数据', icon: '📊' },
+  { key: 'articles', label: '我的文章', icon: '📝' },
   { key: 'history', label: '观看历史', icon: '🕐' },
   { key: 'favorites', label: '我的收藏', icon: '⭐' },
   { key: 'likes', label: '我的点赞', icon: '❤️' },
-  { key: 'notes', label: '笔记本', icon: '📖' }
+  { key: 'downloads', label: '我的下载', icon: '⬇️' },
+  { key: 'notes', label: '笔记本', icon: '📖' },
+  { key: 'todos', label: '待办', icon: '✅' },
+  { key: 'task', label: '任务中心', icon: '📋' }
 ]
 
 function handleMenuTap(item: MenuItem) {
+  if (item.key === 'logout') {
+    uni.showModal({
+      title: '提示',
+      content: '确定要退出登录吗？',
+      success: async (r) => {
+        if (r.confirm) {
+          await auth.logout()
+          uni.reLaunch({ url: '/pages-sub/auth/login' })
+        }
+      }
+    })
+    return
+  }
   if (item.key === 'task') {
     uni.navigateTo({ url: '/pages-sub/checkin/task-center' })
+    return
+  }
+  if (item.key === 'courses') {
+    uni.navigateTo({ url: '/pages-sub/mine/courses' })
+    return
+  }
+  if (item.key === 'articles') {
+    uni.navigateTo({ url: '/pages-sub/article/my' })
+    return
+  }
+  if (item.key === 'downloads') {
+    uni.navigateTo({ url: '/pages-sub/mine/downloads' })
+    return
+  }
+  if (item.key === 'todos') {
+    uni.navigateTo({ url: '/pages-sub/todo/todos' })
     return
   }
   if (item.key === 'stats') {
@@ -110,10 +215,15 @@ function handleMenuTap(item: MenuItem) {
     uni.navigateTo({ url: '/pages-sub/mine/likes' })
     return
   }
+  if (item.key === 'settings') {
+    uni.navigateTo({ url: '/pages-sub/mine/settings' })
+    return
+  }
   uni.showToast({ title: `${item.label}开发中`, icon: 'none' })
 }
-function handleEditProfile() { uni.showToast({ title: '编辑资料开发中', icon: 'none' }) }
-function handleCheckin() { uni.showToast({ title: '签到页开发中', icon: 'none' }) }
+
+function handleGoBlogHome() { uni.navigateTo({ url: '/pages-sub/mine/blog-home' }) }
+function handleCheckin() { uni.navigateTo({ url: '/pages-sub/checkin/task-center' }) }
 </script>
 
 <style lang="scss" scoped>

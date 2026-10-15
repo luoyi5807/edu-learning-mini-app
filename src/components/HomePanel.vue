@@ -10,6 +10,7 @@
       </view>
       <view class="bell-btn" @tap="handleNotification">
         <text class="bell-icon">🔔</text>
+        <view class="bell-dot" v-if="hasUnread"></view>
       </view>
     </view>
 
@@ -118,6 +119,9 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import type { Course, CourseCategory } from '@/types/course'
+import { useNotification } from '@/composables/useNotification'
+
+const { hasUnread } = useNotification()
 
 const categories = ref<CourseCategory[]>([
   { categoryId: 0, categoryName: '全部' },
@@ -162,11 +166,11 @@ function onSwiperTouchStart() {
   if (resumeTimer) clearTimeout(resumeTimer)
   resumeTimer = setTimeout(() => { swiperAutoplay.value = true }, 8000)
 }
-function goSearch() { uni.showToast({ title: '搜索页开发中', icon: 'none' }) }
+function goSearch() { uni.navigateTo({ url: '/pages-sub/search/search?type=2' }) }
 function handleMenu() { uni.showToast({ title: '侧边栏开发中', icon: 'none' }) }
-function handleNotification() { uni.showToast({ title: '消息通知开发中', icon: 'none' }) }
+function handleNotification() { uni.navigateTo({ url: '/pages-sub/notification/notification' }) }
 function handleViewAll() { uni.showToast({ title: '全部分类开发中', icon: 'none' }) }
-function handleCourseTap(course: Course) { uni.showToast({ title: `课程详情开发中：${course.title}`, icon: 'none' }) }
+function handleCourseTap(course: Course) { uni.navigateTo({ url: `/pages-sub/course/detail?courseId=${course.courseId}` }) }
 function handleLoadMore() { if (!loadingMore.value) uni.showToast({ title: '加载更多（接口待接入）', icon: 'none' }) }
 </script>
 
@@ -181,8 +185,9 @@ function handleLoadMore() { if (!loadingMore.value) uni.showToast({ title: '加�
 .search-box { flex: 1; display: flex; align-items: center; height: 80rpx; border-radius: 40rpx; margin: 0 8rpx; padding: 0 24rpx; @include eduSurfaceWash; }
 .search-placeholder-text { flex: 1; font-size: 28rpx; color: $edu-text-hint; }
 .search-icon { font-size: 40rpx; color: $edu-primary; }
-.bell-btn { width: 88rpx; height: 88rpx; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.bell-btn { position: relative; width: 88rpx; height: 88rpx; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
 .bell-icon { font-size: 38rpx; }
+.bell-dot { position: absolute; top: 20rpx; right: 22rpx; width: 16rpx; height: 16rpx; border-radius: 50%; background-color: $edu-accent-coral; }
 .category-tabs { margin-top: 8rpx; white-space: nowrap; }
 .tabs-inner { display: inline-flex; align-items: center; }
 .tab-pill { flex-shrink: 0; display: flex; align-items: center; justify-content: center; height: 72rpx; padding: 0 40rpx; border-radius: 36rpx; margin-right: 16rpx; @include eduSurfaceWash; }

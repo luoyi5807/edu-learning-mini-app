@@ -22,6 +22,10 @@
             <view class="bell-dot" v-if="hasUnread"></view>
           </view>
         </view>
+        <view v-else-if="activeTab === 'video'" class="nav-head">
+          <text class="page-title page-title-video">视频</text>
+          <view class="video-search-btn" @tap="goVideoSearch"><text class="video-search-icon">🔍</text></view>
+        </view>
         <view v-else class="nav-head">
           <text class="page-title">{{ currentTabLabel }}</text>
         </view>
@@ -35,9 +39,12 @@
     <scroll-view class="panel" scroll-y :style="{ top: panelTop }" :hidden="activeTab !== 'profile'" @scroll="onScroll">
       <ProfilePanel />
     </scroll-view>
-    <scroll-view class="panel" scroll-y :style="{ top: panelTop }" :hidden="!isOtherTab" @scroll="onScroll">
-      <view class="coming-soon"><text class="coming-soon-text">{{ currentTabLabel }}模块开发中</text></view>
+    <scroll-view class="panel" scroll-y :style="{ top: panelTop }" :hidden="activeTab !== 'community'" @scroll="onScroll">
+      <CommunityPanel />
     </scroll-view>
+    <view class="video-host" v-show="activeTab === 'video'">
+      <VideoPanel />
+    </view>
 
     <!-- 常驻底部导航（四色规范） -->
     <view class="tab-bar">
@@ -58,8 +65,12 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
+import { onShow } from '@dcloudio/uni-app'
 import HomePanel from '@/components/HomePanel.vue'
 import ProfilePanel from '@/components/ProfilePanel.vue'
+import CommunityPanel from '@/components/CommunityPanel.vue'
+import VideoPanel from '@/components/VideoPanel.vue'
+import { useNotification } from '@/composables/useNotification'
 
 /* ===== 固定栏高度（含状态栏 + 胶囊区） ===== */
 const statusBarHeight = ref<number>(0)
@@ -89,21 +100,27 @@ const tabs: TabItem[] = [
 ]
 
 const currentTabLabel = computed<string>(() => tabs.find((t) => t.key === activeTab.value)?.label || '')
-const isOtherTab = computed<boolean>(() => activeTab.value === 'video' || activeTab.value === 'community')
 
 function handleTabChange(tab: TabItem) {
   if (tab.key === activeTab.value) return
   activeTab.value = tab.key
-  scrollTop.value = 0
+  // 面板常驻不销毁，真实滚动位置仍在原位：不重置 scrollTop，交给 @scroll 反映
+  if (tab.key === 'profile') uni.$emit('panel:refresh')
 }
 
 /* ===== 顶栏滚动变白 ===== */
 const scrollTop = ref<number>(0)
-const navBarOpaque = computed<boolean>(() => scrollTop.value > 40)
+const navBarOpaque = computed<boolean>(() => activeTab.value !== 'video' && scrollTop.value > 40)
 function onScroll(e: any) { scrollTop.value = e.detail.scrollTop }
 
-const hasUnread = ref<boolean>(true)
-function handleNotification() { uni.showToast({ title: '消息通知开发中', icon: 'none' }) }
+/* ===== 通知入口：动态未读红点 + 跳转通知页 ===== */
+const { hasUnread, refreshUnread } = useNotification()
+function handleNotification() { uni.navigateTo({ url: '/pages-sub/notification/notification' }) }
+function goVideoSearch() { uni.navigateTo({ url: '/pages-sub/search/search?type=2' }) }
+
+// 从通知页返回时刷新未读，红点随真实未读数显隐（非固定）
+onShow(() => { refreshUnread() })
+
 </script>
 
 <style lang="scss" scoped>
@@ -132,6 +149,9 @@ function handleNotification() { uni.showToast({ title: '消息通知开发中', 
 
 .nav-head { display: flex; align-items: center; justify-content: space-between; width: 100%; }
 .page-title { font-size: 40rpx; font-weight: 700; color: $edu-text-primary; }
+.page-title-video { color: #FFFFFF; }
+.video-search-btn { width: 72rpx; height: 72rpx; display: flex; align-items: center; justify-content: center; }
+.video-search-icon { font-size: 40rpx; color: #FFFFFF; }
 .bell-btn { position: relative; width: 72rpx; height: 72rpx; display: flex; align-items: center; justify-content: center; }
 .bell-icon { font-size: 40rpx; }
 .bell-dot { position: absolute; top: 14rpx; right: 16rpx; width: 14rpx; height: 14rpx; border-radius: 50%; background-color: $edu-accent-coral; }
@@ -142,6 +162,18 @@ function handleNotification() { uni.showToast({ title: '消息通知开发中', 
   right: 0;
   bottom: 0;
   box-sizing: border-box;
+}
+
+.video-host {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: calc(96rpx + env(safe-area-inset-bottom));
+  background-color: #000000;
+  /* 不设 z-index：避免创建独立堆叠上下文；DOM 顺序在 .panel 之后，
+     仍会绘制在其上方，同时允许后代里的 position:fixed 弹层（如 CommentsSheet）
+     在根堆叠上下文中比较 z-index，正常盖过 z-index:100 的 .tab-bar。 */
 }
 
 .coming-soon { height: 60vh; display: flex; align-items: center; justify-content: center; }

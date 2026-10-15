@@ -50,6 +50,28 @@
 			</view>
 			<text v-if="pwdError" class="error-text">{{ pwdErrorText }}</text>
 
+			<!-- 验证码（后端 sys.account.captchaEnabled 开启时显示） -->
+			<view v-if="captchaEnabled" class="auth-field captcha-field">
+				<view class="field-icon"><text class="icon-text">🛡</text></view>
+				<input
+					class="field-input"
+					v-model="captchaCode"
+					placeholder="验证码"
+					placeholder-class="field-placeholder"
+					maxlength="6"
+				/>
+				<image
+					v-if="captchaImg"
+					class="captcha-img"
+					:src="captchaImg"
+					mode="aspectFill"
+					@tap="loadCaptcha"
+				/>
+				<view v-else class="captcha-img captcha-img-empty" @tap="loadCaptcha">
+					<text class="captcha-empty-text">点击获取</text>
+				</view>
+			</view>
+
 			<!-- 记住我 / 忘记密码 -->
 			<view class="options-row">
 				<view class="checkbox-wrap" @tap="rememberMe = !rememberMe">
@@ -60,6 +82,8 @@
 				</view>
 				<text class="forgot-link" @tap="handleForgot">忘记密码</text>
 			</view>
+
+			<text v-if="loginError" class="error-text">{{ loginError }}</text>
 
 			<!-- 主按钮（loading 变「登录中...」并禁用） -->
 			<view
@@ -84,6 +108,11 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
+import { onLoad } from '@dcloudio/uni-app'
+import { useAuthStore } from '@/store/auth'
+import { fetchCaptcha } from '@/api/auth'
+
+const auth = useAuthStore()
 
 const username = ref<string>('')
 const password = ref<string>('')
@@ -98,6 +127,30 @@ const pwdErrorText = ref<string>('')
 const passwordVisible = ref<boolean>(false)
 const btnPressed = ref<boolean>(false)
 const loading = ref<boolean>(false)
+
+/* ===== 验证码（后端开启时启用） ===== */
+const captchaEnabled = ref<boolean>(false)
+const captchaImg = ref<string>('')
+const captchaUuid = ref<string>('')
+const captchaCode = ref<string>('')
+const loginError = ref<string>('')
+
+async function loadCaptcha() {
+	try {
+		const res: any = await fetchCaptcha()
+		captchaEnabled.value = !!res.captchaEnabled
+		if (res.captchaEnabled) {
+			captchaUuid.value = res.uuid || ''
+			captchaImg.value = 'data:image/jpeg;base64,' + (res.img || '')
+		}
+	} catch (e) {
+		captchaEnabled.value = false
+	}
+}
+
+onLoad(() => {
+	loadCaptcha()
+})
 
 function validateUsername(): boolean {
 	if (!username.value) {
@@ -142,23 +195,39 @@ function togglePasswordVisibility() {
 	passwordVisible.value = !passwordVisible.value
 }
 
-function handleLogin() {
+async function handleLogin() {
 	if (loading.value) return
+	loginError.value = ''
 	if (!isFormValid.value) {
 		validateUsername()
 		validatePassword()
 		return
 	}
+	if (captchaEnabled.value && !captchaCode.value) {
+		loginError.value = '请输入验证码'
+		return
+	}
 	loading.value = true
-	// TODO: 接入 POST /api/v1/auth/login 后替换此段
-	setTimeout(() => {
-		uni.setStorageSync('accessToken', 'mock-token-' + Date.now())
-		loading.value = false
-		uni.showToast({ title: '登录成功（mock）', icon: 'success', duration: 800 })
+	try {
+		await auth.login({
+			username: username.value,
+			password: password.value,
+			code: captchaCode.value,
+			uuid: captchaUuid.value
+		})
+		uni.showToast({ title: '登录成功', icon: 'success', duration: 800 })
 		setTimeout(() => {
 			uni.reLaunch({ url: '/pages/index/index' })
 		}, 800)
-	}, 1200)
+	} catch (e: any) {
+		loginError.value = (e && e.msg) ? e.msg : '登录失败，请检查账号密码或后端服务'
+		// 验证码一次性有效，失败后重新获取
+		if (captchaEnabled.value) {
+			captchaCode.value = ''
+			loadCaptcha()
+		}
+		loading.value = false
+	}
 }
 
 function handleForgot() {
@@ -292,6 +361,23 @@ function goToRegister() {
 }
 
 .eye-icon { font-size: 32rpx; }
+
+/* 验证码 */
+.captcha-field { padding-right: 12rpx; }
+.captcha-img {
+	width: 200rpx;
+	height: 72rpx;
+	border-radius: 12rpx;
+	margin-left: 16rpx;
+	background-color: #F0F3F8;
+	flex-shrink: 0;
+}
+.captcha-img-empty {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+.captcha-empty-text { font-size: 22rpx; color: $edu-text-hint; }
 
 .error-text {
 	display: block;

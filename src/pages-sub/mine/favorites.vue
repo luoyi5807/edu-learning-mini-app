@@ -45,9 +45,7 @@
     </view>
 
     <!-- 空态 -->
-    <view class="empty" v-else>
-      <text class="empty-text">还没有收藏内容</text>
-    </view>
+    <EmptyState v-else text="还没有收藏内容" action-text="去逛逛社区" @action="goCommunity" />
 
     <!-- 加载更多 / 没有更多了 -->
     <view class="load-more" v-if="filteredList.length > 0 && hasMore" @tap="handleLoadMore">
@@ -62,6 +60,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { onLoad, onPageScroll } from '@dcloudio/uni-app'
+import EmptyState from '@/components/EmptyState.vue'
 
 /* ===== 顶部栏高度（含状态栏 + 胶囊区） ===== */
 const statusBarHeight = ref<number>(0)
@@ -124,6 +123,10 @@ function goBack() {
   } else {
     uni.reLaunch({ url: '/pages/index/index' })
   }
+}
+
+function goCommunity() {
+  uni.switchTab ? uni.reLaunch({ url: '/pages/index/index' }) : uni.reLaunch({ url: '/pages/index/index' })
 }
 
 // 蓝本通用跳转规则：targetType==1 文章详情，否则课程详情
@@ -243,10 +246,6 @@ onLoad(() => {
   font-size: 26rpx;
   color: $edu-text-hint;
 }
-
-/* ===== 空态 ===== */
-.empty { padding: 160rpx 0; display: flex; justify-content: center; }
-.empty-text { font-size: 28rpx; color: $edu-text-hint; }
 
 /* ===== 加载更多 ===== */
 .load-more { padding: 40rpx 0; display: flex; justify-content: center; }
