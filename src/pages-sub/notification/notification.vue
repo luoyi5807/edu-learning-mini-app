@@ -129,7 +129,7 @@ async function handleOpen(n: NotificationDto) {
     unreadMap.value = { ...unreadMap.value, [n.type]: Math.max(0, (unreadMap.value[n.type] || 0) - 1) }
     refreshUnread()
   }
-  if (n.type === 3) {
+  if (n.type === 4) {
     // 关注：跳对方主页
     if (n.actorUserId) uni.navigateTo({ url: `/pages-sub/mine/blog-home?userId=${n.actorUserId}` })
     return
@@ -187,7 +187,7 @@ onShow(() => { loadUnreadBadges() })
 
 /* ===== 分类 Tab ===== */
 .type-tabs { margin-top: 24rpx; white-space: nowrap; }
-.type-tabs-inner { display: inline-flex; align-items: center; }
+.type-tabs-inner { display: inline-flex; align-items: center; padding-right: 8rpx; }
 .type-pill {
   position: relative;
   flex-shrink: 0;
@@ -195,9 +195,9 @@ onShow(() => { loadUnreadBadges() })
   align-items: center;
   justify-content: center;
   height: 72rpx;
-  padding: 0 40rpx;
+  padding: 0 28rpx;
   border-radius: 36rpx;
-  margin-right: 20rpx;
+  margin-right: 14rpx;
   @include eduSurfaceWash;
   box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.03);
 }

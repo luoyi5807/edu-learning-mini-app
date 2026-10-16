@@ -14,36 +14,25 @@
     </view>
 
     <!-- 说明文字（左对齐） -->
-    <text class="section-tip">使用账号注册</text>
+    <text class="section-tip">使用手机号注册</text>
 
     <!-- 表单区 -->
     <view class="form-area">
-      <!-- 用户名 -->
+      <!-- 手机号 -->
       <view class="auth-field" :class="{ 'field-focused': userFocused, 'field-error': userError }">
-        <view class="field-icon"><text class="icon-text">👤</text></view>
+        <view class="field-icon"><text class="icon-text">📱</text></view>
         <input
             class="field-input"
-            v-model="username"
-            placeholder="用户名"
+            v-model="phone"
+            type="number"
+            maxlength="11"
+            placeholder="手机号"
             placeholder-class="field-placeholder"
             @focus="userFocused = true"
             @blur="handleUserBlur"
         />
       </view>
       <text v-if="userError" class="error-text">{{ userErrorText }}</text>
-
-      <!-- 昵称（C 端注册必填） -->
-      <view class="auth-field" :class="{ 'field-focused': nickFocused }">
-        <view class="field-icon"><text class="icon-text">🙂</text></view>
-        <input
-            class="field-input"
-            v-model="nickname"
-            placeholder="昵称"
-            placeholder-class="field-placeholder"
-            @focus="nickFocused = true"
-            @blur="nickFocused = false"
-        />
-      </view>
 
       <!-- 密码 -->
       <view class="auth-field" :class="{ 'field-focused': pwdFocused, 'field-error': pwdError }">
@@ -81,28 +70,6 @@
       </view>
       <text v-if="confirmError" class="error-text">{{ confirmErrorText }}</text>
 
-      <!-- 验证码（后端 sys.account.captchaEnabled 开启时显示） -->
-      <view v-if="captchaEnabled" class="auth-field captcha-field">
-        <view class="field-icon"><text class="icon-text">🛡</text></view>
-        <input
-            class="field-input"
-            v-model="captchaCode"
-            placeholder="验证码"
-            placeholder-class="field-placeholder"
-            maxlength="6"
-        />
-        <image
-            v-if="captchaImg"
-            class="captcha-img"
-            :src="captchaImg"
-            mode="aspectFill"
-            @tap="loadCaptcha"
-        />
-        <view v-else class="captcha-img captcha-img-empty" @tap="loadCaptcha">
-          <text class="captcha-empty-text">点击获取</text>
-        </view>
-      </view>
-
       <text v-if="registerError" class="error-text">{{ registerError }}</text>
 
       <!-- 主按钮（loading 变「注册中...」并禁用） -->
@@ -128,15 +95,11 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import { onLoad } from '@dcloudio/uni-app'
-import { registerApi, fetchCaptcha } from '@/api/auth'
+import { registerApi } from '@/api/auth'
 
-const username = ref<string>('')
-const nickname = ref<string>('')
+const phone = ref<string>('')
 const password = ref<string>('')
 const confirmPassword = ref<string>('')
-
-const nickFocused = ref<boolean>(false)
 
 const userFocused = ref<boolean>(false)
 const pwdFocused = ref<boolean>(false)
@@ -152,38 +115,16 @@ const confirmVisible = ref<boolean>(false)
 const btnPressed = ref<boolean>(false)
 const loading = ref<boolean>(false)
 
-/* ===== 验证码（后端开启时启用） ===== */
-const captchaEnabled = ref<boolean>(false)
-const captchaImg = ref<string>('')
-const captchaUuid = ref<string>('')
-const captchaCode = ref<string>('')
 const registerError = ref<string>('')
 
-async function loadCaptcha() {
-  try {
-    const res: any = await fetchCaptcha()
-    captchaEnabled.value = !!res.captchaEnabled
-    if (res.captchaEnabled) {
-      captchaUuid.value = res.uuid || ''
-      captchaImg.value = 'data:image/jpeg;base64,' + (res.img || '')
-    }
-  } catch (e) {
-    captchaEnabled.value = false
-  }
-}
-
-onLoad(() => {
-  loadCaptcha()
-})
-
-function validateUsername(): boolean {
-  if (!username.value) {
-    userErrorText.value = '用户名不能为空'
+function validatePhone(): boolean {
+  if (!phone.value) {
+    userErrorText.value = '手机号不能为空'
     userError.value = true
     return false
   }
-  if (username.value.length < 2 || username.value.length > 20) {
-    userErrorText.value = '用户名长度为 2-20 个字符'
+  if (!/^1[3-9]\d{9}$/.test(phone.value)) {
+    userErrorText.value = '请输入正确的手机号'
     userError.value = true
     return false
   }
@@ -222,12 +163,12 @@ function validateConfirmPassword(): boolean {
 }
 
 const isFormValid = computed<boolean>(() => {
-  return !!username.value && !!nickname.value.trim() && password.value.length >= 6 && confirmPassword.value.length >= 6
+  return /^1[3-9]\d{9}$/.test(phone.value) && password.value.length >= 6 && confirmPassword.value.length >= 6
 })
 
 function handleUserBlur() {
   userFocused.value = false
-  if (username.value) validateUsername()
+  if (phone.value) validatePhone()
 }
 
 function handlePwdBlur() {
@@ -252,36 +193,25 @@ async function handleRegister() {
   if (loading.value) return
   registerError.value = ''
   if (!isFormValid.value) {
-    validateUsername()
+    validatePhone()
     validatePassword()
     validateConfirmPassword()
     return
   }
   if (!validateConfirmPassword()) return
-  if (captchaEnabled.value && !captchaCode.value) {
-    registerError.value = '请输入验证码'
-    return
-  }
   loading.value = true
   try {
     await registerApi({
-      username: username.value,
+      phone: phone.value,
       password: password.value,
-      nickname: nickname.value.trim(),
-      code: captchaCode.value,
-      uuid: captchaUuid.value
+      confirmPassword: confirmPassword.value
     })
-    uni.showToast({ title: '注册成功', icon: 'success', duration: 800 })
+    uni.showToast({ title: '注册成功，请登录', icon: 'success', duration: 800 })
     setTimeout(() => {
       uni.navigateBack()
     }, 800)
   } catch (e: any) {
     registerError.value = (e && e.msg) ? e.msg : '注册失败，请稍后重试或检查后端服务'
-    // 验证码一次性有效，失败后重新获取
-    if (captchaEnabled.value) {
-      captchaCode.value = ''
-      loadCaptcha()
-    }
     loading.value = false
   }
 }

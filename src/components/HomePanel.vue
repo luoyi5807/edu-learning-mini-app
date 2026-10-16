@@ -28,6 +28,30 @@
       </view>
     </scroll-view>
 
+    <view v-if="loading" class="state-block"><text class="state-text">加载中…</text></view>
+    <view v-else-if="error" class="state-block" @tap="retry"><text class="state-text state-text-error">{{ error }}，点击重试</text></view>
+    <view v-else-if="courses.length === 0" class="state-block"><text class="state-text">暂无课程数据</text></view>
+
+    <view v-else class="courses-body">
+    <view class="section-header">
+      <text class="section-title">课程分类</text>
+      <text class="section-more" @tap="handleViewAll">查看全部</text>
+    </view>
+
+    <scroll-view class="category-tabs" scroll-x :show-scrollbar="false">
+      <view class="tabs-inner">
+        <view
+            v-for="item in categories"
+            :key="item.categoryId"
+            class="tab-pill"
+            :class="{ 'tab-pill-active': activeCategoryId === item.categoryId }"
+            @tap="activeCategoryId = item.categoryId"
+        >
+          <text class="tab-pill-text">{{ item.categoryName }}</text>
+        </view>
+      </view>
+    </scroll-view>
+
     <view class="section-header">
       <text class="section-title">课程分类</text>
       <text class="section-more" @tap="handleViewAll">查看全部</text>
@@ -51,7 +75,7 @@
             <view v-else class="banner-cover banner-cover-placeholder"></view>
             <view class="banner-info">
               <text class="banner-title">{{ course.title }}</text>
-              <text class="banner-sub">{{ course.instructorName }} · {{ formatCount(course.studentCount) }} 人在学</text>
+              <text class="banner-sub">{{ course.categoryName }} · {{ formatCount(course.likeCount || 0) }} 人点赞</text>
             </view>
           </view>
         </swiper-item>
@@ -77,7 +101,7 @@
         </view>
         <view class="hot-meta">
           <text class="hot-title">{{ course.title }}</text>
-          <text class="hot-count">{{ course.studentCount > 0 ? formatCount(course.studentCount) + '人正在学' : '新上线' }}</text>
+          <text class="hot-count">{{ course.averageScore ? course.averageScore.toFixed(1) + ' 分 · ' + (course.ratingCount || 0) + ' 人评分' : '暂无评分' }}</text>
         </view>
       </view>
     </view>
@@ -94,7 +118,7 @@
           </view>
           <view class="rank-meta">
             <text class="rank-title">{{ course.title }}</text>
-            <text class="rank-instructor">讲师：{{ course.instructorName }}</text>
+            <text class="rank-instructor">分类：{{ course.categoryName }}</text>
           </view>
         </view>
       </view>
@@ -113,12 +137,14 @@
     <view class="load-more load-more-end" v-else>
       <text class="load-more-text">没有更多了</text>
     </view>
+    </view>
   </view>
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import type { Course, CourseCategory } from '@/types/course'
+import { getCourseListApi } from '@/api/course'
 import { useNotification } from '@/composables/useNotification'
 
 const { hasUnread } = useNotification()
@@ -130,20 +156,18 @@ const categories = ref<CourseCategory[]>([
   { categoryId: 3, categoryName: 'IT 解决方案' }
 ])
 
-const courses = ref<Course[]>([
-  { courseId: 1, title: 'Machine Learning 从入门到实战', coverUrl: '', instructorName: '张老师', studentCount: 1200, categoryId: 3, categoryName: 'IT 解决方案', videoType: 2, isFree: 1 },
-  { courseId: 2, title: 'Data Science 数据分析实战', coverUrl: '', instructorName: '李老师', studentCount: 960, categoryId: 3, categoryName: 'IT 解决方案', videoType: 2, isFree: 0 },
-  { courseId: 3, title: 'UI 设计从零基础到精通', coverUrl: '', instructorName: '王老师', studentCount: 680, categoryId: 1, categoryName: '艺术', videoType: 2, isFree: 1 },
-  { courseId: 4, title: '创业融资与商业计划书', coverUrl: '', instructorName: '陈老师', studentCount: 450, categoryId: 2, categoryName: '商业', videoType: 2, isFree: 0 },
-  { courseId: 5, title: 'Python 编程基础入门', coverUrl: '', instructorName: '刘老师', studentCount: 1500, categoryId: 3, categoryName: 'IT 解决方案', videoType: 1, isFree: 1 },
-  { courseId: 6, title: '品牌视觉与平面设计实务', coverUrl: '', instructorName: '赵老师', studentCount: 0, categoryId: 1, categoryName: '艺术', videoType: 2, isFree: 1 }
-])
+const courses = ref<Course[]>([])
 
 const activeCategoryId = ref<number>(0)
 const swiperIndex = ref<number>(0)
 const swiperAutoplay = ref<boolean>(true)
-const hasMore = ref<boolean>(false)
+const loading = ref<boolean>(false)
+const error = ref<string>('')
 const loadingMore = ref<boolean>(false)
+const total = ref<number>(0)
+const pageNum = ref<number>(1)
+const PAGE_SIZE = 10
+const hasMore = computed<boolean>(() => courses.value.length < total.value)
 let resumeTimer: ReturnType<typeof setTimeout> | null = null
 
 const filteredCourses = computed<Course[]>(() => {
@@ -151,9 +175,45 @@ const filteredCourses = computed<Course[]>(() => {
   return courses.value.filter((c) => c.categoryId === activeCategoryId.value)
 })
 const bannerCourses = computed<Course[]>(() => filteredCourses.value)
-const sortedByHot = computed<Course[]>(() => [...filteredCourses.value].sort((a, b) => b.studentCount - a.studentCount))
+const sortedByHot = computed<Course[]>(() => [...filteredCourses.value].sort((a, b) => (b.likeCount || 0) - (a.likeCount || 0)))
 const top2HotCourses = computed<Course[]>(() => sortedByHot.value.slice(0, 2))
 const rankCourses = computed<Course[]>(() => sortedByHot.value.slice(2, 5))
+
+async function loadFirst() {
+  if (loading.value) return
+  loading.value = true
+  error.value = ''
+  try {
+    const res = await getCourseListApi({ pageNum: 1, pageSize: PAGE_SIZE, sortBy: 'createTime' })
+    courses.value = res.list
+    total.value = res.total
+    pageNum.value = 1
+  } catch (e: any) {
+    error.value = (e && (e.msg || e.message)) || '课程加载失败'
+  } finally {
+    loading.value = false
+  }
+}
+
+async function handleLoadMore() {
+  if (loadingMore.value || !hasMore.value) return
+  loadingMore.value = true
+  try {
+    const p = pageNum.value + 1
+    const res = await getCourseListApi({ pageNum: p, pageSize: PAGE_SIZE, sortBy: 'createTime' })
+    courses.value = courses.value.concat(res.list)
+    total.value = res.total
+    pageNum.value = p
+  } catch (e) {
+    uni.showToast({ title: '加载失败，请重试', icon: 'none' })
+  } finally {
+    loadingMore.value = false
+  }
+}
+
+function retry() { loadFirst() }
+
+onMounted(loadFirst)
 
 function formatCount(n: number): string {
   if (n >= 10000) return (n / 10000).toFixed(1) + '万'
@@ -171,7 +231,6 @@ function handleMenu() { uni.showToast({ title: '侧边栏开发中', icon: 'none
 function handleNotification() { uni.navigateTo({ url: '/pages-sub/notification/notification' }) }
 function handleViewAll() { uni.showToast({ title: '全部分类开发中', icon: 'none' }) }
 function handleCourseTap(course: Course) { uni.navigateTo({ url: `/pages-sub/course/detail?courseId=${course.courseId}` }) }
-function handleLoadMore() { if (!loadingMore.value) uni.showToast({ title: '加载更多（接口待接入）', icon: 'none' }) }
 </script>
 
 <style lang="scss" scoped>
@@ -228,6 +287,9 @@ function handleLoadMore() { if (!loadingMore.value) uni.showToast({ title: '加�
 .rank-instructor { font-size: 26rpx; color: $edu-text-secondary; }
 .recommend-empty { padding: 60rpx 0; display: flex; justify-content: center; }
 .recommend-empty-text { font-size: 26rpx; color: $edu-text-hint; }
+.state-block { padding: 120rpx 0; display: flex; justify-content: center; align-items: center; }
+.state-text { font-size: 28rpx; color: $edu-text-hint; }
+.state-text-error { color: $edu-accent-coral; }
 .load-more { padding: 32rpx 0 24rpx; display: flex; justify-content: center; }
 .load-more-text { font-size: 26rpx; color: $edu-primary; }
 .load-more-end .load-more-text { color: $edu-text-hint; }

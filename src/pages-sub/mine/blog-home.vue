@@ -49,7 +49,7 @@
           @touchcancel="actionPressed = false"
           @tap="handleAction"
       >
-        <text class="primary-action-text">{{ isSelf ? '编辑主页' : '＋ 关注' }}</text>
+        <text class="primary-action-text">{{ isSelf ? '编辑主页' : (isFollowed ? '已关注' : '＋ 关注') }}</text>
       </view>
     </view>
 
@@ -100,7 +100,7 @@ import LoadingState from '@/components/LoadingState.vue'
 import ErrorState from '@/components/ErrorState.vue'
 import EmptyState from '@/components/EmptyState.vue'
 import { useAuthStore } from '@/store/auth'
-import { resolveFileUrl, getUserPublicProfileApi } from '@/api/user'
+import { resolveFileUrl, getUserPublicProfileApi, followUserApi, unfollowUserApi, getFollowStatusApi, getFollowCountApi } from '@/api/user'
 import { getMyArticlesApi, getUserPublishedArticlesApi, deleteArticleApi, type MyArticleDto } from '@/api/article'
 import { useNotification } from '@/composables/useNotification'
 
@@ -183,6 +183,7 @@ onShow(() => {
   } else {
     loadVisitorProfile(Number(visitorId.value))
     loadStats(Number(visitorId.value))
+    loadFollowState(Number(visitorId.value))
   }
   loadArticles()
   refreshUnread()
@@ -199,20 +200,31 @@ const stats = reactive({
   likeCount: 0
 })
 
+const isFollowed = ref<boolean>(false)
+
 interface FanPreviewItem { char: string; color: string; avatar?: string }
 const fanPreview = ref<FanPreviewItem[]>([])
 
-/** 关注体系接口就绪后，只改这一个函数，模板零改动 */
+/** 关注体系：粉丝数/关注数走 GET /api/v1/follow/count（资料无 C 端接口，仍 mock） */
 async function loadStats(userId: number | string) {
-  // 接口接入：GET user/stats/{userId}
-  // const res: any = await getUserStatsApi(userId)
-  // stats.followingCount = res.followingCount || 0
-  // stats.fansCount = res.fansCount || 0
-  // stats.likeCount = res.likeCount || 0
-  // fanPreview.value = (res.recentFans || []).map((f: any) => ({
-  //   char: (f.nickName || 'U').charAt(0), avatar: resolveFileUrl(f.avatar)
-  // }))
-  void userId
+  const uid = Number(userId)
+  if (!uid) return
+  try {
+    const res = await getFollowCountApi(uid)
+    stats.followingCount = res.followCount || 0
+    stats.fansCount = res.fansCount || 0
+  } catch (e) { /* 未就绪/失败：保持 0 */ }
+}
+
+/** 回填关注按钮初始态：GET /api/v1/follow/status */
+async function loadFollowState(targetUserId: number) {
+  if (!targetUserId) return
+  try {
+    const ids = await getFollowStatusApi([targetUserId])
+    isFollowed.value = ids.indexOf(targetUserId) >= 0
+  } catch (e) {
+    isFollowed.value = false
+  }
 }
 
 function formatCount(n: number): string {
@@ -264,7 +276,23 @@ function handleAction() {
     uni.navigateTo({ url: '/pages-sub/mine/edit-profile' })
     return
   }
-  uni.showToast({ title: '关注功能开发中', icon: 'none' })
+  const target = Number(visitorId.value)
+  if (!target) return
+  toggleFollow(target)
+}
+
+/** 关注/取关：后端幂等 add/cancel（非 toggle），按当前态二选一 */
+async function toggleFollow(targetUserId: number) {
+  try {
+    const res = isFollowed.value
+      ? await unfollowUserApi(targetUserId)
+      : await followUserApi(targetUserId)
+    isFollowed.value = !!res.active
+    if (res.fansCount != null) stats.fansCount = res.fansCount
+    uni.showToast({ title: isFollowed.value ? '已关注' : '已取消关注', icon: 'none' })
+  } catch (e) {
+    uni.showToast({ title: '操作失败', icon: 'none' })
+  }
 }
 
 function handleArticleTap(item: MyArticleDto) {

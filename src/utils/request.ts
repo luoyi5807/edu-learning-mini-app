@@ -1,7 +1,6 @@
 import { BASE_URL, SUCCESS_CODE, API_PREFIX } from '@/config/env'
 
 const TOKEN_KEY = 'accessToken' // 与 splash.vue 门禁使用的 key 保持一致
-const REFRESH_KEY = 'refreshToken'
 
 /** RuoYi AjaxResult：code/msg/data 平铺，业务字段(token/user/roles/...)也在顶层 */
 export interface ApiResult<T = any> {
@@ -26,9 +25,9 @@ export function v1(path: string): string {
     return API_PREFIX + (path.startsWith('/') ? path : '/' + path)
 }
 
-/** 成功码兼容：契约 code=0，RuoYi code=200，两者都视为成功 */
+/** 成功码兼容：RuoYi 后端 code=0；0/200 都视为成功 */
 function isSuccessCode(code: number): boolean {
-    return code === 0 || code === SUCCESS_CODE
+    return code === 0 || code === 200
 }
 
 /** 幂等 Token，防止写操作连点重复提交 */
@@ -45,41 +44,10 @@ interface RequestOptions {
     auth?: boolean
     /** 业务/HTTP 错误是否自动 toast，默认 true */
     showError?: boolean
-    /** 内部标记：401 后是否已尝试刷新重放，避免死循环 */
-    __retried?: boolean
 }
 
 function toLogin() {
     uni.reLaunch({ url: '/pages-sub/auth/login' })
-}
-
-/** 用 refreshToken 换取新 accessToken（静默，不带业务 toast） */
-function doRefresh(): Promise<boolean> {
-    const rt = uni.getStorageSync(REFRESH_KEY)
-    if (!rt) return Promise.resolve(false)
-    return new Promise<boolean>((resolve) => {
-        uni.request({
-            url: BASE_URL + '/api/user/refreshToken',
-            method: 'POST',
-            header: {
-                'Content-Type': 'application/json',
-                Authorization: rt.startsWith('Bearer ') ? rt : 'Bearer ' + rt
-            },
-            timeout: 15000,
-            success: (res: any) => {
-                const body = res && res.data
-                if (body && (body.code === 0 || body.code === 200) && body.data && body.data.accessToken) {
-                    let t: string = body.data.accessToken
-                    if (t.startsWith('Bearer ')) t = t.slice(7)
-                    setToken(t)
-                    resolve(true)
-                } else {
-                    resolve(false)
-                }
-            },
-            fail: () => resolve(false)
-        })
-    })
 }
 
 export function request<T = any>(opts: RequestOptions): Promise<ApiResult<T>> {
@@ -102,21 +70,8 @@ export function request<T = any>(opts: RequestOptions): Promise<ApiResult<T>> {
             header: headers,
             timeout: 15000,
             success: (res) => {
-                // HTTP 401：先尝试静默刷新一次并重放，失败才跳登录
+                // HTTP 401：Token 缺失/失效（后端无刷新机制），清理本地并跳登录重登
                 if (res.statusCode === 401) {
-                    if (!opts.__retried && auth) {
-                        doRefresh().then((ok) => {
-                            if (ok) {
-                                request<T>({ ...opts, __retried: true }).then(resolve).catch(reject)
-                            } else {
-                                clearToken()
-                                if (showError) uni.showToast({ title: '登录已过期，请重新登录', icon: 'none' })
-                                toLogin()
-                                reject(new Error('HTTP 401'))
-                            }
-                        })
-                        return
-                    }
                     clearToken()
                     if (showError) uni.showToast({ title: '登录已过期，请重新登录', icon: 'none' })
                     toLogin()

@@ -2,7 +2,6 @@ import { reactive } from 'vue'
 import { getToken, setToken, clearToken } from '@/utils/request'
 import { loginApi, logoutApi, type LoginParams } from '@/api/auth'
 
-const REFRESH_KEY = 'refreshToken'
 const USER_KEY = 'appUser'
 
 /** 统一的用户视图模型：兼容资料页读取的 nickName/userName/sex/remark 等字段 */
@@ -15,7 +14,7 @@ export interface AuthUser {
     remark: string     // C 端个人简介待后端 profile 接口，占位 ''
 }
 
-/** 后端 token 自带 "Bearer " 前缀，存储前统一剥离，发送时由 request 拼接 */
+/** 后端 token 为裸 UUID；bare() 仅做防御性剥离，发送时由 request 统一拼 Bearer */
 function bare(t: string): string {
     return t && t.startsWith('Bearer ') ? t.slice(7) : t
 }
@@ -27,7 +26,6 @@ function readCacheUser(): AuthUser | null {
 
 const state = reactive({
     token: getToken() as string,
-    refreshToken: (uni.getStorageSync(REFRESH_KEY) || '') as string,
     user: readCacheUser() as AuthUser | null
 })
 
@@ -39,19 +37,15 @@ function persistUser(u: AuthUser | null) {
 
 async function login(params: LoginParams) {
     const res: any = await loginApi(params)
-    const d = res && res.data
-    if (!d || !d.token) throw new Error('登录响应未返回 token')
-    const access = bare(d.token)
-    const refresh = bare(d.refreshToken)
+    if (!res || !res.token) throw new Error('登录响应未返回 token')
+    const access = bare(res.token)
     setToken(access)
-    uni.setStorageSync(REFRESH_KEY, refresh)
     state.token = access
-    state.refreshToken = refresh
     persistUser({
-        userId: d.userId,
-        userName: d.username || '',
-        nickName: d.nickname || '',
-        avatar: d.avatar || '',
+        userId: res.userId,
+        userName: res.userName || '',
+        nickName: res.userName || '',
+        avatar: '',
         sex: '2',
         remark: ''
     })
@@ -77,9 +71,7 @@ async function logout() {
 
 function reset() {
     clearToken()
-    uni.removeStorageSync(REFRESH_KEY)
     state.token = ''
-    state.refreshToken = ''
     persistUser(null)
 }
 

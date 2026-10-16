@@ -1,69 +1,110 @@
-import { get, put, post, del, getToken, v1 } from '@/utils/request'
+import { get, post, put, del, getToken, v1 } from '@/utils/request'
 import { BASE_URL } from '@/config/env'
 import { API_READY, formatDateKey } from '@/config/apiStatus'
-import type { SysUser } from '@/api/auth'
+import { useAuthStore } from '@/store/auth'
 
-/** 资料更新入参 —— 对应契约 PUT user/profile {nickname,avatar,gender,bio} */
+// C 端接口前缀 + 本地资料缓存 key（与 store/auth.ts 一致）
+const USER_API = '/api/user'
+const APP_USER_KEY = 'appUser'
+
+interface LocalAppUser {
+    userId: number
+    userName: string
+    nickName: string
+    avatar: string
+    sex: string
+    remark: string
+}
+
+/** 资料更新入参（页面沿用 nickName/sex/remark 语义，接后端时映射 nickname/gender/bio） */
 export interface ProfileUpdateParams {
     nickName?: string
-    sex?: string      // RuoYi 编码：0男 1女 2未知
-    remark?: string   // 暂用备注字段承载「个人简介」，契约里为 bio
+    sex?: string      // 0男 1女 2未知（页面选择器语义）
+    remark?: string   // 承载「个人简介」，C 端字段为 bio
     avatar?: string
 }
 
-/** 相对路径（/profile/avatar/xxx.png）补全为可访问的完整地址 */
+/** 已含协议（http/wxfile/cloud 等）原样返回；相对路径补全 BASE_URL */
 export function resolveFileUrl(path?: string): string {
     if (!path) return ''
-    return path.startsWith('http') ? path : BASE_URL + path
+    return /^[a-z][a-z\d+\-.]*:\/\//i.test(path) ? path : BASE_URL + path
 }
 
-/** GET /system/user/profile → RuoYi 把用户对象放在顶层 info */
-export function getProfileApi() {
-    return get('/system/user/profile')
+function readLocalProfile(): LocalAppUser | null {
+    const raw = uni.getStorageSync(APP_USER_KEY)
+    return raw ? (JSON.parse(raw) as LocalAppUser) : null
 }
 
-/** PUT /system/user/profile */
-export function updateProfileApi(params: ProfileUpdateParams) {
-    return put('/system/user/profile', params)
-}
-
-/** 修改密码：RuoYi POST /system/user/profile/updatePwd；契约里为 PUT auth/change-password */
-export function updatePwdApi(oldPassword: string, newPassword: string) {
-    return post('/system/user/profile/updatePwd', { oldPassword, newPassword })
+function writeLocalProfile(patch: Partial<LocalAppUser>): LocalAppUser {
+    const base: LocalAppUser = readLocalProfile() ||
+        { userId: 0, userName: '', nickName: '', avatar: '', sex: '2', remark: '' }
+    const merged: LocalAppUser = { ...base, ...patch }
+    uni.setStorageSync(APP_USER_KEY, JSON.stringify(merged))
+    return merged
 }
 
 /**
- * 头像上传：RuoYi 为 PUT /system/user/profile/avatar（multipart，字段名 avatarfile）
- * 契约里对应 POST files/upload，接入 C 端后改 url 与字段名即可
+ * 读取 C 端资料：后端未提供 /api/user/profile 时读本地登录缓存，结构与 edit-profile 期望的 res.info 对齐。
+ * 绝不请求后台 /system/user/profile —— C 端 token 走不通该安全链，401 会触发全局清登录态。
  */
-export function uploadAvatarApi(filePath: string): Promise<string> {
-    return new Promise<string>((resolve, reject) => {
-        uni.uploadFile({
-            url: BASE_URL + '/system/user/profile/avatar',
-            filePath,
-            name: 'avatarfile',
-            header: { Authorization: 'Bearer ' + getToken() },
-            success: (res) => {
-                if (res.statusCode !== 200) {
-                    reject(new Error('HTTP ' + res.statusCode))
-                    return
-                }
-                let body: any
-                try {
-                    body = JSON.parse(res.data)
-                } catch (e) {
-                    reject(new Error('头像响应解析失败'))
-                    return
-                }
-                if (body.code !== 200) {
-                    reject(body)
-                    return
-                }
-                resolve(body.img || body.url || body.fileName || '')
-            },
-            fail: reject
+export function getProfileApi(): Promise<any> {
+    if (API_READY.userProfile) {
+        return get(`${USER_API}/profile`).then((res: any) => ({ code: res.code, msg: res.msg, info: res.data }))
+    }
+    return Promise.resolve({ code: 200, msg: 'ok', info: readLocalProfile() })
+}
+
+/** 更新资料：未就绪时写本地缓存并同步 store，ProfilePanel / blog-home 立即可见。 */
+export function updateProfileApi(params: ProfileUpdateParams): Promise<any> {
+    if (API_READY.userProfile) {
+        return put(`${USER_API}/profile`, {
+            nickname: params.nickName,
+            gender: params.sex,
+            bio: params.remark,
+            avatar: params.avatar
         })
+    }
+    const merged = writeLocalProfile({
+        nickName: params.nickName,
+        sex: params.sex,
+        remark: params.remark,
+        avatar: params.avatar
     })
+    useAuthStore().setUser(merged)
+    return Promise.resolve({ code: 200, msg: 'ok' })
+}
+
+/** 修改密码：后端未开放 C 端接口时明确提示，不发无效请求。 */
+export function updatePwdApi(oldPassword: string, newPassword: string): Promise<any> {
+    if (API_READY.userProfile) {
+        return put(`${USER_API}/password`, { oldPassword, newPassword })
+    }
+    return Promise.reject({ code: 501, msg: '后端暂未开放修改密码' })
+}
+
+/** 头像上传：后端未就绪时不落后端，直接返回本地临时路径用于即时预览。 */
+export function uploadAvatarApi(filePath: string): Promise<string> {
+    if (API_READY.userProfile) {
+        const token = getToken()
+        return new Promise<string>((resolve, reject) => {
+            uni.uploadFile({
+                url: BASE_URL + `${USER_API}/avatar`,
+                filePath,
+                name: 'file',
+                header: { Authorization: token.startsWith('Bearer ') ? token : 'Bearer ' + token },
+                success: (res) => {
+                    if (res.statusCode !== 200) { reject(new Error('HTTP ' + res.statusCode)); return }
+                    let body: any
+                    try { body = JSON.parse(res.data) } catch { reject(new Error('头像响应解析失败')); return }
+                    if (body.code !== 200 && body.code !== 0) { reject(body); return }
+                    const d = body.data
+                    resolve((d && (d.url || d.fileName)) || body.img || body.url || '')
+                },
+                fail: reject
+            })
+        })
+    }
+    return Promise.resolve(filePath)
 }
 
 /* ===================== 签到日历 ===================== */
@@ -203,4 +244,31 @@ export function getUserPublicProfileApi(userId: number): Promise<PublicUserProfi
         })
     }
     return get(v1('/user/blog-home/' + userId))
+}
+
+/* ===================== 关注体系 /api/v1/follow ===================== */
+
+/** 关注某人（幂等 add，JSON 出口）→ {active:true, fansCount} */
+export function followUserApi(targetUserId: number): Promise<{ active: boolean; fansCount: number }> {
+    if (!API_READY.follow) return Promise.resolve({ active: true, fansCount: 0 })
+    return post(v1('/follow/add'), { targetUserId: String(targetUserId) })
+}
+
+/** 取消关注（幂等 cancel，JSON 出口）→ {active:false, fansCount} */
+export function unfollowUserApi(targetUserId: number): Promise<{ active: boolean; fansCount: number }> {
+    if (!API_READY.follow) return Promise.resolve({ active: false, fansCount: 0 })
+    return post(v1('/follow/cancel'), { targetUserId: String(targetUserId) })
+}
+
+/** 批量查：当前用户已关注的目标ID（回填按钮态） */
+export function getFollowStatusApi(userIds: number[]): Promise<number[]> {
+    if (!API_READY.follow || userIds.length === 0) return Promise.resolve([])
+    return get(v1('/follow/status'), { userIds: userIds.join(',') })
+        .then((res: any) => (res && Array.isArray(res.ids) ? res.ids : []))
+}
+
+/** 某用户的粉丝数 + 关注数（userId 缺省查自己） */
+export function getFollowCountApi(userId: number): Promise<{ fansCount: number; followCount: number }> {
+    if (!API_READY.follow) return Promise.resolve({ fansCount: 0, followCount: 0 })
+    return get(v1('/follow/count'), { userId })
 }

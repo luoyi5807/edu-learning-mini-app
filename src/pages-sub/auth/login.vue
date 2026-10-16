@@ -14,17 +14,19 @@
 		</view>
 
 		<!-- 说明文字（左对齐） -->
-		<text class="section-tip">使用账号登录</text>
+		<text class="section-tip">使用手机号登录</text>
 
 		<!-- 表单区 -->
 		<view class="form-area">
-			<!-- 用户名（手机/邮箱/账号三合一） -->
+			<!-- 手机号 -->
 			<view class="auth-field" :class="{ 'field-focused': userFocused, 'field-error': userError }">
-				<view class="field-icon"><text class="icon-text">👤</text></view>
+				<view class="field-icon"><text class="icon-text">📱</text></view>
 				<input
 					class="field-input"
-					v-model="username"
-					placeholder="用户名"
+					v-model="phone"
+					type="number"
+					maxlength="11"
+					placeholder="手机号"
 					placeholder-class="field-placeholder"
 					@focus="userFocused = true"
 					@blur="handleUserBlur"
@@ -49,28 +51,6 @@
 				</view>
 			</view>
 			<text v-if="pwdError" class="error-text">{{ pwdErrorText }}</text>
-
-			<!-- 验证码（后端 sys.account.captchaEnabled 开启时显示） -->
-			<view v-if="captchaEnabled" class="auth-field captcha-field">
-				<view class="field-icon"><text class="icon-text">🛡</text></view>
-				<input
-					class="field-input"
-					v-model="captchaCode"
-					placeholder="验证码"
-					placeholder-class="field-placeholder"
-					maxlength="6"
-				/>
-				<image
-					v-if="captchaImg"
-					class="captcha-img"
-					:src="captchaImg"
-					mode="aspectFill"
-					@tap="loadCaptcha"
-				/>
-				<view v-else class="captcha-img captcha-img-empty" @tap="loadCaptcha">
-					<text class="captcha-empty-text">点击获取</text>
-				</view>
-			</view>
 
 			<!-- 记住我 / 忘记密码 -->
 			<view class="options-row">
@@ -108,13 +88,11 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import { onLoad } from '@dcloudio/uni-app'
 import { useAuthStore } from '@/store/auth'
-import { fetchCaptcha } from '@/api/auth'
 
 const auth = useAuthStore()
 
-const username = ref<string>('')
+const phone = ref<string>('')
 const password = ref<string>('')
 const rememberMe = ref<boolean>(false)
 
@@ -128,33 +106,16 @@ const passwordVisible = ref<boolean>(false)
 const btnPressed = ref<boolean>(false)
 const loading = ref<boolean>(false)
 
-/* ===== 验证码（后端开启时启用） ===== */
-const captchaEnabled = ref<boolean>(false)
-const captchaImg = ref<string>('')
-const captchaUuid = ref<string>('')
-const captchaCode = ref<string>('')
 const loginError = ref<string>('')
 
-async function loadCaptcha() {
-	try {
-		const res: any = await fetchCaptcha()
-		captchaEnabled.value = !!res.captchaEnabled
-		if (res.captchaEnabled) {
-			captchaUuid.value = res.uuid || ''
-			captchaImg.value = 'data:image/jpeg;base64,' + (res.img || '')
-		}
-	} catch (e) {
-		captchaEnabled.value = false
+function validatePhone(): boolean {
+	if (!phone.value) {
+		userErrorText.value = '手机号不能为空'
+		userError.value = true
+		return false
 	}
-}
-
-onLoad(() => {
-	loadCaptcha()
-})
-
-function validateUsername(): boolean {
-	if (!username.value) {
-		userErrorText.value = '用户名不能为空'
+	if (!/^1[3-9]\d{9}$/.test(phone.value)) {
+		userErrorText.value = '请输入正确的手机号'
 		userError.value = true
 		return false
 	}
@@ -178,12 +139,12 @@ function validatePassword(): boolean {
 }
 
 const isFormValid = computed<boolean>(() => {
-	return !!username.value && password.value.length >= 6
+	return /^1[3-9]\d{9}$/.test(phone.value) && password.value.length >= 6
 })
 
 function handleUserBlur() {
 	userFocused.value = false
-	if (username.value) validateUsername()
+	if (phone.value) validatePhone()
 }
 
 function handlePwdBlur() {
@@ -199,33 +160,22 @@ async function handleLogin() {
 	if (loading.value) return
 	loginError.value = ''
 	if (!isFormValid.value) {
-		validateUsername()
+		validatePhone()
 		validatePassword()
-		return
-	}
-	if (captchaEnabled.value && !captchaCode.value) {
-		loginError.value = '请输入验证码'
 		return
 	}
 	loading.value = true
 	try {
 		await auth.login({
-			username: username.value,
-			password: password.value,
-			code: captchaCode.value,
-			uuid: captchaUuid.value
+			phone: phone.value,
+			password: password.value
 		})
 		uni.showToast({ title: '登录成功', icon: 'success', duration: 800 })
 		setTimeout(() => {
 			uni.reLaunch({ url: '/pages/index/index' })
 		}, 800)
 	} catch (e: any) {
-		loginError.value = (e && e.msg) ? e.msg : '登录失败，请检查账号密码或后端服务'
-		// 验证码一次性有效，失败后重新获取
-		if (captchaEnabled.value) {
-			captchaCode.value = ''
-			loadCaptcha()
-		}
+		loginError.value = (e && e.msg) ? e.msg : '登录失败，请检查手机号/密码或后端服务'
 		loading.value = false
 	}
 }

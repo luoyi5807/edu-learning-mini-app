@@ -1,9 +1,9 @@
-import { get, post, del, v1 } from '@/utils/request'
+import { get, post, v1 } from '@/utils/request'
 import { API_READY } from '@/config/apiStatus'
 import { getMockArticleCommentCount } from './article'
 import type { CommentDto } from '@/types/article'
 
-export interface CommentPage { list: CommentDto[]; nextCursor: string; hasMore: boolean }
+export interface CommentPage { list: CommentDto[]; nextCursor: string; hasMore: boolean; total?: number }
 
 let seq = 9000
 
@@ -110,87 +110,95 @@ function list(targetType: number, targetId: number): CommentDto[] {
     return store[k]
 }
 
-/** GET comments（游标分页） */
-export function getCommentsApi(targetType: number, targetId: number, cursor?: string, size = 10): Promise<CommentPage> {
-    if (!API_READY.comment) {
-        return Promise.resolve({ list: list(targetType, targetId).slice(), nextCursor: '', hasMore: false })
-    }
-    return get(v1('/comments'), { targetType, targetId, cursor, size })
+/** 后端 learning_comment 行（children 内联二级回复） */
+export interface BackendComment {
+    commentId: number
+    userId: number
+    targetType: string
+    targetId: number
+    parentId?: number | null
+    replyUserId?: number | null
+    content: string
+    createTime: string
+    userName?: string
+    replyUserName?: string
+    children?: BackendComment[] | null
 }
 
-/** GET comments/{rootId}/replies（楼中楼，游标分页） */
-export function getRepliesApi(rootId: number, cursor?: string, size = 20): Promise<CommentPage> {
-    if (!API_READY.comment) {
-        return Promise.resolve({ list: (replyStore[rootId] || []).slice(), nextCursor: '', hasMore: false })
+function normalizeComment(c: BackendComment): CommentDto {
+    const replies = Array.isArray(c.children) ? c.children.map(normalizeComment) : []
+    return {
+        commentId: c.commentId,
+        userId: c.userId,
+        nickName: c.userName || '用户',
+        content: c.content || '',
+        createTime: c.createTime || '',
+        likeCount: 0,
+        isLiked: false,
+        replyCount: replies.length,
+        replies,
+        replyToUserName: c.replyUserName || undefined,
+        parentId: c.parentId ?? undefined
     }
-    return get(v1('/comments/' + rootId + '/replies'), { cursor, size })
+}
+
+/** GET /api/v1/comment/list —— 一级评论（含内联 children），total 为一级评论数 */
+export async function getCommentsApi(targetType: number, targetId: number, cursor?: string, size = 20): Promise<CommentPage> {
+    if (!API_READY.comment) {
+        return { list: list(targetType, targetId).slice(), nextCursor: '', hasMore: false }
+    }
+    const body: any = await get(v1('/comment/list'), { targetType, targetId, pageNum: 1, pageSize: size })
+    const rows: BackendComment[] = (body && Array.isArray(body.rows)) ? body.rows : []
+    const arr = rows.map(normalizeComment)
+    const total = (body && body.total != null) ? Number(body.total) : arr.length
+    return { list: arr, nextCursor: '', hasMore: false, total }
+}
+
+/** 楼中楼：后端已随列表内联返回 children，无独立接口；保留签名兼容旧调用 */
+export function getRepliesApi(rootId: number, cursor?: string, size = 20): Promise<CommentPage> {
+    return Promise.resolve({ list: [], nextCursor: '', hasMore: false })
 }
 
 export interface AddCommentParams {
     targetType: number
     targetId: number
-    rootId?: number           // 楼中楼：所属根评论 ID（不传即根评论）
-    parentId?: number         // 楼中楼：直接被回复的评论 ID
-    replyToUserId?: number    // 楼中楼：被回复用户 ID
-    replyToUserName?: string  // 楼中楼：被回复用户昵称（展示用）
+    rootId?: number
+    parentId?: number
+    replyToUserId?: number
+    replyToUserName?: string
     content: string
 }
 
-/** POST comments */
-export function addCommentApi(params: AddCommentParams): Promise<{ commentId: number; status: number }> {
+/** POST /api/v1/comment/add（JSON 出口）—— parentId = 被回复评论ID，一级不传 */
+export async function addCommentApi(params: AddCommentParams): Promise<{ commentId: number; status: number }> {
     if (!API_READY.comment) {
         const id = ++seq
-        const me: CommentDto = {
-            commentId: id,
-            userId: 0,
-            nickName: '我',
-            content: params.content,
-            createTime: '刚刚',
-            likeCount: 0,
-            isLiked: false,
-            replyCount: 0,
-            parentId: params.parentId,
-            replyToUserId: params.replyToUserId,
-            replyToUserName: params.replyToUserName
-        }
+        const me: CommentDto = { commentId: id, userId: 0, nickName: '我', content: params.content, createTime: '刚刚', likeCount: 0, isLiked: false, replyCount: 0, parentId: params.parentId, replyToUserName: params.replyToUserName }
         if (params.rootId) {
-            // 楼中楼：写入 replyStore，并让根评论的 replyCount +1
             const arr = replyStore[params.rootId] || (replyStore[params.rootId] = [])
             arr.push(me)
-            for (const k in store) {
-                const root = store[k].find((x) => x.commentId === params.rootId)
-                if (root) {
-                    root.replyCount = (root.replyCount || 0) + 1
-                    break
-                }
-            }
         } else {
             list(params.targetType, params.targetId).unshift(me)
         }
-        return Promise.resolve({ commentId: id, status: 1 })
+        return { commentId: id, status: 1 }
     }
-    return post(v1('/comments'), params)
+    const body: Record<string, string> = {
+        targetType: String(params.targetType),
+        targetId: String(params.targetId),
+        content: params.content
+    }
+    if (params.parentId) body.parentId = String(params.parentId)
+    const res: any = await post(v1('/comment/add'), body)
+    return { commentId: Number((res && res.commentId) || 0), status: 1 }
 }
 
-/** 评论点赞 */
+/** 评论点赞：后端无该接口，纯本地、不发请求 */
 export function likeCommentApi(commentId: number, isLikedNow: boolean): Promise<{ isLiked: boolean }> {
-    if (!API_READY.comment) {
-        for (const k in store) {
-            const c = store[k].find((x) => x.commentId === commentId)
-            if (c) { c.isLiked = !isLikedNow; c.likeCount += isLikedNow ? -1 : 1; break }
-        }
-        return Promise.resolve({ isLiked: !isLikedNow })
-    }
-    return post(v1('/comments/' + commentId + '/like/toggle'))
+    return Promise.resolve({ isLiked: !isLikedNow })
 }
 
-export function deleteCommentApi(commentId: number): Promise<void> {
-    if (!API_READY.comment) {
-        for (const k in store) {
-            const i = store[k].findIndex((x) => x.commentId === commentId)
-            if (i >= 0) { store[k].splice(i, 1); break }
-        }
-        return Promise.resolve()
-    }
-    return del(v1('/comments/' + commentId))
+/** POST /api/v1/comment/remove（JSON 出口） */
+export function deleteCommentApi(commentId: number): Promise<{ count: number }> {
+    if (!API_READY.comment) return Promise.resolve({ count: 0 })
+    return post(v1('/comment/remove'), { commentId: String(commentId) })
 }

@@ -20,7 +20,6 @@
               <view class="c-foot">
                 <text class="c-time">{{ c.createTime }}</text>
                 <text class="c-reply-btn" @tap="startReply(c)">回复</text>
-                <text class="c-like" :class="{ 'c-like-on': c.isLiked }" @tap="handleLike(c)">{{ c.isLiked ? '♥' : '♡' }} {{ c.likeCount }}</text>
               </view>
 
               <!-- 楼中楼：灰底框，预览 2 条 + 展开/收起 -->
@@ -70,7 +69,7 @@
 import { ref, computed, watch } from 'vue'
 import LoadingState from '@/components/LoadingState.vue'
 import EmptyState from '@/components/EmptyState.vue'
-import { getCommentsApi, getRepliesApi, addCommentApi, likeCommentApi } from '@/api/comment'
+import { getCommentsApi, addCommentApi } from '@/api/comment'
 import type { CommentDto } from '@/types/article'
 
 const props = defineProps<{
@@ -102,10 +101,11 @@ async function load() {
   expanded.value = {}
   try {
     const res = await getCommentsApi(props.targetType, props.targetId)
-    comments.value = (res as any).list || []
-    total.value = comments.value.length
+    comments.value = res.list || []
+    total.value = (res as any).total ?? comments.value.length
   } catch (e) {
     comments.value = []
+    total.value = 0
   } finally {
     state.value = 'ready'
   }
@@ -118,20 +118,8 @@ function visibleReplies(c: CommentDto): CommentDto[] {
   const l = c.replies || []
   return isExpanded(c) ? l : l.slice(0, PREVIEW_COUNT)
 }
-async function toggleExpand(c: CommentDto) {
-  if (!isExpanded(c) && (c.replies || []).length < (c.replyCount || 0)) {
-    const res = await getRepliesApi(c.commentId)
-    const list = (res as any).list || []
-    const idx = comments.value.findIndex((x) => x.commentId === c.commentId)
-    if (idx >= 0) comments.value[idx] = { ...comments.value[idx], replies: list }
-  }
+function toggleExpand(c: CommentDto) {
   expanded.value = { ...expanded.value, [c.commentId]: !isExpanded(c) }
-}
-
-async function handleLike(c: CommentDto) {
-  const idx = comments.value.findIndex((x) => x.commentId === c.commentId)
-  comments.value[idx] = { ...c, isLiked: !c.isLiked, likeCount: c.likeCount + (c.isLiked ? -1 : 1) }
-  try { await likeCommentApi(c.commentId, c.isLiked) } catch (e) { comments.value[idx] = c }
 }
 
 function openInput() { inputFocus.value = false; setTimeout(() => { inputFocus.value = true }, 30) }
@@ -142,13 +130,6 @@ function startReply(target: CommentDto, root?: CommentDto) {
 }
 function cancelReply() { replyTarget.value = null }
 
-async function refreshReplies(rootId: number) {
-  const res = await getRepliesApi(rootId)
-  const list = (res as any).list || []
-  const idx = comments.value.findIndex((x) => x.commentId === rootId)
-  if (idx >= 0) comments.value[idx] = { ...comments.value[idx], replies: list, replyCount: list.length }
-}
-
 async function handleSend() {
   const text = draft.value.trim()
   if (!text || sending.value) return
@@ -158,16 +139,12 @@ async function handleSend() {
     await addCommentApi({
       targetType: props.targetType,
       targetId: props.targetId,
-      rootId: target ? target.rootId : undefined,
       parentId: target ? target.parentId : undefined,
-      replyToUserId: target ? target.userId : undefined,
-      replyToUserName: target ? target.nickName : undefined,
       content: text
     })
     draft.value = ''
     replyTarget.value = null
-    if (target) await refreshReplies(target.rootId)
-    else await load()
+    await load()
     uni.showToast({ title: target ? '回复成功' : '评论成功', icon: 'none' })
   } catch (e) {
     uni.showToast({ title: '评论失败', icon: 'none' })

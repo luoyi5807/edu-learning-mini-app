@@ -106,6 +106,7 @@ function handleTabChange(tab: TabItem) {
   activeTab.value = tab.key
   // 面板常驻不销毁，真实滚动位置仍在原位：不重置 scrollTop，交给 @scroll 反映
   if (tab.key === 'profile') uni.$emit('panel:refresh')
+  if (tab.key === 'video') uni.$emit('video:show')
 }
 
 /* ===== 顶栏滚动变白 ===== */

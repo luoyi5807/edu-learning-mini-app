@@ -14,20 +14,28 @@ export const API_READY = {
     articles: false,
     /** 分类列表 GET /article/category/list、/course/category/list（后端已就绪） */
     categories: true,
+    /** C 端资料/改密/头像 GET/PUT /api/user/profile、PUT /api/user/password、POST /api/user/avatar（后端待补；就绪后置 true 即切真接口，页面零改动） */
+    userProfile: false,
     /** GET articles/{id}（文章详情） */
     articleDetail: false,
     /** 发布 / 编辑文章 */
     articlePublish: false,
     /** 评论 GET/POST comments */
-    comment: false,
+    comment: true,
     /** 点赞 / 收藏 toggle */
-    interaction: false,
+    interaction: true,
     /** 内容搜索 / 热词 */
     search: false,
     /** 笔记 notes（列表/新增/详情） */
     notes: false,
     /** GET courses（课程列表 / 课程搜索） */
     courses: false,
+    /** GET /api/v1/search/video（短视频列表/热门榜，已对接真实后端） */
+    videoList: true,
+    /** GET /api/v1/search/course（课程搜索，已对接真实后端） */
+    searchCourse: true,
+    /** GET /api/v1/course/list（课程列表，已对接真实后端：分页 + 排序） */
+    courseList: true,
     /** GET courses/{id}（课程详情 / 章节目录） */
     courseDetail: false,
     /** GET courses/{id}/play-info（播放凭证） */
@@ -42,8 +50,10 @@ export const API_READY = {
     todos: false,
     /** 关注体系（后端待补，见适配清单第七章） */
     followStats: false,
+    /** 关注动作/数量 /api/v1/follow（add/cancel/status/count）；资料展示仍走 mock（无 C 端用户资料接口） */
+    follow: true,
     /** 通知消息 GET/POST notifications（点赞/评论/关注/收藏聚合） */
-    notification: false
+    notification: true
 }
 
 function pad(n: number): string {

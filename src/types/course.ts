@@ -20,6 +20,7 @@ export interface Course {
     description?: string     // 简介
     totalLessons?: number    // 总小节数（长视频）
     videoFileId?: string     // 云厂商 VOD 文件ID（短视频）
+    playUrl?: string         // 短视频直链（后端 videoUrl 拼 BASE_URL，列表即可播）
     transcodeStatus?: number // 转码状态：0处理中 1成功 2失败
     isLiked?: boolean
     isFavorited?: boolean

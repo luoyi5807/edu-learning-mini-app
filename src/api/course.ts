@@ -1,5 +1,6 @@
 import { get, post, del, v1 } from '@/utils/request'
 import { API_READY } from '@/config/apiStatus'
+import { BASE_URL } from '@/config/env'
 import type { Course, CourseDetailDto, ChapterDto, LessonDto, PlayInfoDto, CourseRatingDto } from '@/types/course'
 
 const mockCourses: Course[] = [
@@ -22,27 +23,149 @@ const mockShortVideos: Course[] = [
 /** mock 播放地址（VOD 未接入，用可公网访问的样例视频跑通播放器） */
 const SAMPLE_PLAY_URL = 'https://qiniu-web-assets.dcloud.net.cn/unidoc/zh/2minute-demo.mp4'
 
-export interface CourseListParams { pageNum?: number; pageSize?: number; categoryId?: number; videoType?: number; sort?: number }
-
-/** GET courses */
-export function getCourseListApi(params: CourseListParams = {}): Promise<Course[]> {
-    if (!API_READY.courses) return Promise.resolve(mockCourses.slice())
-    return get(v1('/courses'), params)
+export interface CourseListParams {
+    pageNum?: number
+    pageSize?: number
+    categoryId?: number
+    courseName?: string
+    sortBy?: 'createTime' | 'likeCount' | 'avgScore'
 }
 
-/** 课程搜索：content/search?type=2 */
-export function searchCoursesApi(keyword: string): Promise<Course[]> {
-    if (!API_READY.courses) {
-        const kw = keyword.trim()
-        return Promise.resolve(kw ? mockCourses.filter((c) => c.title.indexOf(kw) >= 0) : mockCourses.slice())
+/** 后端 learning_course 返回的行结构（列名已 as 驼峰） */
+export interface BackendCourse {
+    courseId: number
+    courseName: string
+    categoryId: number
+    categoryName?: string
+    coverUrl?: string
+    intro?: string
+    likeCount?: number
+    favoriteCount?: number
+    commentCount?: number
+    ratingCount?: number
+    ratingScore?: number
+    avgScore?: number | null
+    status?: string
+    createTime?: string
+}
+
+/** 后端 learning_short_video 行 */
+export interface BackendShortVideo {
+    videoId: number
+    videoTitle: string
+    userId: number
+    videoUrl?: string
+    coverUrl?: string
+    intro?: string
+    duration?: number
+    viewCount?: number
+    likeCount?: number
+    favoriteCount?: number
+    commentCount?: number
+    status?: string
+    userName?: string
+}
+
+/** 相对路径 → 绝对地址（/profile/... 需拼后端 BASE_URL；已是 http(s) 原样返回）
+ *  路径含空格/中文/全角符号时 encodeURI 编码，避免 404 */
+function absUrl(p?: string): string {
+    if (!p) return ''
+    if (/^https?:\/\//i.test(p)) return p
+    const path = p.startsWith('/') ? p : '/' + p
+    return BASE_URL + encodeURI(path)
+}
+
+/** 后端短视频 → 前端 Course 视图模型（videoType=1，playUrl/coverUrl 转绝对） */
+function normalizeShortVideo(v: BackendShortVideo): Course {
+    return {
+        courseId: v.videoId,
+        title: v.videoTitle || '',
+        coverUrl: absUrl(v.coverUrl),
+        playUrl: absUrl(v.videoUrl),
+        instructorName: v.userName || '',
+        instructorId: v.userId,
+        studentCount: 0,
+        categoryId: 0,
+        categoryName: '',
+        videoType: 1,
+        isFree: 1,
+        duration: v.duration || 0,
+        viewCount: v.viewCount || 0,
+        likeCount: v.likeCount || 0,
+        favoriteCount: v.favoriteCount || 0,
+        commentCount: v.commentCount || 0,
+        description: v.intro || ''
     }
-    return get(v1('/content/search'), { keyword, type: 2 })
 }
 
-/** GET courses?videoType=1 —— 短视频流 */
-export function getShortVideosApi(params: { pageNum?: number; pageSize?: number } = {}): Promise<Course[]> {
-    if (!API_READY.courses) return Promise.resolve(mockShortVideos.slice())
-    return get(v1('/courses'), { videoType: 1, ...params })
+/** 后端字段 → 前端 Course 视图模型：courseName→title、avgScore→averageScore；
+ *  后端无讲师/在学人数，用 categoryName 占位、ratingCount 近似热度 */
+function normalizeCourse(c: BackendCourse): Course {
+    return {
+        courseId: c.courseId,
+        title: c.courseName || '',
+        coverUrl: c.coverUrl || '',
+        instructorName: c.categoryName || '',
+        studentCount: c.ratingCount || 0,
+        categoryId: c.categoryId || 0,
+        categoryName: c.categoryName || '',
+        videoType: 2,
+        isFree: 1,
+        likeCount: c.likeCount || 0,
+        favoriteCount: c.favoriteCount || 0,
+        commentCount: c.commentCount || 0,
+        averageScore: (typeof c.avgScore === 'number' ? c.avgScore : undefined),
+        ratingCount: c.ratingCount || 0,
+        description: c.intro || ''
+    }
+}
+
+function mockPage(params: CourseListParams): Course[] {
+    if (!params.categoryId || params.categoryId === 0) return mockCourses.slice()
+    return mockCourses.filter((c) => c.categoryId === params.categoryId)
+}
+
+/** GET /api/v1/course/list —— 分页课程列表，返回 { list, total } */
+export async function getCourseListApi(params: CourseListParams = {}): Promise<CoursePageResult> {
+    if (!API_READY.courseList) {
+        const list = mockPage(params)
+        return { list, total: list.length }
+    }
+    const query: Record<string, any> = {
+        pageNum: params.pageNum ?? 1,
+        pageSize: params.pageSize ?? 10,
+        sortBy: params.sortBy || 'createTime'
+    }
+    if (params.categoryId && params.categoryId > 0) query.categoryId = params.categoryId
+    if (params.courseName) query.courseName = params.courseName
+
+    const body: any = await get(v1('/course/list'), query)
+    const rows: BackendCourse[] = (body && Array.isArray(body.rows)) ? body.rows : []
+    const total = (body && typeof body.total !== 'undefined') ? Number(body.total) : rows.length
+    return { list: rows.map(normalizeCourse), total }
+}
+
+/** 课程搜索：GET /api/v1/search/course?keyword= —— 复用 normalizeCourse，返回 Course[] */
+export async function searchCoursesApi(keyword: string): Promise<Course[]> {
+    if (!API_READY.searchCourse) {
+        const kw = keyword.trim()
+        return kw ? mockCourses.filter((c) => c.title.indexOf(kw) >= 0) : mockCourses.slice()
+    }
+    const body: any = await get(v1('/search/course'), { keyword: keyword.trim(), pageNum: 1, pageSize: 20 })
+    const rows: BackendCourse[] = (body && Array.isArray(body.rows)) ? body.rows : []
+    return rows.map(normalizeCourse)
+}
+
+/** GET /api/v1/search/video —— 空关键词=热门短视频流，返回 Course[]（videoType=1） */
+export async function getShortVideosApi(params: { pageNum?: number; pageSize?: number } = {}): Promise<Course[]> {
+    if (!API_READY.videoList) return mockShortVideos.slice()
+    const body: any = await get(v1('/search/video'), {
+        keyword: '',
+        pageNum: params.pageNum ?? 1,
+        pageSize: params.pageSize ?? 20
+    })
+    const rows: BackendShortVideo[] = (body && Array.isArray(body.rows)) ? body.rows : []
+    return rows.map(normalizeShortVideo)
 }
 
 /* ===================== 课程详情 / 章节目录 ===================== */
@@ -132,10 +255,20 @@ export function leaveCourseApi(courseId: number): Promise<void> {
     return del(v1('/user/courses/' + courseId))
 }
 
-/** POST courses/{courseId}/rating —— 评分（0.5~5.0，步进 0.5） */
-export function rateCourseApi(courseId: number, score: number): Promise<{ averageScore: number; ratingCount: number }> {
-    if (!API_READY.courseRating) return Promise.resolve({ averageScore: score, ratingCount: 129 })
-    return post(v1('/courses/' + courseId + '/rating'), { score })
+/** 评分信息 GET /api/v1/rating/info?courseId= → {myScore, avgScore, ratingCount}（未评/无人评为 null） */
+export function getRatingInfoApi(courseId: number): Promise<{ myScore: number | null; avgScore: number | null; ratingCount: number }> {
+    if (!API_READY.courseRating) return Promise.resolve({ myScore: null, avgScore: null, ratingCount: 0 })
+    return get(v1('/rating/info'), { courseId })
+}
+
+/** 评分（后端 score 为 1-5 整数）：未评过走 /rating/add，已评过走 /rating/update */
+export async function rateCourseApi(courseId: number, score: number): Promise<{ averageScore: number; ratingCount: number }> {
+    const intScore = Math.min(5, Math.max(1, Math.round(score)))
+    if (!API_READY.courseRating) return { averageScore: intScore, ratingCount: 129 }
+    const info: any = await get(v1('/rating/info'), { courseId })
+    const path = (info && info.myScore != null) ? '/rating/update' : '/rating/add'
+    const res: any = await post(v1(path), { courseId: String(courseId), score: String(intScore) })
+    return { averageScore: Number(res && res.avgScore != null ? res.avgScore : intScore), ratingCount: Number((res && res.ratingCount) || 0) }
 }
 
 const mockRatings: CourseRatingDto[] = [
@@ -144,10 +277,9 @@ const mockRatings: CourseRatingDto[] = [
     { ratingId: 3, userId: 3, nickName: '王五', score: 4.5, createTime: '2026-09-12 13:05:00' }
 ]
 
-/** GET courses/{courseId}/ratings —— 评分列表 */
+/** 评分列表：后端无 C 端「评分明细」接口，仅有聚合 /rating/info → 故始终返回 mock（不调不存在的路径） */
 export function getCourseRatingsApi(courseId: number): Promise<CourseRatingDto[]> {
-    if (!API_READY.courseRating) return Promise.resolve(mockRatings.slice())
-    return get(v1('/courses/' + courseId + '/ratings'))
+    return Promise.resolve(mockRatings.slice())
 }
 
 /** 秒 → mm:ss / h:mm:ss */

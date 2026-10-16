@@ -98,7 +98,7 @@
       </swiper-item>
     </swiper>
 
-    <CommentsSheet :visible="commentVisible" :target-type="2" :target-id="commentTargetId" @close="commentVisible = false" />
+    <CommentsSheet :visible="commentVisible" :target-type="3" :target-id="commentTargetId" @close="commentVisible = false" />
   </view>
 </template>
 
@@ -109,7 +109,7 @@ import ErrorState from '@/components/ErrorState.vue'
 import EmptyState from '@/components/EmptyState.vue'
 import CommentsSheet from '@/components/CommentsSheet.vue'
 import { getShortVideosApi, getPlayInfoApi, formatDuration } from '@/api/course'
-import { toggleLikeApi, toggleFavoriteApi, reportShareApi } from '@/api/interaction'
+import { toggleLikeApi, toggleFavoriteApi, reportShareApi, getInteractionStatusApi } from '@/api/interaction'
 import type { Course } from '@/types/course'
 
 const instance = getCurrentInstance()
@@ -141,10 +141,14 @@ function getCtx(courseId: number) {
   return uni.createVideoContext('video-' + courseId, instance)
 }
 
-/** 拉一次播放地址（缓存后不再请求） */
+/** 拉一次播放地址（缓存后不再请求）：真实数据用列表自带直链，mock 回退 play-info */
 async function ensurePlayUrl(item: Course): Promise<string> {
   const cached = playUrlMap[item.courseId]
   if (cached !== undefined) return cached
+  if (item.playUrl) {
+    playUrlMap[item.courseId] = item.playUrl
+    return item.playUrl
+  }
   try {
     const info = await getPlayInfoApi(item.courseId)
     playUrlMap[item.courseId] = (info && info.playUrl) || ''
@@ -160,11 +164,22 @@ async function loadVideos() {
     const res = await getShortVideosApi()
     list.value = res || []
     state.value = 'ready'
+    backfillInteraction()
     await Promise.all(list.value.slice(0, 3).map(ensurePlayUrl))
-    // URL 已设好，:autoplay 会自动触发当前 slide 播放；无需手动 play()
   } catch (e) {
     state.value = 'error'
   }
+}
+
+/** 初始化点赞/收藏按钮态（targetType=3 短视频） */
+async function backfillInteraction() {
+  const ids = list.value.map((x) => x.courseId)
+  const [liked, faved] = await Promise.all([
+    getInteractionStatusApi(3, 1, ids),
+    getInteractionStatusApi(3, 2, ids)
+  ])
+  const ls = new Set(liked), fs = new Set(faved)
+  list.value = list.value.map((x) => ({ ...x, isLiked: ls.has(x.courseId), isFavorited: fs.has(x.courseId) }))
 }
 
 async function onSwiperChange(e: any) {
@@ -206,8 +221,8 @@ function onTimeUpdate(item: Course, e: any) {
   currentTimeMap[item.courseId] = (e && e.detail && e.detail.currentTime) || 0
 }
 function onVideoError(item: Course, e: any) {
-  console.warn('[VideoPanel] 视频加载失败:', item.courseId, e)
-  uni.showToast({ title: '视频源加载失败', icon: 'none' })
+  // 文件缺失/网络问题时静默处理，不再弹 toast 打扰（首页会误弹）
+  console.warn('[VideoPanel] 视频源加载失败:', item.courseId, e)
 }
 
 async function loadMore() {
@@ -220,20 +235,24 @@ async function handleLike(item: Course) {
   const i = indexOf(item)
   if (i < 0) return
   const before = list.value[i]
-  const liked = !before.isLiked
-  list.value[i] = { ...before, isLiked: liked, likeCount: (before.likeCount || 0) + (liked ? 1 : -1) }
-  try { await toggleLikeApi(2, before.courseId, !!before.isLiked) }
-  catch (e) { list.value[i] = before; uni.showToast({ title: '操作失败', icon: 'none' }) }
+  try {
+    const r = await toggleLikeApi(3, before.courseId, !!before.isLiked)
+    list.value[i] = { ...before, isLiked: r.isLiked, likeCount: r.likeCount ?? before.likeCount }
+  } catch (e) {
+    uni.showToast({ title: '操作失败', icon: 'none' })
+  }
 }
 
 async function handleFavorite(item: Course) {
   const i = indexOf(item)
   if (i < 0) return
   const before = list.value[i]
-  const faved = !before.isFavorited
-  list.value[i] = { ...before, isFavorited: faved, favoriteCount: (before.favoriteCount || 0) + (faved ? 1 : -1) }
-  try { await toggleFavoriteApi(2, before.courseId, !!before.isFavorited) }
-  catch (e) { list.value[i] = before; uni.showToast({ title: '操作失败', icon: 'none' }) }
+  try {
+    const r = await toggleFavoriteApi(3, before.courseId, !!before.isFavorited)
+    list.value[i] = { ...before, isFavorited: r.isFavorited, favoriteCount: r.favoriteCount ?? before.favoriteCount }
+  } catch (e) {
+    uni.showToast({ title: '操作失败', icon: 'none' })
+  }
 }
 
 function handleShare(item: Course) {
@@ -260,6 +279,16 @@ onUnmounted(() => {
     if (c) c.pause()
   })
 })
+
+/** 懒加载：首次切到「视频」Tab 才拉列表，避免启动即在首页触发加载/报错 */
+let loaded = false
+function maybeLoad() {
+  if (loaded) return
+  loaded = true
+  loadVideos()
+}
+onMounted(() => { uni.$on('video:show', maybeLoad) })
+onUnmounted(() => { uni.$off('video:show', maybeLoad) })
 </script>
 
 <style lang="scss" scoped>

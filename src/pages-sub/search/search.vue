@@ -52,7 +52,7 @@
       <view class="result-list" v-else>
         <view v-for="c in courses" :key="c.courseId" class="result-card" @tap="openCourse(c)">
           <text class="result-title">{{ c.title }}</text>
-          <text class="result-sub">{{ c.instructorName }} · {{ c.studentCount }} 人在学</text>
+          <text class="result-sub">{{ c.categoryName }} · {{ c.likeCount || 0 }} 点赞{{ c.averageScore ? ' · ' + c.averageScore.toFixed(1) + ' 分' : '' }}</text>
         </view>
       </view>
     </block>
