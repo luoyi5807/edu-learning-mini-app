@@ -16,7 +16,7 @@
       <text class="card-title">签到积分规则</text>
       <view class="rule-row">
         <text class="rule-label">每日签到</text>
-        <text class="rule-value">每天可签到一次</text>
+        <text class="rule-value">{{ dailyTip }}</text>
       </view>
       <view v-for="item in signRules" :key="item.day" class="rule-row">
         <text class="rule-label">连续 {{ item.day }} 天</text>
@@ -24,15 +24,15 @@
       </view>
       <view class="rule-row">
         <text class="rule-label">断签重置</text>
-        <text class="rule-value rule-value-wrap">中断一天后连续天数重新从 1 开始</text>
+        <text class="rule-value rule-value-wrap">{{ resetNote }}</text>
       </view>
     </view>
 
     <!-- 积分兑换规则 -->
     <view class="rule-card">
       <text class="card-title">积分兑换规则</text>
-      <view v-for="p in products" :key="p.points" class="rule-row">
-        <text class="rule-label">{{ p.points }} 积分</text>
+      <view v-for="p in products" :key="p.tier" class="rule-row">
+        <text class="rule-label">{{ p.cost }} 积分</text>
         <text class="rule-value">{{ p.label }}</text>
       </view>
       <view class="rule-row">
@@ -41,7 +41,7 @@
       </view>
     </view>
 
-    <text class="foot-note">规则由后端配置下发，实际以签到结果为准</text>
+    <text class="foot-note">{{ loopNote }}</text>
   </view>
 </template>
 

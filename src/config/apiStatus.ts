@@ -5,15 +5,19 @@
  */
 export const API_READY = {
     /** GET user/sign-calendar */
-    signCalendar: false,
+    signCalendar: true,
+    /** 签到 /api/v1/checkin/*（sign/status/calendar/records/rules，后端已就绪） */
+    checkin: true,
+    /** 积分与免广告兑换 /api/v1/points/*（account/exchange，后端已就绪） */
+    points: true,
     /** GET user/courses */
     myCourses: false,
     /** GET user/articles */
     myArticles: false,
     /** GET articles（社区文章列表） */
     articles: false,
-    /** 分类列表 GET /article/category/list、/course/category/list（后端已就绪） */
-    categories: true,
+    /** 分类列表 GET /article/category/list、/course/category/list（C 端无接口，仅后台会话版，保持 mock） */
+    categories: false,
     /** C 端资料/改密/头像 GET/PUT /api/user/profile、PUT /api/user/password、POST /api/user/avatar（后端待补；就绪后置 true 即切真接口，页面零改动） */
     userProfile: false,
     /** GET articles/{id}（文章详情） */
@@ -26,8 +30,8 @@ export const API_READY = {
     interaction: true,
     /** 内容搜索 / 热词 */
     search: false,
-    /** 笔记 notes（列表/新增/详情） */
-    notes: false,
+    /** 笔记 /api/v1/note/*（add/edit/remove/list/info，后端已就绪） */
+    notes: true,
     /** GET courses（课程列表 / 课程搜索） */
     courses: false,
     /** GET /api/v1/search/video（短视频列表/热门榜，已对接真实后端） */
@@ -43,7 +47,7 @@ export const API_READY = {
     /** POST/DELETE user/courses/{id}（加入 / 退出学习） */
     joinCourse: false,
     /** 课程评分 POST/GET courses/{id}/rating(s) */
-    courseRating: false,
+    courseRating: true,
     /** GET user/download-records */
     downloadRecords: false,
     /** GET todos */

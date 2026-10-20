@@ -35,7 +35,7 @@
         :class="{ 'checkin-btn-done': signedToday }"
         @tap="handleCheckin"
     >
-      <text class="checkin-btn-text">{{ signedToday ? '今日已签到' : `签到 +${todayTask.reward} 积分` }}</text>
+      <text class="checkin-btn-text">{{ signedToday ? '今日已签到' : `签到 +${todayPoints} 积分` }}</text>
     </view>
 
     <!-- 免广告权益状态 -->
@@ -52,7 +52,7 @@
 
     <!-- 兑换区 -->
     <text class="section-title">积分兑换免广告</text>
-    <view class="exchange-card" v-for="p in exchangeProducts" :key="p.id">
+    <view class="exchange-card" v-for="p in exchangeProducts" :key="p.tier">
       <view class="exchange-info">
         <text class="exchange-name">{{ p.name }}</text>
         <text class="exchange-cost">{{ p.costPoints }} 积分</text>
@@ -67,7 +67,8 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { onLoad, onPageScroll } from '@dcloudio/uni-app'
-import { AD_FREE_PRODUCTS } from '@/composables/pointsRule'
+import { getCheckinStatusApi, signApi } from '@/api/checkin'
+import { getPointsAccountApi, getExchangeTiersApi, exchangeAdFreeApi, type ExchangeTier } from '@/api/points'
 
 /* ===== 顶部栏高度（含状态栏 + 胶囊区） ===== */
 const statusBarHeight = ref<number>(0)
@@ -90,24 +91,20 @@ onPageScroll((e) => {
   navBarOpaque.value = e.scrollTop > 40
 })
 
-/* ===== 数据（Mock，字段对齐 sign-calendar / checkins DTO，接口零改动） ===== */
-const points = ref<number>(286)
-const continueSignDay = ref<number>(12)
-const totalSignDay = ref<number>(12)
+/* ===== 数据（对接 /api/v1/checkin + /api/v1/points） ===== */
+const points = ref<number>(0)
+const continueSignDay = ref<number>(0)
+const totalSignDay = ref<number>(0)
 const signedToday = ref<boolean>(false)
+const todayPoints = ref<number>(0)   // 今天签到可得几分
 
-// 今日签到任务：checkinType 1点击即签 2定位 3手势 4拍照
-const todayTask = ref({ taskId: 1, taskName: '每日签到', checkinType: 1, reward: 18 })
-
-// 免广告权益
+// 免广告权益（全部用服务端算好的值）
 const hasAdFree = ref<boolean>(false)
 const adFreeMinutes = ref<number>(0)
 
-// 兑换商品（与积分规则页同源）
-interface ExchangeProduct { id: number; name: string; costPoints: number; minutes: number }
-const exchangeProducts = ref<ExchangeProduct[]>(
-  AD_FREE_PRODUCTS.map((p, idx) => ({ id: idx + 1, name: p.label, costPoints: p.points, minutes: p.minutes }))
-)
+// 兑换档位（后端下发）
+interface ExchangeProduct { tier: number; name: string; costPoints: number; minutes: number }
+const exchangeProducts = ref<ExchangeProduct[]>([])
 
 /* ===== 交互 ===== */
 function goBack() {
@@ -120,43 +117,74 @@ function goRecord() {
   uni.navigateTo({ url: '/pages-sub/checkin/record' })
 }
 
-// POST checkins（checkinType=1 点击即签；此处乐观更新，失败回滚）
-function handleCheckin() {
+/** 拉取签到状态 + 积分账户 */
+async function loadAll() {
+  try {
+    const st = await getCheckinStatusApi()
+    signedToday.value = !!st.signedToday
+    todayPoints.value = st.todayPoints || 0
+    continueSignDay.value = st.continuousDays || 0
+    totalSignDay.value = st.totalDays || 0
+    points.value = st.balance || 0
+
+    const acc = await getPointsAccountApi()
+    points.value = acc.balance || 0
+    hasAdFree.value = !!acc.adFree
+    adFreeMinutes.value = acc.adFreeRemainMinutes || 0
+  } catch (e) { /* 未登录/网络异常，request 已 toast */ }
+}
+
+/** 拉取兑换档位 */
+async function loadTiers() {
+  try {
+    const tiers: ExchangeTier[] = await getExchangeTiersApi()
+    exchangeProducts.value = tiers.map((t) => ({ tier: t.tier, name: t.label, costPoints: t.cost, minutes: t.minutes }))
+  } catch (e) { /* ignore */ }
+}
+
+/** 每日签到（成功后用服务端返回值刷新） */
+async function handleCheckin() {
   if (signedToday.value) {
     uni.showToast({ title: '今天已经签到啦', icon: 'none' })
     return
   }
-  if (todayTask.value.checkinType !== 1) {
-    uni.showToast({ title: '该签到方式开发中', icon: 'none' })
-    return
+  try {
+    const r = await signApi()
+    points.value = r.balance
+    continueSignDay.value = r.continuousDays
+    totalSignDay.value = r.totalDays
+    signedToday.value = true
+    todayPoints.value = 0
+    uni.showToast({ title: `签到成功 +${r.points} 积分`, icon: 'none' })
+  } catch (e: any) {
+    uni.showToast({ title: (e && e.msg) ? e.msg : '签到失败', icon: 'none' })
   }
-  const before = points.value
-  points.value += todayTask.value.reward
-  signedToday.value = true
-  continueSignDay.value += 1
-  totalSignDay.value += 1
-  uni.showToast({ title: `签到成功 +${todayTask.value.reward} 积分`, icon: 'none' })
-  // 接口失败时回滚：points.value = before ...
-  void before
 }
 
 function showRules() {
   uni.navigateTo({ url: '/pages-sub/checkin/points-rules' })
 }
 
-function handleExchange(p: ExchangeProduct) {
+/** 兑换免广告（成功后读服务端余额与剩余分钟） */
+async function handleExchange(p: ExchangeProduct) {
   if (points.value < p.costPoints) {
     uni.showToast({ title: '积分不足', icon: 'none' })
     return
   }
-  points.value -= p.costPoints
-  hasAdFree.value = true
-  adFreeMinutes.value += p.minutes
-  uni.showToast({ title: `兑换成功，免广告 ${p.minutes} 分钟`, icon: 'none' })
+  try {
+    const r = await exchangeAdFreeApi(p.tier)
+    points.value = r.balance
+    hasAdFree.value = !!r.adFree
+    adFreeMinutes.value = r.adFreeRemainMinutes || 0
+    uni.showToast({ title: `兑换成功，${p.name}`, icon: 'none' })
+  } catch (e: any) {
+    uni.showToast({ title: (e && e.msg) ? e.msg : '兑换失败', icon: 'none' })
+  }
 }
 
 onLoad(() => {
-  // 接口接入：GET checkins/tasks/today、GET user/sign-calendar
+  loadAll()
+  loadTiers()
 })
 </script>
 

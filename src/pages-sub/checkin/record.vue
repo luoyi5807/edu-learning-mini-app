@@ -227,18 +227,20 @@ interface MonthRecord { dateKey: string; label: string; points: number }
 
 const weekdayNames = ['周日', '周一', '周二', '周三', '周四', '周五', '周六']
 
-/** 由日号正序生成记录并倒序取最近 6 条，星期由 Date 现算 */
+/** 后端记录映射：dateKey(yyyy-MM-dd) → 当日积分 */
+const pointsByDate = ref<Record<string, number>>({})
+
+/** 由已签到日号倒序取最近 6 条，积分取后端真实值，缺省时兜底 */
 const monthRecords = computed<MonthRecord[]>(() => {
   const days = Array.from(signedDaySet.value).sort((a, b) => b - a).slice(0, 6)
-  const total = signedDaySet.value.size
-  return days.map((day, idx) => {
+  return days.map((day) => {
     const d = firstDayOfMonth(year.value, month.value)
     const weekday = new Date(d.getFullYear(), d.getMonth(), day).getDay()
+    const key = dateKeyOf(day)
     return {
-      dateKey: dateKeyOf(day),
+      dateKey: key,
       label: `${pad(month.value)}-${pad(day)} ${weekdayNames[weekday]}`,
-      // TODO 接口接入后改用后端返回的 record.points，前端不再推算
-      points: rewardOf(Math.max(1, total - idx))
+      points: pointsByDate.value[key] || 0
     }
   })
 })
@@ -280,16 +282,26 @@ async function loadCalendar() {
     signedDates.value = res.signedDates || []
     summary.continueSignDay = res.continueSignDay || 0
     summary.totalSignDay = res.totalSignDay || 0
+    // 明细积分用后端真实记录（本月）
+    const recs = await getCheckinRecordsApi(1, 200)
+    const map: Record<string, number> = {}
+    const ym = `${year.value}-${pad(month.value)}`
+    recs.forEach((r) => { if (r.signDate && r.signDate.startsWith(ym)) map[r.signDate] = r.points })
+    pointsByDate.value = map
     state.value = 'ready'
   } catch (e) {
     state.value = 'error'
   }
 }
 
-/** 总积分属用户中心，与日历独立；进页取一次，不随月份变化 */
-function loadSummary() {
-  summary.points = 286
-  // 接口接入：GET user/profile → points
+/** 总积分属积分账户，与日历独立；进页取一次 */
+async function loadSummary() {
+  try {
+    const acc = await getPointsAccountApi()
+    summary.points = acc.balance || 0
+  } catch (e) {
+    summary.points = 0
+  }
 }
 
 onLoad(() => {

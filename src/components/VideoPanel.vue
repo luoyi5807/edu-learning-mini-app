@@ -33,8 +33,14 @@
               @error="onVideoError(item, $event)"
           />
 
-          <!-- 透明点击层：单击切换播放/暂停（不跳页） -->
-          <view class="video-tap-layer" @tap="togglePlay(item)"></view>
+          <!-- 透明点击层：单击切换播放/暂停；上下滑手动切页（规避原生 video 拦截竖向手势） -->
+          <view
+              class="video-tap-layer"
+              @tap="togglePlay(item)"
+              @touchstart="onTouchStart"
+              @touchmove="onTouchMove"
+              @touchend="onTouchEnd"
+          ></view>
 
           <!-- 顶部压黑，保证固定标题可读 -->
           <view class="video-top-scrim"></view>
@@ -183,15 +189,47 @@ async function backfillInteraction() {
 }
 
 async function onSwiperChange(e: any) {
+  switchTo(e.detail.current)
+}
+
+/** 统一的切页逻辑：swiper 手势与手动滑动都走这里，用时间戳去重防双切 */
+let lastSwitchTs = 0
+function switchTo(next: number) {
+  if (next < 0 || next >= list.value.length) return
+  const now = Date.now()
+  if (now - lastSwitchTs < 350) return
+  lastSwitchTs = now
   const prev = currentIndex.value
-  const next = e.detail.current
   if (prev !== next && list.value[prev]) {
     const oldCtx = getCtx(list.value[prev].courseId)
     if (oldCtx) oldCtx.pause()
   }
   currentIndex.value = next
   if (currentIndex.value >= list.value.length - 2) loadMore()
-  await activateCurrent()
+  activateCurrent()
+}
+
+/* ===== 手动上下滑（video 拦截 swiper 竖向手势时的兜底） ===== */
+let touchStartY = 0
+let touchSwiping = false
+function onTouchStart(e: any) {
+  const t = (e.touches && e.touches[0]) || (e.changedTouches && e.changedTouches[0])
+  touchStartY = t ? t.clientY : 0
+  touchSwiping = false
+}
+function onTouchMove(e: any) {
+  const t = (e.touches && e.touches[0]) || (e.changedTouches && e.changedTouches[0])
+  if (!t) return
+  if (Math.abs(t.clientY - touchStartY) > 15) touchSwiping = true
+}
+function onTouchEnd(e: any) {
+  if (!touchSwiping) return // 视为单击，交给 @tap 处理播放/暂停
+  const t = (e.changedTouches && e.changedTouches[0]) || (e.touches && e.touches[0])
+  if (!t) return
+  const dy = t.clientY - touchStartY
+  if (Math.abs(dy) < 50) return
+  if (dy < 0) switchTo(currentIndex.value + 1) // 上滑 → 下一条
+  else switchTo(currentIndex.value - 1)        // 下滑 → 上一条
 }
 
 /** 滑动后手动播放当前（autoplay prop 对已挂载元素不重新触发） */
@@ -208,6 +246,7 @@ async function activateCurrent() {
 
 /** 单击视频区域：暂停 / 继续 */
 function togglePlay(item: Course) {
+  if (touchSwiping) return
   if (!playUrlMap[item.courseId]) return
   const ctx = getCtx(item.courseId)
   if (!ctx) return

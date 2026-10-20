@@ -2,6 +2,7 @@ import { get, post, put, del, getToken, v1 } from '@/utils/request'
 import { BASE_URL } from '@/config/env'
 import { API_READY, formatDateKey } from '@/config/apiStatus'
 import { useAuthStore } from '@/store/auth'
+import { getCheckinCalendarApi, getCheckinStatusApi } from '@/api/checkin'
 
 // C 端接口前缀 + 本地资料缓存 key（与 store/auth.ts 一致）
 const USER_API = '/api/user'
@@ -131,8 +132,12 @@ function mockSignCalendar(year: number, month: number): SignCalendarResult {
 }
 
 export function getSignCalendarApi(year: number, month: number): Promise<SignCalendarResult> {
-    if (!API_READY.signCalendar) return Promise.resolve(mockSignCalendar(year, month))
-    return get(v1('/user/sign-calendar'), { year, month })
+    if (!API_READY.checkin) return Promise.resolve(mockSignCalendar(year, month))
+    // 后端拆两个接口：calendar 给当月已签日号，status 给连续/累计天数
+    return Promise.all([getCheckinCalendarApi(year, month), getCheckinStatusApi()]).then(([cal, st]) => {
+        const signedDates = (cal.days || []).map((d) => formatDateKey(year, month, d))
+        return { continueSignDay: st.continuousDays || 0, totalSignDay: st.totalDays || 0, signedDates }
+    })
 }
 
 /* ===================== 我的课程 ===================== */
