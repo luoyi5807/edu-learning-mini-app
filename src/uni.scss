@@ -110,15 +110,24 @@ $edu-tab-video-fg: #0E6E78;     $edu-tab-video-bg: #D9F0F3;
 $edu-tab-community-fg: #A8453C; $edu-tab-community-bg: #FBE4E0;
 $edu-tab-profile-fg: #96650C;   $edu-tab-profile-bg: #FBEFD2;
 
-/* 页面渐变：strong 用于登录/启动/详情/空态 */
+/* 页面渐变：strong 用于二级页/详情/空态（对齐配色方案 §四：白 → 页面全局背景 #F7F9FC） */
 @mixin eduPageGradientStrong {
-  background: linear-gradient(180deg,
-    #FFFFFF 0%, #FFFBF2 12%, #F8F0ED 34%, #FDF5F5 72%, #FFFFFF 100%);
+  background: linear-gradient(180deg, #FFFFFF 0%, $edu-bg 100%);
 }
-/* 页面渐变：weak 用于长列表页（首页/社区） */
+/* 页面渐变：weak 保留兼容历史长列表页 */
 @mixin eduPageGradientWeak {
   background: linear-gradient(180deg,
     #F8F0ED 0%, #FFFBF2 10%, #F7F9FC 28%, #F7F9FC 100%);
+}
+/* 配色方案 §五：三个 Tab 主题渐变（渐变顶部 → 渐变底部） */
+@mixin eduPageGradientHome {
+  background: linear-gradient(180deg, #F5F7FF 0%, #E8ECF8 100%);
+}
+@mixin eduPageGradientCommunity {
+  background: linear-gradient(180deg, #FFF8F6 0%, #FBE9E5 100%);
+}
+@mixin eduPageGradientProfile {
+  background: linear-gradient(180deg, #FFFBF2 0%, #F8F0DD 100%);
 }
 /* 卡片/胶囊轻渐变（暖白，融入奶油底） */
 @mixin eduSurfaceWash {

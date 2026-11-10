@@ -40,6 +40,7 @@ export interface LessonDto {
     duration: number          // 秒
     isFree: number            // 0 付费  1 免费试看
     transcodeStatus: number   // 1 成功才可播
+    playUrl?: string          // 后端直链（详情返回 videoUrl，播放器直接播，无需播放凭证）
     videoFileId?: string
     progressSeconds?: number  // 已观看进度（秒），续播用
     isFinished?: boolean

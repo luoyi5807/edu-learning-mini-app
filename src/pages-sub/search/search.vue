@@ -46,8 +46,9 @@
       <view class="result-list" v-else-if="type === 1">
         <view v-for="a in articles" :key="a.articleId" class="result-card" @tap="openArticle(a)">
           <text class="result-title">{{ a.title }}</text>
-          <text class="result-sub">{{ a.authorName }} · {{ a.viewCount }} 阅读</text>
+          <text class="result-sub">{{ a.authorName }} · {{ a.likeCount }} 点赞</text>
         </view>
+
       </view>
       <view class="result-list" v-else>
         <view v-for="c in courses" :key="c.courseId" class="result-card" @tap="openCourse(c)">
@@ -65,7 +66,7 @@ import { onLoad } from '@dcloudio/uni-app'
 import LoadingState from '@/components/LoadingState.vue'
 import EmptyState from '@/components/EmptyState.vue'
 import { getHotWordsApi, searchArticlesApi, getSearchHistory, addSearchHistory, clearSearchHistory as clearHistoryApi } from '@/api/search'
-import { searchCoursesApi } from '@/api/course'
+import { searchCoursesApi, getCourseListApi } from '@/api/course'
 import type { ArticleDto } from '@/types/article'
 import type { Course } from '@/types/course'
 
@@ -84,6 +85,7 @@ const navTotalHeight = computed<number>(() => statusBarHeight.value + navContent
 const autoFocus = ref<boolean>(true)
 const keyword = ref<string>('')
 const type = ref<number>(1)          // 1 文章  2 课程
+const categoryId = ref<number>(0)    // 从分类页带入：无关键词时按分类浏览课程
 const searched = ref<boolean>(false)
 const state = ref<'loading' | 'ready'>('ready')
 
@@ -95,14 +97,18 @@ const resultCount = computed<number>(() => (type.value === 1 ? articles.value.le
 
 async function doSearch() {
   const kw = keyword.value.trim()
-  if (!kw) { uni.showToast({ title: '请输入关键词', icon: 'none' }); return }
-  addSearchHistory(kw)
+  if (!kw && !(categoryId.value && type.value === 2)) { uni.showToast({ title: '请输入关键词', icon: 'none' }); return }
+  if (kw) addSearchHistory(kw)
   history.value = getSearchHistory()
   searched.value = true
   state.value = 'loading'
   try {
     if (type.value === 1) articles.value = await searchArticlesApi(kw)
-    else courses.value = await searchCoursesApi(kw)
+    else if (kw) courses.value = await searchCoursesApi(kw)
+    else {
+      const res = await getCourseListApi({ pageNum: 1, pageSize: 20, sortBy: 'likeCount', categoryId: categoryId.value })
+      courses.value = res.list
+    }
     state.value = 'ready'
   } catch (e) { state.value = 'ready' }
 }
@@ -115,7 +121,7 @@ function switchType(t: number) {
 function tapKeyword(w: string) { keyword.value = w; doSearch() }
 function clearHistory() { clearHistoryApi(); history.value = [] }
 function openArticle(a: ArticleDto) { uni.navigateTo({ url: `/pages-sub/article/detail?articleId=${a.articleId}` }) }
-function openCourse(c: Course) { uni.showToast({ title: `课程详情开发中：${c.title}`, icon: 'none' }) }
+function openCourse(c: Course) { uni.navigateTo({ url: `/pages-sub/course/detail?courseId=${c.courseId}` }) }
 function goBack() {
   const pages = getCurrentPages()
   if (pages.length > 1) uni.navigateBack()
@@ -124,6 +130,10 @@ function goBack() {
 
 onLoad(async (query) => {
   if (query && query.type) type.value = Number(query.type) === 2 ? 2 : 1
+  if (query && query.categoryId) {
+    categoryId.value = Number(query.categoryId) || 0
+    if (categoryId.value > 0) { type.value = 2; doSearch() }
+  }
   if (query && query.keyword) { keyword.value = query.keyword; doSearch() }
   history.value = getSearchHistory()
   hotWords.value = (await getHotWordsApi()) || []

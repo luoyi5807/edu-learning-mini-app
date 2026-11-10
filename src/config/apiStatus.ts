@@ -12,24 +12,25 @@ export const API_READY = {
     points: true,
     /** GET user/courses */
     myCourses: false,
-    /** GET user/articles */
-    myArticles: false,
-    /** GET articles（社区文章列表） */
-    articles: false,
-    /** 分类列表 GET /article/category/list、/course/category/list（C 端无接口，仅后台会话版，保持 mock） */
-    categories: false,
-    /** C 端资料/改密/头像 GET/PUT /api/user/profile、PUT /api/user/password、POST /api/user/avatar（后端待补；就绪后置 true 即切真接口，页面零改动） */
-    userProfile: false,
-    /** GET articles/{id}（文章详情） */
-    articleDetail: false,
-    /** 发布 / 编辑文章 */
-    articlePublish: false,
+    /** 我的文章 GET /api/v1/post/myList + 删除 POST /api/v1/post/remove（后端已就绪；myList 无 viewCount/分类/时间，列表按缺省补零） */
+    myArticles: true,
+    /** 社区文章列表：走 /api/v1/post/list（服务端按 categoryId / sortBy / featured 过滤 + 分页，
+     *  返回 summary、coverUrl、avatar、viewCount，卡片直接展示真实数据） */
+    articles: true,
+    /** 分类列表 GET /api/v1/category/list?categoryType=course|article（后端已就绪：返回 {code,rows:[{categoryId,categoryName}],total}，扁平无树） */
+    categories: true,
+    /** C 端资料/改密/头像：GET/POST /api/v1/user/profile、POST /api/v1/user/password、POST /api/v1/upload（后端已就绪，改密后吊销全部 Token 需重登） */
+    userProfile: true,
+    /** 文章详情 GET /api/v1/post/info?postId=（后端已就绪：返回 PostDetail，正文为 Markdown 原文，前端渲染） */
+    articleDetail: true,
+    /** 发布文章 POST /api/v1/post/add + 编辑回显 GET /api/v1/post/info（后端已就绪；统一先审后发，无草稿/编辑保存/撤回接口，这几项仍走本地） */
+    articlePublish: true,
     /** 评论 GET/POST comments */
     comment: true,
     /** 点赞 / 收藏 toggle */
     interaction: true,
-    /** 内容搜索 / 热词 */
-    search: false,
+    /** 帖子/文章搜索 GET /api/v1/search/post（已切真）；热词后端无接口，getHotWordsApi 恒走本地 */
+    search: true,
     /** 笔记 /api/v1/note/*（add/edit/remove/list/info，后端已就绪） */
     notes: true,
     /** GET courses（课程列表 / 课程搜索） */
@@ -40,8 +41,10 @@ export const API_READY = {
     searchCourse: true,
     /** GET /api/v1/course/list（课程列表，已对接真实后端：分页 + 排序） */
     courseList: true,
-    /** GET courses/{id}（课程详情 / 章节目录） */
-    courseDetail: false,
+    /** 轮播图 / 广告位 GET /api/v1/banner/list（后端已就绪：按 categoryId 取窗口，只返回目标课程可见的轮播；不传=「全部」窗口） */
+    banner: true,
+    /** GET /api/v1/course/{courseId}（课程详情：三段式 course+chapters(带videos)+散videos，视频含直链 videoUrl，后端已就绪） */
+    courseDetail: true,
     /** GET courses/{id}/play-info（播放凭证） */
     playInfo: false,
     /** POST/DELETE user/courses/{id}（加入 / 退出学习） */
@@ -52,12 +55,25 @@ export const API_READY = {
     downloadRecords: false,
     /** GET todos */
     todos: false,
-    /** 关注体系（后端待补，见适配清单第七章） */
-    followStats: false,
-    /** 关注动作/数量 /api/v1/follow（add/cancel/status/count）；资料展示仍走 mock（无 C 端用户资料接口） */
+    /** 关注动作/数量 /api/v1/follow（add/cancel/status/count） */
     follow: true,
+    /** 他人主页资料 GET /api/v1/user/publicProfile（后端已就绪：资料+关注/粉丝/获赞+isFollowing） */
+    followStats: true,
+    /** 个人主页首屏 GET /api/v1/user/home（资料+关注+粉丝+获赞+粉丝预览，一次返回） */
+    userHome: true,
+    /** 学习数据 GET /api/v1/learn/stats（今日/连续/本周/完成课程/笔记/待办） */
+    study: true,
+    /** 观看历史 GET /api/v1/history/list（短视频/课程/文章混合时间线） */
+    history: true,
+    /** 我的点赞/收藏 GET /api/v1/interaction/myLikes · /myFavorites */
+    myInteractions: true,
+    /** 话题列表 GET /api/v1/topic/list（发布页话题标签选择） */
+    topics: true,
     /** 通知消息 GET/POST notifications（点赞/评论/关注/收藏聚合） */
-    notification: true
+    notification: true,
+    /** 看激励视频得积分：前端调起广告 + 后端 SSV 回调发奖。
+     *  依赖 learning_ad_reward_log 表 + /api/v1/ad/reward 回调接口（后端未就绪）→ 默认 false，走 mock/隐藏真实加分 */
+    adReward: false
 }
 
 function pad(n: number): string {

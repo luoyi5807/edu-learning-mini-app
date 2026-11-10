@@ -38,6 +38,21 @@
       <text class="checkin-btn-text">{{ signedToday ? '今日已签到' : `签到 +${todayPoints} 积分` }}</text>
     </view>
 
+    <!-- 看激励视频领积分（adReward 未就绪时置灰提示） -->
+    <view class="ad-card" :class="{ 'ad-card-off': !adReady }" @tap="handleWatchAd">
+      <view class="ad-card-info">
+        <text class="ad-card-title">看激励视频领积分</text>
+        <text class="ad-card-sub">
+          {{ adReady
+              ? `每次 +${adConfig.pointsPerView} 积分 · 今日 ${adConfig.todayUsed}/${adConfig.dailyLimit}`
+              : '即将上线，敬请期待' }}
+        </text>
+      </view>
+      <view class="ad-card-btn">
+        <text class="ad-card-btn-text">{{ adReady ? '去观看' : '开发中' }}</text>
+      </view>
+    </view>
+
     <!-- 免广告权益状态 -->
     <view class="info-card">
       <view class="status-dot" :class="{ 'status-dot-on': hasAdFree }"></view>
@@ -69,6 +84,12 @@ import { ref } from 'vue'
 import { onLoad, onPageScroll } from '@dcloudio/uni-app'
 import { getCheckinStatusApi, signApi } from '@/api/checkin'
 import { getPointsAccountApi, getExchangeTiersApi, exchangeAdFreeApi, type ExchangeTier } from '@/api/points'
+import { getAdRewardConfigApi, refreshBalanceAfterAd, type AdRewardConfig } from '@/api/adReward'
+import { showRewardedAd } from '@/composables/useRewardedAd'
+import { API_READY } from '@/config/apiStatus'
+import { useAuthStore } from '@/store/auth'
+
+const auth = useAuthStore()
 
 /* ===== 顶部栏高度（含状态栏 + 胶囊区） ===== */
 const statusBarHeight = ref<number>(0)
@@ -105,6 +126,48 @@ const adFreeMinutes = ref<number>(0)
 // 兑换档位（后端下发）
 interface ExchangeProduct { tier: number; name: string; costPoints: number; minutes: number }
 const exchangeProducts = ref<ExchangeProduct[]>([])
+
+// 看激励视频得积分（开关未就绪时 adReady=false，按钮仅提示开发中）
+const adReady = ref<boolean>(API_READY.adReward)
+const adConfig = ref<AdRewardConfig>({ pointsPerView: 0, dailyLimit: 0, todayUsed: 0 })
+const adWatching = ref<boolean>(false)
+
+async function loadAdConfig() {
+  try { adConfig.value = await getAdRewardConfigApi() } catch (e) { /* ignore */ }
+}
+
+/** 看激励视频领积分：前端只负责调起 + 稍后刷新余额，真正加分在后端 SSV 回调 */
+async function handleWatchAd() {
+  if (!adReady.value) {
+    uni.showToast({ title: '看广告领积分即将上线', icon: 'none' })
+    return
+  }
+  if (adConfig.value.todayUsed >= adConfig.value.dailyLimit) {
+    uni.showToast({ title: '今日观看次数已用完', icon: 'none' })
+    return
+  }
+  if (adWatching.value) return
+  adWatching.value = true
+  try {
+    const uid = auth.state.user?.userId
+    const finished = await showRewardedAd(uid, adConfig.value.pointsPerView)
+    if (!finished) {
+      uni.showToast({ title: '看完视频才能领取积分哦', icon: 'none' })
+      return
+    }
+    uni.showToast({ title: '奖励发放中…', icon: 'none' })
+    // SSV 回调有延迟：轮询刷新余额（最多 ~6 秒），涨了即确认到账
+    const before = points.value
+    for (let i = 0; i < 6; i++) {
+      await new Promise(r => setTimeout(r, 1000))
+      const bal = await refreshBalanceAfterAd()
+      if (bal > before) { points.value = bal; loadAdConfig(); uni.showToast({ title: `+${bal - before} 积分已到账`, icon: 'none' }); break }
+      points.value = bal
+    }
+  } finally {
+    adWatching.value = false
+  }
+}
 
 /* ===== 交互 ===== */
 function goBack() {
@@ -185,6 +248,7 @@ async function handleExchange(p: ExchangeProduct) {
 onLoad(() => {
   loadAll()
   loadTiers()
+  loadAdConfig()
 })
 </script>
 
@@ -281,4 +345,22 @@ onLoad(() => {
 }
 .exchange-btn-disabled { background-color: $edu-outline; }
 .exchange-btn-text { font-size: 28rpx; font-weight: 500; color: #FFFFFF; }
+
+/* ===== 看激励视频领积分 ===== */
+.ad-card {
+  margin-top: 28rpx; border-radius: 24rpx; padding: 28rpx 32rpx;
+  display: flex; align-items: center; justify-content: space-between;
+  background: linear-gradient(135deg, #FFF3E0 0%, #FFE6C7 100%);
+}
+.ad-card-off { background: $edu-surface-variant; }
+.ad-card-info { display: flex; flex-direction: column; }
+.ad-card-title { font-size: 32rpx; font-weight: 600; color: $edu-text-primary; margin-bottom: 10rpx; }
+.ad-card-sub { font-size: 24rpx; color: $edu-text-secondary; }
+.ad-card-btn {
+  height: 68rpx; padding: 0 40rpx; border-radius: 34rpx;
+  display: flex; align-items: center; justify-content: center;
+  background-color: #F59300;
+}
+.ad-card-off .ad-card-btn { background-color: $edu-outline; }
+.ad-card-btn-text { font-size: 28rpx; font-weight: 500; color: #FFFFFF; }
 </style>

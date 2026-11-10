@@ -1,11 +1,10 @@
-import { get, post, put, del, getToken, v1 } from '@/utils/request'
+import { get, post, del, getToken, v1 } from '@/utils/request'
 import { BASE_URL } from '@/config/env'
 import { API_READY, formatDateKey } from '@/config/apiStatus'
 import { useAuthStore } from '@/store/auth'
 import { getCheckinCalendarApi, getCheckinStatusApi } from '@/api/checkin'
 
-// C 端接口前缀 + 本地资料缓存 key（与 store/auth.ts 一致）
-const USER_API = '/api/user'
+// 本地资料缓存 key（与 store/auth.ts 一致）
 const APP_USER_KEY = 'appUser'
 
 interface LocalAppUser {
@@ -31,6 +30,19 @@ export function resolveFileUrl(path?: string): string {
     return /^[a-z][a-z\d+\-.]*:\/\//i.test(path) ? path : BASE_URL + path
 }
 
+/** 后端 profile/home 返回（字段平铺在顶层）→ 前端 AuthUser 视图模型
+ *  昵称 userName→nickName、简介 bio→remark；头像保持后端原值（绝对/相对皆可） */
+function mapProfileToUser(r: any): LocalAppUser {
+    return {
+        userId: r?.userId ?? 0,
+        userName: r?.userName || '',
+        nickName: r?.userName || '',
+        avatar: r?.avatar || '',
+        sex: r?.sex || '2',
+        remark: r?.bio || ''
+    }
+}
+
 function readLocalProfile(): LocalAppUser | null {
     const raw = uni.getStorageSync(APP_USER_KEY)
     return raw ? (JSON.parse(raw) as LocalAppUser) : null
@@ -45,25 +57,30 @@ function writeLocalProfile(patch: Partial<LocalAppUser>): LocalAppUser {
 }
 
 /**
- * 读取 C 端资料：后端未提供 /api/user/profile 时读本地登录缓存，结构与 edit-profile 期望的 res.info 对齐。
- * 绝不请求后台 /system/user/profile —— C 端 token 走不通该安全链，401 会触发全局清登录态。
+ * 读取 C 端资料：GET /api/v1/user/profile（后端已就绪）。
+ * 后端字段平铺在顶层（userName/avatar/sex/bio），这里归一成 { code, msg, info }，
+ * info 结构与 edit-profile 的 fillForm 期望一致。开关关时回落本地登录缓存。
  */
-export function getProfileApi(): Promise<any> {
+export async function getProfileApi(): Promise<any> {
     if (API_READY.userProfile) {
-        return get(`${USER_API}/profile`).then((res: any) => ({ code: res.code, msg: res.msg, info: res.data }))
+        const res: any = await get(v1('/user/profile'))
+        return { code: res.code, msg: res.msg, info: mapProfileToUser(res) }
     }
-    return Promise.resolve({ code: 200, msg: 'ok', info: readLocalProfile() })
+    return { code: 200, msg: 'ok', info: readLocalProfile() }
 }
 
-/** 更新资料：未就绪时写本地缓存并同步 store，ProfilePanel / blog-home 立即可见。 */
-export function updateProfileApi(params: ProfileUpdateParams): Promise<any> {
+/** 更新资料：POST /api/v1/user/profile（JSON）。成功后同步本地缓存，页面立即可见。 */
+export async function updateProfileApi(params: ProfileUpdateParams): Promise<any> {
     if (API_READY.userProfile) {
-        return put(`${USER_API}/profile`, {
-            nickname: params.nickName,
-            gender: params.sex,
-            bio: params.remark,
-            avatar: params.avatar
+        const res: any = await post(v1('/user/profile'), {
+            userName: params.nickName,
+            avatar: params.avatar,
+            sex: params.sex,
+            bio: params.remark
         })
+        const merged = mapProfileToUser(res)
+        useAuthStore().setUser(merged)
+        return { code: res.code, msg: res.msg, info: merged }
     }
     const merged = writeLocalProfile({
         nickName: params.nickName,
@@ -72,24 +89,25 @@ export function updateProfileApi(params: ProfileUpdateParams): Promise<any> {
         avatar: params.avatar
     })
     useAuthStore().setUser(merged)
-    return Promise.resolve({ code: 200, msg: 'ok' })
+    return { code: 200, msg: 'ok' }
 }
 
-/** 修改密码：后端未开放 C 端接口时明确提示，不发无效请求。 */
-export function updatePwdApi(oldPassword: string, newPassword: string): Promise<any> {
+/** 修改密码：POST /api/v1/user/password（需 confirmPassword）。
+ *  成功会吊销该账号全部 Token（含当前设备），调用方据 reLoginRequired 清本地并跳登录。 */
+export function updatePwdApi(oldPassword: string, newPassword: string, confirmPassword: string): Promise<any> {
     if (API_READY.userProfile) {
-        return put(`${USER_API}/password`, { oldPassword, newPassword })
+        return post(v1('/user/password'), { oldPassword, newPassword, confirmPassword })
     }
     return Promise.reject({ code: 501, msg: '后端暂未开放修改密码' })
 }
 
-/** 头像上传：后端未就绪时不落后端，直接返回本地临时路径用于即时预览。 */
+/** 头像上传：POST /api/v1/upload（multipart，字段名 file，仅图片≤5MB），返回可直接展示的完整 url。 */
 export function uploadAvatarApi(filePath: string): Promise<string> {
     if (API_READY.userProfile) {
         const token = getToken()
         return new Promise<string>((resolve, reject) => {
             uni.uploadFile({
-                url: BASE_URL + `${USER_API}/avatar`,
+                url: BASE_URL + v1('/upload'),
                 filePath,
                 name: 'file',
                 header: { Authorization: token.startsWith('Bearer ') ? token : 'Bearer ' + token },
@@ -98,8 +116,7 @@ export function uploadAvatarApi(filePath: string): Promise<string> {
                     let body: any
                     try { body = JSON.parse(res.data) } catch { reject(new Error('头像响应解析失败')); return }
                     if (body.code !== 200 && body.code !== 0) { reject(body); return }
-                    const d = body.data
-                    resolve((d && (d.url || d.fileName)) || body.img || body.url || '')
+                    resolve(body.url || (body.data && body.data.url) || body.fileName || '')
                 },
                 fail: reject
             })
@@ -236,8 +253,8 @@ const MOCK_PUBLIC_USERS: Record<number, PublicUserProfileDto> = {
     23: { userId: 23, nickName: '王老师',   sex: '1', remark: 'UI / 视觉设计 · 色彩与构图。' }
 }
 
-/** 他人主页资料：接口就绪前走 mock，就绪后只改本函数，页面零改动 */
-export function getUserPublicProfileApi(userId: number): Promise<PublicUserProfileDto> {
+/** 他人主页资料：GET /api/v1/user/publicProfile?userId=（后端已就绪，含关注态与计数） */
+export async function getUserPublicProfileApi(userId: number): Promise<PublicUserProfileDto> {
     if (!API_READY.followStats) {
         const hit = MOCK_PUBLIC_USERS[userId]
         if (hit) return Promise.resolve({ ...hit })
@@ -248,7 +265,42 @@ export function getUserPublicProfileApi(userId: number): Promise<PublicUserProfi
             remark: '这个人很懒，什么都没留下。'
         })
     }
-    return get(v1('/user/blog-home/' + userId))
+    const r: any = await get(v1('/user/publicProfile'), { userId })
+    return {
+        userId: r?.userId ?? userId,
+        nickName: r?.userName || ('用户' + userId),
+        avatar: r?.avatar || '',
+        sex: r?.sex || '2',
+        remark: r?.bio || ''
+    }
+}
+
+/** 个人主页首屏：GET /api/v1/user/home —— 资料 + 关注/粉丝/获赞 + 粉丝预览，一次拿全 */
+export interface UserHomeResult {
+    userId: number
+    userName: string
+    avatar: string
+    sex: string
+    sexLabel: string
+    bio: string
+    followCount: number
+    fansCount: number
+    likeReceivedCount: number
+    fanPreview: Array<{ userId: number; userName: string; avatar: string }>
+}
+export function getUserHomeApi(): Promise<UserHomeResult> {
+    return get(v1('/user/home')).then((r: any) => ({
+        userId: r?.userId ?? 0,
+        userName: r?.userName || '',
+        avatar: r?.avatar || '',
+        sex: r?.sex || '2',
+        sexLabel: r?.sexLabel || '',
+        bio: r?.bio || '',
+        followCount: r?.followCount || 0,
+        fansCount: r?.fansCount || 0,
+        likeReceivedCount: r?.likeReceivedCount || 0,
+        fanPreview: Array.isArray(r?.fanPreview) ? r.fanPreview : []
+    }))
 }
 
 /* ===================== 关注体系 /api/v1/follow ===================== */
@@ -276,4 +328,60 @@ export function getFollowStatusApi(userIds: number[]): Promise<number[]> {
 export function getFollowCountApi(userId: number): Promise<{ fansCount: number; followCount: number }> {
     if (!API_READY.follow) return Promise.resolve({ fansCount: 0, followCount: 0 })
     return get(v1('/follow/count'), { userId })
+}
+
+/* ===================== 关注 / 粉丝列表 /api/v1/follow/following · /fans ===================== */
+
+/** 后端 learning_follow 行（userName / avatar 是「展示用户」的昵称头像，非本表列） */
+export interface BackendFollow {
+    followId: number
+    userId: number            // 关注者（谁点的关注）
+    followUserId: number      // 被关注者
+    createTime?: string
+    userName?: string
+    avatar?: string
+}
+
+/** 关注 / 粉丝列表统一视图模型 */
+export interface FollowUserDto {
+    userId: number            // 本条要展示、可点进主页的用户ID
+    nickName: string
+    avatar: string
+    followTime: string        // 关注发生时间
+}
+
+/**
+ * 我关注的人：GET /api/v1/follow/following?userId=
+ * userId 只是「查谁的列表」，不传 = 自己（后端从 Token 取）；展示的是 followUserId 那一位。
+ */
+export async function getFollowingListApi(userId?: number): Promise<FollowUserDto[]> {
+    if (!API_READY.follow) return Promise.resolve([])
+    const query: Record<string, any> = { pageNum: 1, pageSize: 100 }
+    if (userId) query.userId = userId
+    const body: any = await get(v1('/follow/following'), query)
+    const rows: BackendFollow[] = (body && Array.isArray(body.rows)) ? body.rows : []
+    return rows.map((f) => ({
+        userId: f.followUserId,
+        nickName: f.userName || ('用户' + f.followUserId),
+        avatar: resolveFileUrl(f.avatar),
+        followTime: f.createTime || ''
+    }))
+}
+
+/**
+ * 我的粉丝：GET /api/v1/follow/fans?userId=
+ * userId 只是「查谁的粉丝」，不传 = 自己；展示的是 userId 那一位（关注者）。
+ */
+export async function getFansListApi(userId?: number): Promise<FollowUserDto[]> {
+    if (!API_READY.follow) return Promise.resolve([])
+    const query: Record<string, any> = { pageNum: 1, pageSize: 100 }
+    if (userId) query.userId = userId
+    const body: any = await get(v1('/follow/fans'), query)
+    const rows: BackendFollow[] = (body && Array.isArray(body.rows)) ? body.rows : []
+    return rows.map((f) => ({
+        userId: f.userId,
+        nickName: f.userName || ('用户' + f.userId),
+        avatar: resolveFileUrl(f.avatar),
+        followTime: f.createTime || ''
+    }))
 }

@@ -42,6 +42,7 @@ export interface BackendCourse {
     likeCount?: number
     favoriteCount?: number
     commentCount?: number
+    viewCount?: number
     ratingCount?: number
     ratingScore?: number
     avgScore?: number | null
@@ -49,21 +50,32 @@ export interface BackendCourse {
     createTime?: string
 }
 
-/** 后端 learning_short_video 行 */
-export interface BackendShortVideo {
+/** 后端课程视频（learning_course_video）：videoId/videoTitle/videoUrl，chapterId 可空 */
+export interface BackendCourseVideo {
     videoId: number
+    courseId: number
+    chapterId?: number | null
     videoTitle: string
-    userId: number
     videoUrl?: string
-    coverUrl?: string
-    intro?: string
-    duration?: number
-    viewCount?: number
-    likeCount?: number
-    favoriteCount?: number
-    commentCount?: number
-    status?: string
-    userName?: string
+    orderNum?: number
+    chapterTitle?: string
+}
+
+/** 后端章节（learning_course_chapter，客户端详情时带本章节视频） */
+export interface BackendChapter {
+    chapterId: number
+    courseId: number
+    chapterTitle: string
+    chapterContent?: string
+    orderNum?: number
+    videos?: BackendCourseVideo[]
+}
+
+/** 后端课程详情三段式：course + chapters(每章带videos) + 散videos(不挂章节) */
+export interface BackendCourseDetail {
+    course: BackendCourse
+    chapters?: BackendChapter[]
+    videos?: BackendCourseVideo[]
 }
 
 /** 相对路径 → 绝对地址（/profile/... 需拼后端 BASE_URL；已是 http(s) 原样返回）
@@ -104,7 +116,7 @@ function normalizeCourse(c: BackendCourse): Course {
     return {
         courseId: c.courseId,
         title: c.courseName || '',
-        coverUrl: c.coverUrl || '',
+        coverUrl: absUrl(c.coverUrl),
         instructorName: c.categoryName || '',
         studentCount: c.ratingCount || 0,
         categoryId: c.categoryId || 0,
@@ -114,9 +126,54 @@ function normalizeCourse(c: BackendCourse): Course {
         likeCount: c.likeCount || 0,
         favoriteCount: c.favoriteCount || 0,
         commentCount: c.commentCount || 0,
+        viewCount: c.viewCount || 0,
         averageScore: (typeof c.avgScore === 'number' ? c.avgScore : undefined),
         ratingCount: c.ratingCount || 0,
         description: c.intro || ''
+    }
+}
+
+/** 后端视频 → 前端小节：videoId→lessonId、videoTitle→title、videoUrl→playUrl；后端无时长/试看，duration=0、isFree=1、transcodeStatus=1 */
+function normalizeVideo(v: BackendCourseVideo, courseId: number): LessonDto {
+    return {
+        lessonId: v.videoId,
+        courseId: v.courseId || courseId,
+        chapterId: v.chapterId || 0,
+        title: v.videoTitle || '',
+        duration: 0,
+        isFree: 1,
+        transcodeStatus: 1,
+        playUrl: absUrl(v.videoUrl)
+    }
+}
+
+/** 后端三段式详情 → 前端 CourseDetailDto：展平 course 字段 + chapters→lessons；散视频合成一章 */
+function normalizeDetail(d: BackendCourseDetail): CourseDetailDto {
+    const base = normalizeCourse(d.course)
+    const chapters: ChapterDto[] = (d.chapters || []).map((ch) => {
+        const lessons = (ch.videos || []).map((v) => normalizeVideo(v, base.courseId))
+        return {
+            chapterId: ch.chapterId,
+            courseId: base.courseId,
+            title: ch.chapterTitle || '',
+            lessonCount: lessons.length,
+            lessons
+        }
+    })
+    const loose = (d.videos || []).map((v) => normalizeVideo(v, base.courseId))
+    if (loose.length > 0) {
+        chapters.push({
+            chapterId: 0,
+            courseId: base.courseId,
+            title: chapters.length > 0 ? '其他视频' : '课程视频',
+            lessonCount: loose.length,
+            lessons: loose
+        })
+    }
+    return {
+        ...base,
+        chapters,
+        totalLessons: chapters.reduce((s, c) => s + c.lessons.length, 0)
     }
 }
 
@@ -141,6 +198,7 @@ export async function getCourseListApi(params: CourseListParams = {}): Promise<C
 
     const body: any = await get(v1('/course/list'), query)
     const rows: BackendCourse[] = (body && Array.isArray(body.rows)) ? body.rows : []
+    console.log('[DEBUG course/list rows] =', JSON.stringify(rows.map(r => ({ id: r.courseId, name: r.courseName, coverUrl: r.coverUrl }))))
     const total = (body && typeof body.total !== 'undefined') ? Number(body.total) : rows.length
     return { list: rows.map(normalizeCourse), total }
 }
@@ -181,6 +239,7 @@ function makeLessons(courseId: number, chapterId: number, prefix: string, rows: 
         duration: r[1],
         isFree: i === 0 ? 1 : 0,
         transcodeStatus: 1,
+        playUrl: SAMPLE_PLAY_URL,
         isFinished: !!r[2],
         progressSeconds: r[2] ? r[1] : 0
     }))
@@ -229,10 +288,12 @@ function buildMockDetail(courseId: number): CourseDetailDto {
     }
 }
 
-/** GET courses/{courseId} —— 课程详情（含章节目录） */
-export function getCourseDetailApi(courseId: number): Promise<CourseDetailDto> {
-    if (!API_READY.courseDetail) return Promise.resolve(buildMockDetail(courseId))
-    return get(v1('/courses/' + courseId))
+/** GET /api/v1/course/{courseId} —— 课程详情（三段式映射为扁平 chapters/lessons，视频带直链） */
+export async function getCourseDetailApi(courseId: number): Promise<CourseDetailDto> {
+    if (!API_READY.courseDetail) return buildMockDetail(courseId)
+    const body: any = await get(v1('/course/' + courseId))
+    const data: BackendCourseDetail = (body && body.data) ? body.data : (body as BackendCourseDetail)
+    return normalizeDetail(data)
 }
 
 /** GET courses/{courseId}/play-info —— 播放凭证（lessonId 缺省为短视频） */

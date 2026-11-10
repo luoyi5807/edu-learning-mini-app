@@ -1,55 +1,50 @@
 <template>
   <view class="profile-panel">
+    <!-- 用户信息卡：头像 + 昵称同行，下方关注/粉丝/获赞三统计块 -->
     <view class="profile-card" @tap="handleGoBlogHome">
       <view v-if="profileLoading" class="profile-loading">
         <text class="profile-loading-text">正在加载资料…</text>
       </view>
       <block v-else>
-        <view class="profile-main">
-          <view class="avatar-col">
-            <image v-if="user.avatar" class="avatar" :src="user.avatar" mode="aspectFill" />
-            <view v-else class="avatar avatar-fallback">
-              <text class="avatar-char">{{ user.avatarChar }}</text>
-            </view>
-            <text class="fans-count">{{ formatCount(user.fansCount) }} 粉丝</text>
+        <view class="user-row">
+          <image v-if="user.avatar" class="avatar" :src="user.avatar" mode="aspectFill" />
+          <view v-else class="avatar avatar-fallback">
+            <text class="avatar-char">{{ user.avatarChar }}</text>
           </view>
-          <view class="info-col">
-            <text class="nickname">{{ user.nickname }}</text>
-            <text class="bio">{{ user.bio }}</text>
-            <text class="gender">{{ user.gender }}</text>
-          </view>
+          <text class="nickname">{{ user.nickname }}</text>
         </view>
-        <view class="checkin-row" @tap.stop="handleCheckin">
-          <text class="checkin-text">连续签到 {{ user.continueSignDay }} 天</text>
-          <text class="checkin-link">{{ user.signedToday ? '今日已签到' : '去签到' }} ›</text>
+        <view class="stat-row">
+          <view class="stat-box">
+            <text class="stat-num">{{ user.followCount }}</text>
+            <text class="stat-label">关注</text>
+          </view>
+          <view class="stat-box">
+            <text class="stat-num">{{ user.fansCount }}</text>
+            <text class="stat-label">粉丝</text>
+          </view>
+          <view class="stat-box">
+            <text class="stat-num">{{ user.likedCount }}</text>
+            <text class="stat-label">获赞</text>
+          </view>
         </view>
       </block>
     </view>
 
+    <!-- 功能宫格：彩色圆角图标 + 下方文字 -->
     <view class="menu-card">
-      <view
-          v-for="(item, idx) in menuGroup1"
-          :key="item.key"
-          class="menu-row"
-          :class="{ 'menu-row-divider': idx < menuGroup1.length - 1 }"
-          @tap="handleMenuTap(item)"
-      >
-        <text class="menu-icon">{{ item.icon }}</text>
-        <text class="menu-label">{{ item.label }}</text>
-        <text class="menu-arrow">›</text>
-      </view>
-    </view>
-
-    <view class="menu-card">
-      <view class="menu-row" @tap="handleMenuTap({ key: 'settings', label: '设置' })">
-        <text class="menu-icon">⚙️</text>
-        <text class="menu-label">设置</text>
-        <text class="menu-arrow">›</text>
-      </view>
-      <view class="menu-row menu-row-divider" @tap="handleMenuTap({ key: 'logout', label: '退出登录' })">
-        <text class="menu-icon">🚪</text>
-        <text class="menu-label logout-text">退出登录</text>
-        <text class="menu-arrow">›</text>
+      <view class="menu-grid">
+        <view
+            v-for="item in menuItems"
+            :key="item.key"
+            class="grid-item"
+            hover-class="grid-item-pressed"
+            @tap="handleMenuTap(item)"
+        >
+          <view class="grid-icon" :class="'grid-icon-' + item.color">
+            <text class="grid-emoji">{{ item.icon }}</text>
+          </view>
+          <text class="grid-label" :class="{ 'grid-label-logout': item.key === 'logout' }">{{ item.label }}</text>
+        </view>
       </view>
     </view>
   </view>
@@ -58,7 +53,7 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted, onUnmounted } from 'vue'
 import { useAuthStore } from '@/store/auth'
-import { getSignCalendarApi, resolveFileUrl } from '@/api/user'
+import { getSignCalendarApi, getUserHomeApi, resolveFileUrl } from '@/api/user'
 import { todayKey } from '@/config/apiStatus'
 import { getToken } from '@/utils/request'
 
@@ -72,6 +67,8 @@ const user = reactive({
 	bio: '',
 	gender: '未知',
 	fansCount: 0,
+	followCount: 0,
+	likedCount: 0,
 	continueSignDay: 0,
 	signedToday: false
 })
@@ -103,6 +100,7 @@ async function loadProfile() {
 			user.avatarChar = '客'
 		}
 		await loadSignInfo()
+		await loadHomeStats()
 	} catch (e: any) {
 		// 蓝本 4.7：错误文案需区分「未登录」与「网络问题」
 		if (!getToken()) {
@@ -131,6 +129,27 @@ async function loadSignInfo() {
 	user.signedToday = (res.signedDates || []).indexOf(todayKey()) >= 0
 }
 
+/** 关注/粉丝/获赞 + 资料回填：GET /api/v1/user/home（一次返回，获赞口径=我帖子被点赞之和） */
+async function loadHomeStats() {
+	if (!getToken()) return
+	try {
+		const h = await getUserHomeApi()
+		if (h.userName) {
+			user.nickname = h.userName
+			user.avatarChar = h.userName.charAt(0)
+		}
+		if (h.avatar) user.avatar = resolveFileUrl(h.avatar)
+		if (h.bio) user.bio = h.bio
+		if (h.sexLabel) user.gender = h.sexLabel
+		else if (h.sex) user.gender = resolveGender(h.sex)
+		user.followCount = h.followCount || 0
+		user.fansCount = h.fansCount || 0
+		user.likedCount = h.likeReceivedCount || 0
+	} catch (e) {
+		// 失败保留 auth 资料，计数维持 0
+	}
+}
+
 onMounted(() => {
 	loadProfile()
 	uni.$on('profile:updated', loadProfile)
@@ -145,20 +164,19 @@ onUnmounted(() => {
 /** 从签到页返回时 Tab 不会重建，靠事件主动刷新签到状态 */
 function handlePanelRefresh() {
 	loadSignInfo()
+	loadHomeStats()
 }
 
-interface MenuItem { key: string; label: string; icon?: string }
-const menuGroup1: MenuItem[] = [
-  { key: 'courses', label: '我的课程', icon: '🎬' },
-  { key: 'stats', label: '学习数据', icon: '📊' },
-  { key: 'articles', label: '我的文章', icon: '📝' },
-  { key: 'history', label: '观看历史', icon: '🕐' },
-  { key: 'favorites', label: '我的收藏', icon: '⭐' },
-  { key: 'likes', label: '我的点赞', icon: '❤️' },
-  { key: 'downloads', label: '我的下载', icon: '⬇️' },
-  { key: 'notes', label: '笔记本', icon: '📖' },
-  { key: 'todos', label: '待办', icon: '✅' },
-  { key: 'task', label: '任务中心', icon: '📋' }
+interface MenuItem { key: string; label: string; icon: string; color: string }
+const menuItems: MenuItem[] = [
+  { key: 'task', label: '任务中心', icon: '✅', color: 'green' },
+  { key: 'stats', label: '学习数据', icon: '📅', color: 'blue' },
+  { key: 'history', label: '观看历史', icon: '🕐', color: 'orange' },
+  { key: 'favorites', label: '我的收藏', icon: '⭐', color: 'yellow' },
+  { key: 'likes', label: '我的点赞', icon: '❤️', color: 'pink' },
+  { key: 'notes', label: '笔记本', icon: '📖', color: 'purple' },
+  { key: 'settings', label: '设置', icon: '⚙️', color: 'gray' },
+  { key: 'logout', label: '退出登录', icon: '🚪', color: 'gray' }
 ]
 
 function handleMenuTap(item: MenuItem) {
@@ -223,35 +241,56 @@ function handleMenuTap(item: MenuItem) {
 }
 
 function handleGoBlogHome() { uni.navigateTo({ url: '/pages-sub/mine/blog-home' }) }
-function handleCheckin() { uni.navigateTo({ url: '/pages-sub/checkin/task-center' }) }
 </script>
 
 <style lang="scss" scoped>
 .profile-panel {
   padding: 0 32rpx calc(100rpx + env(safe-area-inset-bottom));
-  @include eduPageGradientStrong;
+  @include eduPageGradientProfile;
 }
-.profile-card { margin-top: 24rpx; border-radius: 32rpx; padding: 40rpx 32rpx 28rpx; @include eduWarmYellowGradient; }
+.profile-card {
+  margin-top: 24rpx; border-radius: 32rpx; padding: 40rpx 32rpx;
+  background-color: $edu-surface; box-shadow: 0 6rpx 24rpx rgba(0, 0, 0, 0.05);
+}
 .profile-loading { height: 160rpx; display: flex; align-items: center; justify-content: center; }
 .profile-loading-text { font-size: 28rpx; color: $edu-text-hint; }
-.profile-main { display: flex; align-items: flex-start; }
-.avatar-col { display: flex; flex-direction: column; align-items: center; width: 160rpx; flex-shrink: 0; }
-.avatar { width: 140rpx; height: 140rpx; border-radius: 50%; }
-.avatar-fallback { display: flex; align-items: center; justify-content: center; background-color: #E7EBF5; }
-.avatar-char { font-size: 60rpx; font-weight: 700; color: $edu-primary; }
-.fans-count { margin-top: 16rpx; font-size: 26rpx; color: $edu-text-secondary; }
-.info-col { flex: 1; display: flex; flex-direction: column; padding-left: 24rpx; padding-top: 8rpx; }
-.nickname { font-size: 40rpx; font-weight: 700; color: $edu-text-primary; margin-bottom: 16rpx; }
-.bio { font-size: 28rpx; color: $edu-text-secondary; line-height: 1.5; margin-bottom: 12rpx; }
-.gender { font-size: 26rpx; color: $edu-text-hint; }
-.checkin-row { display: flex; align-items: center; justify-content: space-between; margin-top: 28rpx; padding-top: 24rpx; border-top: 2rpx solid rgba(0, 0, 0, 0.05); }
-.checkin-text { font-size: 26rpx; color: $edu-text-secondary; }
-.checkin-link { font-size: 26rpx; color: $edu-primary; font-weight: 500; }
-.menu-card { margin-top: 32rpx; border-radius: 32rpx; padding: 0 32rpx; @include eduSurfaceWash; }
-.menu-row { position: relative; display: flex; align-items: center; height: 112rpx; }
-.menu-row-divider::after { content: ''; position: absolute; left: 72rpx; right: 0; bottom: 0; height: 2rpx; background: $edu-divider; }
-.menu-icon { width: 56rpx; font-size: 36rpx; margin-right: 16rpx; }
-.menu-label { flex: 1; font-size: 32rpx; color: $edu-text-primary; }
-.logout-text { color: $edu-accent-coral; }
-.menu-arrow { font-size: 40rpx; color: $edu-text-hint; }
+.user-row { display: flex; align-items: center; }
+.avatar { width: 120rpx; height: 120rpx; border-radius: 50%; flex-shrink: 0; }
+.avatar-fallback { display: flex; align-items: center; justify-content: center; background-color: $edu-primary-container; }
+.avatar-char { font-size: 56rpx; font-weight: 700; color: $edu-primary; }
+.nickname { margin-left: 28rpx; font-size: 40rpx; font-weight: 700; color: $edu-text-primary; }
+.stat-row { display: flex; margin-top: 36rpx; }
+.stat-box {
+  flex: 1; margin-right: 20rpx; border-radius: 20rpx; padding: 24rpx 0;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  background-color: $edu-surface-variant;
+}
+.stat-box:last-child { margin-right: 0; }
+.stat-num { font-size: 36rpx; font-weight: 700; color: $edu-text-primary; }
+.stat-label { margin-top: 8rpx; font-size: 26rpx; color: $edu-text-secondary; }
+.menu-card {
+  margin-top: 32rpx; border-radius: 32rpx; padding: 40rpx 24rpx 8rpx;
+  background-color: $edu-surface; box-shadow: 0 6rpx 24rpx rgba(0, 0, 0, 0.05);
+}
+.menu-grid { display: flex; flex-wrap: wrap; }
+.grid-item {
+  width: 33.333%; box-sizing: border-box; margin-bottom: 40rpx;
+  display: flex; flex-direction: column; align-items: center;
+}
+.grid-item-pressed { opacity: 0.7; }
+.grid-icon {
+  width: 108rpx; height: 108rpx; border-radius: 28rpx;
+  display: flex; align-items: center; justify-content: center;
+}
+.grid-emoji { font-size: 52rpx; }
+.grid-label { margin-top: 16rpx; font-size: 26rpx; color: $edu-text-primary; }
+.grid-label-logout { color: $edu-accent-coral; }
+/* 宫格图标底色（对齐设计图各功能主题色：浅底 + 彩色图标） */
+.grid-icon-green  { background-color: #E6F5EA; }
+.grid-icon-blue   { background-color: #E3ECFD; }
+.grid-icon-orange { background-color: #FDEEDC; }
+.grid-icon-yellow { background-color: #FBF3D6; }
+.grid-icon-pink   { background-color: #FBE0E6; }
+.grid-icon-purple { background-color: #EEE4F7; }
+.grid-icon-gray   { background-color: #EEF0F4; }
 </style>

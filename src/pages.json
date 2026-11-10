@@ -89,6 +89,13 @@
 					}
 				},
 				{
+					"path": "mine/follow-list",
+					"style": {
+						"navigationBarTitleText": "关注与粉丝",
+						"navigationStyle": "custom"
+					}
+				},
+				{
 					"path": "mine/edit-profile",
 					"style": {
 						"navigationBarTitleText": "编辑主页",
@@ -187,9 +194,16 @@
 					}
 				},
 				{
+					"path": "course/category-all",
+					"style": {
+						"navigationBarTitleText": "全部分类",
+						"navigationStyle": "custom"
+					}
+				},
+				{
 					"path": "player/player",
 					"style": {
-						"navigationBarTitleText": "",
+						"navigationBarTitleText": "独立播放",
 						"navigationStyle": "custom"
 					}
 				}

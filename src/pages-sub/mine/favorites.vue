@@ -61,6 +61,8 @@
 import { ref, computed } from 'vue'
 import { onLoad, onPageScroll } from '@dcloudio/uni-app'
 import EmptyState from '@/components/EmptyState.vue'
+import { getMyFavoritesApi } from '@/api/interaction'
+import type { UserTargetItem } from '@/types/user'
 
 /* ===== 顶部栏高度（含状态栏 + 胶囊区） ===== */
 const statusBarHeight = ref<number>(0)
@@ -91,21 +93,8 @@ const filterTabs: FilterTab[] = [
 ]
 const activeFilter = ref<number>(0)
 
-/* ===== Mock 收藏数据（字段对齐 UserTargetItemDto，接口接入零改动） ===== */
-interface UserTargetItem {
-  targetType: number   // 1 文章  2 视频课程
-  targetId: number
-  title: string
-  cover: string
-  collectTime: string
-}
-
-const favorites = ref<UserTargetItem[]>([
-  { targetType: 1, targetId: 101, title: 'Kotlin 协程取消机制完全指南', cover: '', collectTime: '2026-09-10 10:00:00' },
-  { targetType: 1, targetId: 102, title: 'Java 高并发编程', cover: '', collectTime: '2026-09-09 09:00:00' },
-  { targetType: 1, targetId: 103, title: '后端接口设计中的 10 个常见错误', cover: '', collectTime: '2026-09-08 21:00:00' },
-  { targetType: 2, targetId: 1, title: 'Machine Learning 从入门到实战', cover: '', collectTime: '2026-09-07 18:00:00' }
-])
+/* ===== 收藏数据（真实接口 /api/v1/interaction/myFavorites） ===== */
+const favorites = ref<UserTargetItem[]>([])
 
 const filteredList = computed<UserTargetItem[]>(() => {
   if (activeFilter.value === 0) return favorites.value
@@ -143,8 +132,12 @@ function handleLoadMore() {
   uni.showToast({ title: '加载更多（接口待接入）', icon: 'none' })
 }
 
-onLoad(() => {
-  // 接口接入：GET user/favorites?targetType=
+onLoad(async () => {
+  try {
+    favorites.value = await getMyFavoritesApi()
+  } catch (e) {
+    // 拉取失败保持空列表，展示空态
+  }
 })
 </script>
 

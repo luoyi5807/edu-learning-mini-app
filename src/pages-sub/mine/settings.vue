@@ -255,9 +255,16 @@ async function handleChangePwd() {
   }
   pwdSaving.value = true
   try {
-    await updatePwdApi(oldPwd.value, newPwd.value)
+    const res: any = await updatePwdApi(oldPwd.value, newPwd.value, confirmPwd.value)
     pwdVisible.value = false
-    uni.showToast({ title: '密码已修改', icon: 'success' })
+    // 后端改密会吊销全部 Token（reLoginRequired）：清本地并跳登录，重新认证
+    if (res && res.reLoginRequired) {
+      await auth.reset()
+      uni.showToast({ title: '密码已修改，请重新登录', icon: 'none' })
+      setTimeout(() => uni.reLaunch({ url: '/pages-sub/auth/login' }), 800)
+    } else {
+      uni.showToast({ title: '密码已修改', icon: 'success' })
+    }
   } catch (e: any) {
     pwdError.value = (e && e.msg) ? e.msg : '修改失败，请稍后重试'
   } finally {

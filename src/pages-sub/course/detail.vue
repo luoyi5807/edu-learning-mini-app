@@ -33,20 +33,22 @@
             <text class="rating-dot">·</text>
             <text class="rating-text">{{ course.ratingCount || 0 }} 人评价</text>
             <text class="rating-dot">·</text>
-            <text class="rating-text">{{ formatCount(course.studentCount || 0) }} 人看过</text>
+            <text class="rating-text">{{ formatCount(course.viewCount || 0) }} 人看过</text>
           </view>
         </view>
 
         <view class="section">
           <text class="section-title">课程简介</text>
           <text class="section-desc">{{ course.description || '暂无简介' }}</text>
-          <text class="section-subtitle">最近点赞</text>
-          <view class="liker-row">
-            <view class="liker-avatar" v-for="u in course.recentLikers" :key="u.userId">
-              <text class="liker-char">{{ charOf(u.nickName) }}</text>
+          <block v-if="course.recentLikers && course.recentLikers.length">
+            <text class="section-subtitle">最近点赞</text>
+            <view class="liker-row">
+              <view class="liker-avatar" v-for="u in course.recentLikers" :key="u.userId">
+                <text class="liker-char">{{ charOf(u.nickName) }}</text>
+              </view>
+              <text class="liker-more">等 {{ formatCount(course.likeCount || 0) }} 人赞过</text>
             </view>
-            <text class="liker-more">等 {{ formatCount(course.likeCount || 0) }} 人赞过</text>
-          </view>
+          </block>
         </view>
 
         <view class="tabs">
@@ -69,9 +71,8 @@
             <view class="lesson" v-for="ls in ch.lessons" :key="ls.lessonId" @tap="playLesson(ls)">
               <text class="lesson-play-glyph">▶</text>
               <text class="lesson-title">{{ ls.title }}</text>
-              <text class="lesson-free" v-if="ls.isFree === 1">试看</text>
               <text class="lesson-done" v-if="ls.isFinished">✓</text>
-              <text class="lesson-duration">{{ formatDuration(ls.duration) }}</text>
+              <text class="lesson-duration" v-if="ls.duration">{{ formatDuration(ls.duration) }}</text>
             </view>
           </view>
         </view>

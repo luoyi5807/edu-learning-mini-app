@@ -1,4 +1,4 @@
-import { get } from '@/utils/request'
+import { get, v1 } from '@/utils/request'
 import { API_READY } from '@/config/apiStatus'
 
 export interface CategoryNode {
@@ -27,20 +27,23 @@ function mockCourseCategories(): CategoryNode[] {
     ]
 }
 
-/** 后端返回 AjaxResult：{ code, msg, data: CategoryVO[] }，这里取出 data */
-async function fetchCategoryList(path: string): Promise<CategoryNode[]> {
-    const res: any = await get(path, undefined, { auth: false })
-    return (res && Array.isArray(res.data)) ? res.data : []
+/** 后端返回 AjaxResult/TableDataInfo：这里兼容 data 与 rows 两种列表出口 */
+async function fetchCategoryList(path: string, query?: Record<string, any>): Promise<CategoryNode[]> {
+    const res: any = await get(path, query)
+    if (!res) return []
+    if (Array.isArray(res.data)) return res.data
+    if (Array.isArray(res.rows)) return res.rows
+    return []
 }
 
-/** GET /article/category/list —— 文章分类（小程序免登录） */
+/** 文章分类（C 端接口待后端补 /api/v1/category/list，就绪后翻 categories 开关） */
 export function getArticleCategoryTreeApi(): Promise<CategoryNode[]> {
     if (!API_READY.categories) return Promise.resolve(mockArticleCategories())
-    return fetchCategoryList('/article/category/list')
+    return fetchCategoryList(v1('/category/list'), { categoryType: 'article' })
 }
 
-/** GET /course/category/list —— 课程分类（小程序免登录） */
+/** 课程分类（C 端接口待后端补 /api/v1/category/list，就绪后翻 categories 开关） */
 export function getCourseCategoryListApi(): Promise<CategoryNode[]> {
     if (!API_READY.categories) return Promise.resolve(mockCourseCategories())
-    return fetchCategoryList('/course/category/list')
+    return fetchCategoryList(v1('/category/list'), { categoryType: 'course' })
 }

@@ -27,11 +27,11 @@
       <text class="gender-text">{{ genderText }}</text>
 
       <view class="stats-row">
-        <view class="stat-item">
+        <view class="stat-item" @tap="goFollowList('following')">
           <text class="stat-num">{{ formatCount(stats.followingCount) }}</text>
           <text class="stat-label">关注</text>
         </view>
-        <view class="stat-item">
+        <view class="stat-item" @tap="goFollowList('fans')">
           <text class="stat-num">{{ formatCount(stats.fansCount) }}</text>
           <text class="stat-label">粉丝</text>
         </view>
@@ -100,7 +100,7 @@ import LoadingState from '@/components/LoadingState.vue'
 import ErrorState from '@/components/ErrorState.vue'
 import EmptyState from '@/components/EmptyState.vue'
 import { useAuthStore } from '@/store/auth'
-import { resolveFileUrl, getUserPublicProfileApi, followUserApi, unfollowUserApi, getFollowStatusApi, getFollowCountApi } from '@/api/user'
+import { resolveFileUrl, getUserPublicProfileApi, followUserApi, unfollowUserApi, getFollowStatusApi, getFollowCountApi, getFansListApi } from '@/api/user'
 import { getMyArticlesApi, getUserPublishedArticlesApi, deleteArticleApi, type MyArticleDto } from '@/api/article'
 import { useNotification } from '@/composables/useNotification'
 
@@ -186,6 +186,7 @@ onShow(() => {
     loadFollowState(Number(visitorId.value))
   }
   loadArticles()
+  loadFanPreview()
   refreshUnread()
 })
 
@@ -204,16 +205,19 @@ const isFollowed = ref<boolean>(false)
 
 interface FanPreviewItem { char: string; color: string; avatar?: string }
 const fanPreview = ref<FanPreviewItem[]>([])
+const FAN_COLORS = ['#5B8DEF', '#7C6FE0', '#E0A458', '#3FA796', '#D06A8C']
 
-/** 关注体系：粉丝数/关注数走 GET /api/v1/follow/count（资料无 C 端接口，仍 mock） */
-async function loadStats(userId: number | string) {
-  const uid = Number(userId)
-  if (!uid) return
+/** 粉丝预览：取前几位真实粉丝（GET /api/v1/follow/fans） */
+async function loadFanPreview() {
   try {
-    const res = await getFollowCountApi(uid)
-    stats.followingCount = res.followCount || 0
-    stats.fansCount = res.fansCount || 0
-  } catch (e) { /* 未就绪/失败：保持 0 */ }
+    const uid = isSelf.value ? undefined : Number(visitorId.value)
+    const fans = await getFansListApi(uid)
+    fanPreview.value = fans.slice(0, 4).map((f, i) => ({
+      char: (f.nickName || 'U').charAt(0),
+      color: FAN_COLORS[i % FAN_COLORS.length],
+      avatar: f.avatar
+    }))
+  } catch (e) { /* 失败保持空，预览卡不渲染 */ }
 }
 
 /** 回填关注按钮初始态：GET /api/v1/follow/status */
@@ -293,6 +297,12 @@ async function toggleFollow(targetUserId: number) {
   } catch (e) {
     uni.showToast({ title: '操作失败', icon: 'none' })
   }
+}
+
+/** 点关注/粉丝数字：跳关注列表页 */
+function goFollowList(t: 'following' | 'fans') {
+  const q = isSelf.value ? '' : `&userId=${Number(visitorId.value)}`
+  uni.navigateTo({ url: `/pages-sub/mine/follow-list?tab=${t}${q}` })
 }
 
 function handleArticleTap(item: MyArticleDto) {

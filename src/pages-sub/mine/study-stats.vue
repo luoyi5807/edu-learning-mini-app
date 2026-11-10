@@ -63,6 +63,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { onLoad, onPageScroll } from '@dcloudio/uni-app'
+import { getStudyStatsApi } from '@/api/study'
 
 /* ===== 顶部栏高度（含状态栏 + 胶囊区） ===== */
 const statusBarHeight = ref<number>(0)
@@ -83,23 +84,16 @@ onPageScroll((e) => {
   navBarOpaque.value = e.scrollTop > 40
 })
 
-/* ===== 数据（Mock，camelCase，接口零改动） ===== */
-const todayMinutes = ref<number>(45)
-const continueStudyDays = ref<number>(7)
-const finishedCourses = ref<number>(3)
-const noteCount = ref<number>(12)
-const todoCount = ref<number>(5)
+/* ===== 数据（真实接口 /api/v1/learn/stats） ===== */
+const todayMinutes = ref<number>(0)
+const continueStudyDays = ref<number>(0)
+const finishedCourses = ref<number>(0)
+const noteCount = ref<number>(0)
+const todoCount = ref<number>(0)
 
 interface DayDuration { day: string; minutes: number }
-const weekData = ref<DayDuration[]>([
-  { day: '一', minutes: 30 },
-  { day: '二', minutes: 55 },
-  { day: '三', minutes: 20 },
-  { day: '四', minutes: 75 },
-  { day: '五', minutes: 65 },
-  { day: '六', minutes: 90 },
-  { day: '日', minutes: 45 }
-])
+const WEEK_LABELS = ['一', '二', '三', '四', '五', '六', '日']
+const weekData = ref<DayDuration[]>(WEEK_LABELS.map((day) => ({ day, minutes: 0 })))
 
 const maxMinutes = computed<number>(() => Math.max(...weekData.value.map((d) => d.minutes), 1))
 const MAX_BAR = 240 // rpx
@@ -116,8 +110,19 @@ function goBack() {
   else uni.reLaunch({ url: '/pages/index/index' })
 }
 
-onLoad(() => {
-  // 接口接入：学习统计（今日/连续/本周/完成数/笔记/待办）
+onLoad(async () => {
+  const s = await getStudyStatsApi()
+  todayMinutes.value = s.todayMinutes
+  continueStudyDays.value = s.continuousDays
+  finishedCourses.value = s.completedCourses
+  noteCount.value = s.noteCount
+  todoCount.value = s.todoCount
+  if (s.weekMinutes && s.weekMinutes.length) {
+    weekData.value = s.weekMinutes.map((d, i) => ({
+      day: (d.weekday || '').replace(/^周/, '') || WEEK_LABELS[i] || String(i + 1),
+      minutes: d.minutes || 0
+    }))
+  }
 })
 </script>
 

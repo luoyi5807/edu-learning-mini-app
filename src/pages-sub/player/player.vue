@@ -14,9 +14,9 @@
         @ended="onEnded"
     />
     <view v-else class="player-video player-video-ph">
-      <LoadingState v-if="state === 'loading'" text="获取播放凭证…" />
-      <ErrorState v-else-if="state === 'error'" text="播放失败" @retry="loadPlayInfo" />
-      <view v-else class="player-empty"><text class="player-empty-text">视频源待接入</text></view>
+      <LoadingState v-if="state === 'loading'" text="正在加载课程…" />
+      <ErrorState v-else-if="state === 'error'" text="加载失败" @retry="loadCourse" />
+      <view v-else class="player-empty"><text class="player-empty-text">该课程暂无可播放视频</text></view>
     </view>
 
     <!-- 顶部栏 -->
@@ -60,7 +60,7 @@ import { ref, computed } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import LoadingState from '@/components/LoadingState.vue'
 import ErrorState from '@/components/ErrorState.vue'
-import { getCourseDetailApi, getPlayInfoApi, formatDuration } from '@/api/course'
+import { getCourseDetailApi, formatDuration } from '@/api/course'
 import type { CourseDetailDto, LessonDto } from '@/types/course'
 
 const statusBarHeight = ref<number>(0)
@@ -95,28 +95,23 @@ async function loadCourse() {
   try {
     course.value = await getCourseDetailApi(courseId.value)
     if (!currentLessonId.value && allLessons.value.length) currentLessonId.value = allLessons.value[0].lessonId
-    await loadPlayInfo()
+    applyPlayUrl()
   } catch (e) {
     state.value = 'error'
   }
 }
 
-async function loadPlayInfo() {
-  state.value = 'loading'
-  try {
-    const info = await getPlayInfoApi(courseId.value, currentLessonId.value || undefined)
-    playUrl.value = (info && info.playUrl) || ''
-    state.value = playUrl.value ? 'ready' : 'error'
-    if (!playUrl.value) state.value = 'ready'   // mock：无源时展示占位而非报错
-  } catch (e) {
-    state.value = 'error'
-  }
+/** 播放地址来自详情返回的视频直链（后端无独立播放凭证接口） */
+function applyPlayUrl() {
+  const ls = currentLesson.value
+  playUrl.value = (ls && ls.playUrl) || ''
+  state.value = 'ready'
 }
 
 function switchLesson(ls: LessonDto) {
   currentLessonId.value = ls.lessonId
   showCatalog.value = false
-  loadPlayInfo()
+  applyPlayUrl()
 }
 
 function onEnded() {

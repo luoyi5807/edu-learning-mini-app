@@ -4,7 +4,7 @@
     <view
       class="nav-bar"
       :class="{ 'nav-bar-opaque': navBarOpaque }"
-      :style="{ paddingTop: statusBarHeight + 'px' }"
+      :style="{ paddingTop: statusBarHeight + 'px', backgroundColor: navBgColor }"
     >
       <view
         class="nav-bar-inner"
@@ -114,6 +114,12 @@ const scrollTop = ref<number>(0)
 const navBarOpaque = computed<boolean>(() => activeTab.value !== 'video' && scrollTop.value > 40)
 function onScroll(e: any) { scrollTop.value = e.detail.scrollTop }
 
+/* 顶栏透明态底色 = 当前 Tab §五 渐变顶部色，与面板无缝衔接；视频页保持透明 */
+const navTabTop: Record<string, string> = { home: '#F5F7FF', community: '#FFF8F6', profile: '#FFFBF2' }
+const navBgColor = computed<string>(() =>
+  navBarOpaque.value ? '#FFFFFF' : (navTabTop[activeTab.value] || 'transparent')
+)
+
 /* ===== 通知入口：动态未读红点 + 跳转通知页 ===== */
 const { hasUnread, refreshUnread } = useNotification()
 function handleNotification() { uni.navigateTo({ url: '/pages-sub/notification/notification' }) }
@@ -140,7 +146,7 @@ onShow(() => { refreshUnread() })
   background: transparent;
   transition: background-color 0.3s ease, box-shadow 0.3s ease;
 }
-.nav-bar-opaque { background: #FFFFFF; box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.06); }
+.nav-bar-opaque { box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.06); }
 .nav-bar-inner { display: flex; align-items: center; justify-content: space-between; padding-left: 32rpx; }
 
 .nav-left { display: flex; align-items: center; }
