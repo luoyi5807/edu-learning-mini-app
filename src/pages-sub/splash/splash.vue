@@ -1,5 +1,5 @@
 <template>
-	<view class="splash-page">
+	<view class="splash-page" :class="themeClass">
 		<!-- 中央柔光圆 680rpx（蓝本 2.4） -->
 		<view class="glow-orb"></view>
 
@@ -36,6 +36,9 @@
 
 <script setup lang="ts">
 import { onLoad, onUnload } from '@dcloudio/uni-app'
+import { useTheme } from '@/composables/useTheme'
+
+const { themeClass } = useTheme()
 
 let jumpTimer: ReturnType<typeof setTimeout> | null = null
 

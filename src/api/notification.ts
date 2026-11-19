@@ -10,6 +10,7 @@ export interface BackendNotification {
     type: string                 // 1点赞 2收藏 3评论 4关注 5回复评论
     targetType?: string | null   // 1帖子 3短视频；关注类为 null（课程永不产生通知）
     targetId?: number | null
+    commentId?: number | null    // 评论/回复通知携带（历史数据为 null），配合 /comment/locate 精准跳转
     content?: string             // 仅评论类有值
     isRead: string               // 0未读 1已读
     readTime?: string | null
@@ -30,6 +31,7 @@ export interface NotificationDto {
     isRead: boolean
     targetType?: number
     targetId?: number
+    commentId?: number
     avatar?: string
 }
 
@@ -64,6 +66,7 @@ function normalizeNotification(n: BackendNotification): NotificationDto {
         isRead: n.isRead === '1',
         targetType: (n.targetType != null && n.targetType !== '') ? Number(n.targetType) : undefined,
         targetId: (n.targetId != null) ? Number(n.targetId) : undefined,
+        commentId: (n.commentId != null) ? Number(n.commentId) : undefined,
         avatar: n.fromUserAvatar || ''
     }
 }
@@ -72,13 +75,15 @@ const mockNotifications: NotificationDto[] = [
     { noticeId: 1, type: 1, actorUserId: 11, actorUserName: '小明', title: '小明 赞了你', content: '', createTime: '2026-10-16 10:00:00', isRead: false, targetType: 1, targetId: 101 }
 ]
 
-/** GET /api/v1/notification/list —— 后端不支持按 type 过滤，取回后前端按 type 客户端过滤 */
+/** GET /api/v1/notification/list —— 后端已支持 type 服务端过滤；保留客户端过滤兜底 */
 export async function getNotificationsApi(type?: number): Promise<NotificationDto[]> {
     if (!API_READY.notification) {
         const arr = mockNotifications.slice()
         return type ? arr.filter((n) => n.type === type) : arr
     }
-    const body: any = await get(v1('/notification/list'), { pageNum: 1, pageSize: 50 })
+    const query: Record<string, any> = { pageNum: 1, pageSize: 50 }
+    if (type) query.type = String(type)
+    const body: any = await get(v1('/notification/list'), query)
     const rows: BackendNotification[] = (body && Array.isArray(body.rows)) ? body.rows : []
     let list = rows.map(normalizeNotification)
     if (type) list = list.filter((n) => n.type === type)

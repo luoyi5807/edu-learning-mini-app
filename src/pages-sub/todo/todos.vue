@@ -1,5 +1,5 @@
 <template>
-  <view class="todos-page">
+  <view class="todos-page" :class="themeClass">
     <view class="nav-bar" :class="{ 'nav-bar-opaque': navBarOpaque }" :style="{ paddingTop: statusBarHeight + 'px' }">
       <view class="nav-bar-inner" :style="{ height: navContentHeight + 'px' }">
         <view class="nav-back" @tap="goBack"><text class="back-icon">←</text></view>
@@ -121,6 +121,9 @@ import {
   TODO_PRIORITY_TEXT,
   type TodoDto
 } from '@/api/todo'
+import { useTheme } from '@/composables/useTheme'
+
+const { themeClass } = useTheme()
 
 const statusBarHeight = ref<number>(0)
 const navContentHeight = ref<number>(44)
@@ -306,7 +309,7 @@ onShow(() => { loadList() })
   position: fixed; top: 0; left: 0; right: 0; z-index: 99; background: transparent;
   transition: background-color 0.3s ease, box-shadow 0.3s ease;
 }
-.nav-bar-opaque { background: #FFFFFF; box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.06); }
+.nav-bar-opaque { background: var(--edu-surface); box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.06); }
 .nav-bar-inner { display: flex; align-items: center; padding-left: 16rpx; }
 .nav-back { width: 72rpx; height: 72rpx; display: flex; align-items: center; justify-content: center; }
 .back-icon { font-size: 44rpx; color: $edu-text-primary; }
@@ -382,17 +385,17 @@ onShow(() => { loadList() })
 .sheet-input {
   width: 100%; height: 96rpx; box-sizing: border-box; padding: 0 28rpx; margin-bottom: 20rpx;
   border-radius: 24rpx; border: 2rpx solid $edu-outline; font-size: 30rpx; color: $edu-text-primary;
-  background-color: rgba(255, 255, 255, 0.6);
+  background-color: var(--edu-bg);
 }
 .sheet-textarea {
   width: 100%; min-height: 120rpx; box-sizing: border-box; padding: 20rpx 28rpx; margin-bottom: 20rpx;
   border-radius: 24rpx; border: 2rpx solid $edu-outline; font-size: 30rpx; color: $edu-text-primary;
-  background-color: rgba(255, 255, 255, 0.6);
+  background-color: var(--edu-bg);
 }
 .sheet-ph { font-size: 28rpx; color: $edu-text-hint; }
 .sheet-field {
   display: flex; align-items: center; height: 96rpx; padding: 0 28rpx; margin-bottom: 20rpx;
-  border-radius: 24rpx; border: 2rpx solid $edu-outline; background-color: rgba(255, 255, 255, 0.6);
+  border-radius: 24rpx; border: 2rpx solid $edu-outline; background-color: var(--edu-bg);
 }
 .sheet-field-label { font-size: 30rpx; color: $edu-text-secondary; flex: 1; }
 .sheet-field-value { font-size: 30rpx; color: $edu-text-primary; }

@@ -1,5 +1,5 @@
 <template>
-  <view class="category-page">
+  <view class="category-page" :class="themeClass">
     <view class="nav-bar" :style="{ paddingTop: statusBarHeight + 'px' }">
       <view class="nav-bar-inner" :style="{ height: navContentHeight + 'px' }">
         <view class="nav-back" @tap="goBack"><text class="back-icon">←</text></view>
@@ -32,6 +32,9 @@ import LoadingState from '@/components/LoadingState.vue'
 import ErrorState from '@/components/ErrorState.vue'
 import EmptyState from '@/components/EmptyState.vue'
 import { getCourseCategoryListApi, type CategoryNode } from '@/api/category'
+import { useTheme } from '@/composables/useTheme'
+
+const { themeClass } = useTheme()
 
 const statusBarHeight = ref<number>(0)
 const navContentHeight = ref<number>(44)
@@ -73,7 +76,7 @@ onLoad(load)
 
 <style lang="scss" scoped>
 .category-page { min-height: 100vh; box-sizing: border-box; padding: 0 32rpx 60rpx; @include eduPageGradientStrong; }
-.nav-bar { position: fixed; top: 0; left: 0; right: 0; z-index: 99; background: rgba(255, 255, 255, 0.92); }
+.nav-bar { position: fixed; top: 0; left: 0; right: 0; z-index: 99; background: var(--edu-surface); }
 .nav-bar-inner { display: flex; align-items: center; padding-left: 8rpx; }
 .nav-back { width: 72rpx; height: 72rpx; display: flex; align-items: center; justify-content: center; }
 .back-icon { font-size: 44rpx; color: $edu-text-primary; }

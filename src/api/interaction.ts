@@ -43,9 +43,11 @@ function absCover(p?: string): string {
     if (!p) return ''
     return /^[a-z][a-z\d+\-.]*:\/\//i.test(p) ? p : BASE_URL + (p.startsWith('/') ? '' : '/') + p
 }
-/** 后端 targetType 字符串 → 前端数值：post→1(文章)，course/shortVideo→2(视频) */
+/** 后端 targetType 字符串 → 前端数值：post→1(文章) course→2(课程) shortVideo→3(短视频) */
 function mapTargetType(t?: string): number {
-    return t === 'post' ? 1 : 2
+    if (t === 'post') return 1
+    if (t === 'shortVideo') return 3
+    return 2
 }
 
 interface BackendMyInteraction {
@@ -104,12 +106,51 @@ function normalizeHistory(r: BackendHistory): UserTargetItem {
     return {
         targetType: mapTargetType(r.targetType),
         targetId: r.targetId,
+        videoId: r.videoId || undefined,
         title: r.title || '',
         cover: absCover(r.coverUrl),
         collectTime: r.lastViewTime || '',
         progressSeconds: r.position || 0,
         duration: r.duration || 0
     }
+}
+
+/** 观看历史上报：POST /api/v1/history/report（后端 JSON 出口按 Map<String,String> 绑定，值统一转字符串）
+ *  shortVideo/course 带 position（跟随最新，重看覆盖）；post 无进度只记时间；course 另传 videoId 定位小节 */
+export function reportHistoryApi(params: {
+    targetType: 'shortVideo' | 'course' | 'post'
+    targetId: number
+    videoId?: number
+    position?: number
+    duration?: number
+}): Promise<any> {
+    if (!API_READY.history) return Promise.resolve(null)
+    const body: Record<string, string> = { targetType: params.targetType, targetId: String(params.targetId) }
+    if (params.videoId) body.videoId = String(params.videoId)
+    if (params.position != null) body.position = String(Math.floor(params.position))
+    if (params.duration != null) body.duration = String(Math.floor(params.duration))
+    return post(v1('/history/report'), body, { showError: false, silentAuth: true })
+}
+
+/** 断点查询返回：found=false 表示无历史，从头播 */
+export interface HistoryProgressResult {
+    found: boolean
+    videoId?: number      // 课程：上次观看的小节ID
+    position?: number     // 该小节内看到第几秒
+    duration?: number
+    lastViewTime?: string
+}
+
+/** 查断点：GET /api/v1/history/progress?targetType=&targetId=（shortVideo / course） */
+export function getHistoryProgressApi(targetType: 'shortVideo' | 'course', targetId: number): Promise<HistoryProgressResult> {
+    if (!API_READY.history) return Promise.resolve({ found: false })
+    return get(v1('/history/progress'), { targetType, targetId }, { showError: false, silentAuth: true }).then((r: any) => ({
+        found: !!(r && r.found),
+        videoId: r?.videoId,
+        position: r?.position,
+        duration: r?.duration,
+        lastViewTime: r?.lastViewTime
+    }))
 }
 
 /** 观看历史：GET /api/v1/history/list?targetType=（短视频/课程/文章混合时间线，带续播进度） */

@@ -1,5 +1,5 @@
 <template>
-	<view class="login-page">
+	<view class="login-page" :class="themeClass">
 		<!-- 顶部柔光圆 600rpx, TopCenter, top 16rpx -->
 		<view class="glow-orb"></view>
 
@@ -88,13 +88,31 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
+import { onLoad } from '@dcloudio/uni-app'
 import { useAuthStore } from '@/store/auth'
+import { useTheme } from '@/composables/useTheme'
 
 const auth = useAuthStore()
+const { themeClass } = useTheme()
+
+const REMEMBER_KEY = 'rememberedLogin'
 
 const phone = ref<string>('')
 const password = ref<string>('')
 const rememberMe = ref<boolean>(false)
+
+// 进入登录页：有记忆则回填手机号/密码并默认勾选「记住我」
+onLoad(() => {
+	try {
+		const raw = uni.getStorageSync(REMEMBER_KEY)
+		if (raw) {
+			const saved = JSON.parse(raw)
+			phone.value = saved.phone || ''
+			password.value = saved.password || ''
+			rememberMe.value = true
+		}
+	} catch (e) { /* 记忆数据损坏则忽略，正常空表单 */ }
+})
 
 const userFocused = ref<boolean>(false)
 const pwdFocused = ref<boolean>(false)
@@ -170,6 +188,11 @@ async function handleLogin() {
 			phone: phone.value,
 			password: password.value
 		})
+		if (rememberMe.value) {
+			uni.setStorageSync(REMEMBER_KEY, JSON.stringify({ phone: phone.value, password: password.value }))
+		} else {
+			uni.removeStorageSync(REMEMBER_KEY)
+		}
 		uni.showToast({ title: '登录成功', icon: 'success', duration: 800 })
 		setTimeout(() => {
 			uni.reLaunch({ url: '/pages/index/index' })
@@ -180,8 +203,25 @@ async function handleLogin() {
 	}
 }
 
+// 忘记密码引导：MVP 无自助重置，联系管理员在后台「用户管理→重置密码」处理
+// TODO 上线前把占位邮箱换成团队真实联系方式（下面两处一起改）
+const ADMIN_CONTACT = 'edu.learning.admin@gmail.com'
+
 function handleForgot() {
-	uni.showToast({ title: '功能开发中', icon: 'none' })
+	uni.showModal({
+		title: '忘记密码',
+		content: '请发送邮件至 ' + ADMIN_CONTACT + ' 申请重置（注明手机号），管理员重置后会将新密码邮件告知',
+		cancelText: '关闭',
+		confirmText: '复制邮箱',
+		success: (r) => {
+			if (r.confirm) {
+				uni.setClipboardData({
+					data: ADMIN_CONTACT,
+					success: () => uni.showToast({ title: '邮箱已复制', icon: 'none' })
+				})
+			}
+		}
+	})
 }
 
 function goToRegister() {
@@ -199,6 +239,7 @@ function goToRegister() {
 	box-sizing: border-box;
 	padding: 0 56rpx;
 	overflow: hidden;
+	background-color: var(--edu-surface-variant);
 	@include eduPageGradientStrong;
 }
 

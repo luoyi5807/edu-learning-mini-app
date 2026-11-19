@@ -1,5 +1,5 @@
 <template>
-  <view class="course-detail-page">
+  <view class="course-detail-page" :class="themeClass">
     <view class="nav-bar" :style="{ paddingTop: statusBarHeight + 'px' }">
       <view class="nav-bar-inner" :style="{ height: navContentHeight + 'px' }">
         <view class="nav-back" @tap="goBack"><text class="back-icon">←</text></view>
@@ -117,7 +117,10 @@ import { getCourseDetailApi, getCourseRatingsApi, joinCourseApi, leaveCourseApi,
 import { toggleLikeApi, toggleFavoriteApi } from '@/api/interaction'
 import { resolveFileUrl } from '@/api/user'
 import { addNoteApi } from '@/api/notes'
+import { useTheme } from '@/composables/useTheme'
 import type { CourseDetailDto, LessonDto, CourseRatingDto } from '@/types/course'
+
+const { themeClass } = useTheme()
 
 const statusBarHeight = ref<number>(0)
 const navContentHeight = ref<number>(44)
@@ -255,7 +258,7 @@ onLoad((query) => {
 .section-desc { display: block; font-size: 30rpx; color: $edu-text-secondary; line-height: 1.6; }
 .section-subtitle { display: block; font-size: 32rpx; font-weight: 700; color: $edu-text-primary; margin-top: 28rpx; margin-bottom: 20rpx; }
 .liker-row { display: flex; align-items: center; }
-.liker-avatar { width: 64rpx; height: 64rpx; border-radius: 50%; background-color: $edu-primary-container; display: flex; align-items: center; justify-content: center; margin-right: -16rpx; border: 2rpx solid #FFFFFF; }
+.liker-avatar { width: 64rpx; height: 64rpx; border-radius: 50%; background-color: $edu-primary-container; display: flex; align-items: center; justify-content: center; margin-right: -16rpx; border: 2rpx solid var(--edu-surface); }
 .liker-char { font-size: 28rpx; font-weight: 700; color: #0C2C6B; }
 .liker-more { font-size: 28rpx; color: $edu-text-secondary; margin-left: 32rpx; }
 

@@ -1,5 +1,5 @@
 <template>
-  <view class="article-detail-page">
+  <view class="article-detail-page" :class="themeClass">
     <view class="nav-bar" :class="{ 'nav-bar-opaque': navBarOpaque }" :style="{ paddingTop: statusBarHeight + 'px' }">
       <view class="nav-bar-inner" :style="{ height: navContentHeight + 'px', paddingRight: capsuleGap + 'px' }">
         <view class="nav-back" @tap="goBack"><text class="back-icon">←</text></view>
@@ -12,7 +12,7 @@
     <LoadingState v-if="state === 'loading'" text="正在加载…" />
     <ErrorState v-else-if="state === 'error'" text="加载失败" @retry="loadDetail" />
     <block v-else-if="article">
-      <scroll-view class="content-scroll" scroll-y :show-scrollbar="false">
+      <scroll-view class="content-scroll" scroll-y :show-scrollbar="false" :scroll-into-view="scrollInto" scroll-with-animation>
         <text class="article-title">{{ article.title }}</text>
 
         <view class="author-row">
@@ -40,7 +40,7 @@
         <view class="comment-section">
           <text class="comment-header">评论 {{ article.commentCount }}</text>
           <EmptyState v-if="comments.length === 0" text="还没有评论，抢占沙发" />
-          <view v-for="c in comments" :key="c.commentId" class="comment-item">
+          <view v-for="c in comments" :key="c.commentId" :id="'comment-' + c.commentId" class="comment-item" :class="{ 'comment-hl': highlightComment === c.commentId }">
             <view class="author-avatar sm" @tap="goUser(c.userId)">
               <text class="author-char">{{ charOf(c.nickName) }}</text>
             </view>
@@ -56,11 +56,15 @@
               <!-- 楼中楼回复：预览 2 条 + 展开/收起 -->
               <view class="reply-list" v-if="visibleReplies(c).length">
                 <view class="reply-item" v-for="r in visibleReplies(c)" :key="r.commentId">
-                  <text class="reply-name" @tap="goUser(r.userId)">{{ r.nickName }}</text>
-                  <text v-if="r.replyToUserName" class="reply-to" @tap="goUser(r.replyToUserId || 0)"> 回复 {{ r.replyToUserName }}</text>
-                  <text class="reply-colon">：</text>
-                  <text class="reply-content">{{ r.content }}</text>
-                  <text class="reply-btn" @tap="startReply(r, c)">回复</text>
+                  <view class="reply-main">
+                    <text class="reply-name" @tap="goUser(r.userId)">{{ r.nickName }}</text>
+                    <text v-if="r.replyToUserName" class="reply-to" @tap="goUser(r.replyToUserId || 0)"> 回复 {{ r.replyToUserName }}</text>
+                    <text class="reply-colon">：</text>
+                    <text class="reply-content">{{ r.content }}</text>
+                  </view>
+                  <view class="reply-actions">
+                    <text class="reply-btn" @tap="startReply(r, c)">回复</text>
+                  </view>
                 </view>
               </view>
               <text class="view-replies" v-if="(c.replyCount || 0) > 2" @tap="toggleReplies(c)">{{ isReplyExpanded(c) ? '收起 ⌃' : '展开 ' + c.replyCount + ' 条回复 ⌄' }}</text>
@@ -127,18 +131,23 @@
 
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import { onLoad } from '@dcloudio/uni-app'
+import { onLoad, onUnload } from '@dcloudio/uni-app'
 import LoadingState from '@/components/LoadingState.vue'
 import ErrorState from '@/components/ErrorState.vue'
 import EmptyState from '@/components/EmptyState.vue'
 import { useAuthStore } from '@/store/auth'
 import { getArticleDetailApi } from '@/api/article'
-import { getCommentsApi, getRepliesApi, addCommentApi, likeCommentApi } from '@/api/comment'
+import { getCommentsApi, getRepliesApi, addCommentApi, likeCommentApi, locateCommentApi } from '@/api/comment'
 import { toggleLikeApi, toggleFavoriteApi, reportShareApi } from '@/api/interaction'
 import { addNoteApi } from '@/api/notes'
+import { reportWatchApi } from '@/api/points'
+import { reportHistoryApi } from '@/api/interaction'
+import { CONTENT_MIN_SECONDS } from '@/composables/pointsRule'
+import { useTheme } from '@/composables/useTheme'
 import type { ArticleDetailDto, ArticleTag, CommentDto } from '@/types/article'
 
 const auth = useAuthStore()
+const { themeClass } = useTheme()
 
 const statusBarHeight = ref<number>(0)
 const navContentHeight = ref<number>(44)
@@ -158,6 +167,12 @@ const articleId = ref<number>(0)
 const article = ref<ArticleDetailDto | null>(null)
 const comments = ref<CommentDto[]>([])
 const state = ref<'loading' | 'error' | 'ready'>('loading')
+
+/* ===== 通知精准跳转：进页后定位到具体评论（仅执行一次） ===== */
+const locateComment = ref<number>(0)
+const highlightComment = ref<number>(0)
+const scrollInto = ref<string>('')
+let locatedDone = false
 
 const draft = ref<string>('')
 const sending = ref<boolean>(false)
@@ -186,21 +201,51 @@ async function toggleReplies(c: CommentDto) {
 
 function charOf(name: string): string { return (name || 'U').charAt(0) }
 
+/* ===== 阅读计时：停留满 30 秒上报一次，服务端按天去重 ===== */
+let readTimer: ReturnType<typeof setTimeout> | null = null
+function stopReadTimer() { if (readTimer) { clearTimeout(readTimer); readTimer = null } }
+function startReadTimer() {
+  stopReadTimer()
+  if (!articleId.value) return
+  readTimer = setTimeout(async () => {
+    try { await reportWatchApi('post', articleId.value, CONTENT_MIN_SECONDS) } catch (e) { /* 静默，不打扰用户 */ }
+  }, CONTENT_MIN_SECONDS * 1000)
+}
+
 async function loadDetail() {
   state.value = 'loading'
   try {
     article.value = await getArticleDetailApi(articleId.value)
     state.value = 'ready'
     loadComments()
+    startReadTimer()
+    reportHistoryApi({ targetType: 'post', targetId: articleId.value }).catch(() => {})
+    if (locateComment.value) handleLocateComment()
   } catch (e) {
     state.value = 'error'
   }
 }
 
-async function loadComments() {
-  const res = await getCommentsApi(1, articleId.value)
+async function loadComments(page = 1) {
+  const res = await getCommentsApi(1, articleId.value, undefined, 20, page)
   comments.value = (res as any).list || []
   if (article.value) article.value = { ...article.value, commentCount: comments.value.length }
+}
+
+/** GET /comment/locate：拿目标评论所在页码/所属一级评论，翻页加载后滚动高亮 */
+async function handleLocateComment() {
+  const id = locateComment.value
+  if (!id || locatedDone) return
+  locatedDone = true
+  try {
+    const loc = await locateCommentApi(id)
+    if (loc.deleted) { uni.showToast({ title: '该评论已被删除', icon: 'none' }); return }
+    if (loc.targetType !== 1 || loc.targetId !== articleId.value) return
+    await loadComments(loc.pageNum)
+    if (loc.rootId !== id) expandedReplies.value = { ...expandedReplies.value, [loc.rootId]: true }
+    highlightComment.value = id
+    setTimeout(() => { scrollInto.value = 'comment-' + loc.rootId }, 150)
+  } catch (e) { /* 定位失败：保持普通详情页 */ }
 }
 
 async function handleViewReplies(c: CommentDto) {
@@ -336,8 +381,11 @@ function goBack() {
 
 onLoad((query) => {
   articleId.value = Number((query && query.articleId) || 0)
+  locateComment.value = Number((query && (query as any).locateComment) || 0)
   loadDetail()
 })
+
+onUnload(stopReadTimer)
 </script>
 
 <style lang="scss" scoped>
@@ -349,7 +397,7 @@ onLoad((query) => {
   position: fixed; top: 0; left: 0; right: 0; z-index: 99; background: transparent;
   transition: background-color 0.3s ease, box-shadow 0.3s ease;
 }
-.nav-bar-opaque { background: #FFFFFF; box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.06); }
+.nav-bar-opaque { background: var(--edu-surface); box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.06); }
 .nav-bar-inner { display: flex; align-items: center; padding-left: 16rpx; }
 .nav-back { width: 72rpx; height: 72rpx; display: flex; align-items: center; justify-content: center; }
 .back-icon { font-size: 44rpx; color: $edu-text-primary; }
@@ -389,16 +437,21 @@ onLoad((query) => {
 .comment-like { font-size: 26rpx; color: $edu-text-secondary; margin-left: auto; }
 
 .reply-list { margin-top: 16rpx; padding: 16rpx 20rpx; border-radius: 16rpx; background-color: $edu-surface-variant; }
-.reply-item { display: flex; flex-wrap: wrap; align-items: baseline; margin-bottom: 12rpx; }
+.reply-item { display: flex; flex-direction: column; margin-bottom: 16rpx; }
 .reply-item:last-child { margin-bottom: 0; }
-.reply-name { font-size: 26rpx; font-weight: 600; color: $edu-text-secondary; flex-shrink: 0; }
-.reply-to { font-size: 26rpx; color: $edu-primary; flex-shrink: 0; }
-.reply-colon { font-size: 26rpx; color: $edu-text-secondary; flex-shrink: 0; }
-.reply-content { font-size: 26rpx; color: $edu-text-primary; line-height: 1.5; flex: 1; min-width: 0; }
-.reply-btn { font-size: 24rpx; color: $edu-primary; padding: 4rpx 12rpx; margin-left: 16rpx; flex-shrink: 0; }
+.reply-main { font-size: 26rpx; line-height: 1.5; word-break: break-all; }
+.reply-name { font-weight: 600; color: $edu-text-secondary; }
+.reply-to { color: $edu-primary; }
+.reply-colon { color: $edu-text-secondary; }
+.reply-content { color: $edu-text-primary; }
+.reply-actions { display: flex; justify-content: flex-end; margin-top: 6rpx; }
+.reply-btn { font-size: 24rpx; color: $edu-primary; padding: 4rpx 16rpx; }
 .view-replies { display: block; font-size: 26rpx; color: $edu-primary; margin-top: 12rpx; }
 
-.bottom-space { height: 240rpx; }
+/* 通知定位高亮 */
+.comment-hl { background-color: rgba(54, 119, 239, 0.08); border-radius: 16rpx; }
+
+.bottom-space { height: 360rpx; }
 
 .action-bar {
   position: fixed; left: 0; right: 0; bottom: 0; z-index: 100;

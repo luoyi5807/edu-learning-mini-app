@@ -57,6 +57,7 @@ export interface BackendCourseVideo {
     chapterId?: number | null
     videoTitle: string
     videoUrl?: string
+    duration?: number | null
     orderNum?: number
     chapterTitle?: string
 }
@@ -87,6 +88,25 @@ function absUrl(p?: string): string {
     return BASE_URL + encodeURI(path)
 }
 
+/** 后端 /search/video 行：learning_short_video 联 sys_user。
+ *  注：后端目前只 join 了 userName（登录名），nickName/avatar 已按契约预留，后端补齐即生效 */
+interface BackendShortVideo {
+    videoId: number
+    videoTitle?: string
+    userId?: number
+    videoUrl?: string
+    coverUrl?: string
+    intro?: string
+    duration?: number
+    viewCount?: number
+    likeCount?: number
+    favoriteCount?: number
+    commentCount?: number
+    userName?: string
+    nickName?: string
+    avatar?: string
+}
+
 /** 后端短视频 → 前端 Course 视图模型（videoType=1，playUrl/coverUrl 转绝对） */
 function normalizeShortVideo(v: BackendShortVideo): Course {
     return {
@@ -94,8 +114,9 @@ function normalizeShortVideo(v: BackendShortVideo): Course {
         title: v.videoTitle || '',
         coverUrl: absUrl(v.coverUrl),
         playUrl: absUrl(v.videoUrl),
-        instructorName: v.userName || '',
+        instructorName: v.nickName || v.userName || '',
         instructorId: v.userId,
+        instructorAvatar: v.avatar ? absUrl(v.avatar) : '',
         studentCount: 0,
         categoryId: 0,
         categoryName: '',
@@ -140,7 +161,7 @@ function normalizeVideo(v: BackendCourseVideo, courseId: number): LessonDto {
         courseId: v.courseId || courseId,
         chapterId: v.chapterId || 0,
         title: v.videoTitle || '',
-        duration: 0,
+        duration: Number(v.duration) || 0,
         isFree: 1,
         transcodeStatus: 1,
         playUrl: absUrl(v.videoUrl)

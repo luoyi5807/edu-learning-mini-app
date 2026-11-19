@@ -1,5 +1,5 @@
 <template>
-  <view class="tag-page">
+  <view class="tag-page" :class="themeClass">
     <view class="nav-bar" :class="{ 'nav-bar-opaque': navBarOpaque }" :style="{ paddingTop: statusBarHeight + 'px' }">
       <view class="nav-bar-inner" :style="{ height: navContentHeight + 'px' }">
         <view class="nav-back" @tap="goBack"><text class="back-icon">←</text></view>
@@ -40,7 +40,10 @@ import LoadingState from '@/components/LoadingState.vue'
 import ErrorState from '@/components/ErrorState.vue'
 import EmptyState from '@/components/EmptyState.vue'
 import { getArticlesByTagApi } from '@/api/article'
+import { useTheme } from '@/composables/useTheme'
 import type { ArticleDto } from '@/types/article'
+
+const { themeClass } = useTheme()
 
 const statusBarHeight = ref<number>(0)
 const navContentHeight = ref<number>(44)
@@ -82,7 +85,7 @@ onLoad((query) => {
 <style lang="scss" scoped>
 .tag-page { min-height: 100vh; box-sizing: border-box; padding: 0 32rpx 60rpx; @include eduPageGradientStrong; }
 .nav-bar { position: fixed; top: 0; left: 0; right: 0; z-index: 99; background: transparent; transition: background-color 0.3s ease, box-shadow 0.3s ease; }
-.nav-bar-opaque { background: #FFFFFF; box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.06); }
+.nav-bar-opaque { background: var(--edu-surface); box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.06); }
 .nav-bar-inner { display: flex; align-items: center; padding-left: 16rpx; }
 .nav-back { width: 72rpx; height: 72rpx; display: flex; align-items: center; justify-content: center; }
 .back-icon { font-size: 44rpx; color: $edu-text-primary; }

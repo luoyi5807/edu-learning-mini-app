@@ -1,5 +1,5 @@
 <template>
-  <view class="blog-home-page">
+  <view class="blog-home-page" :class="themeClass">
     <!-- 固定顶部栏：返回 + 标题 + 通知 -->
     <view class="nav-bar" :class="{ 'nav-bar-opaque': navBarOpaque }" :style="{ paddingTop: statusBarHeight + 'px' }">
       <view class="nav-bar-inner" :style="{ height: navContentHeight + 'px' }">
@@ -103,9 +103,11 @@ import { useAuthStore } from '@/store/auth'
 import { resolveFileUrl, getUserPublicProfileApi, followUserApi, unfollowUserApi, getFollowStatusApi, getFollowCountApi, getFansListApi } from '@/api/user'
 import { getMyArticlesApi, getUserPublishedArticlesApi, deleteArticleApi, type MyArticleDto } from '@/api/article'
 import { useNotification } from '@/composables/useNotification'
+import { useTheme } from '@/composables/useTheme'
 
 const auth = useAuthStore()
 const { unreadCount, refreshUnread } = useNotification()
+const { themeClass } = useTheme()
 
 /* ===== 顶部栏高度（含状态栏 + 胶囊区） ===== */
 const statusBarHeight = ref<number>(0)
@@ -200,6 +202,17 @@ const stats = reactive({
   fansCount: 0,
   likeCount: 0
 })
+
+/** 关注/粉丝数：GET /api/v1/follow/count?userId=（获赞数后端暂无统计接口，保持 0） */
+async function loadStats(userId: number | string) {
+  const uid = Number(userId) || 0
+  if (!uid) return
+  try {
+    const res = await getFollowCountApi(uid)
+    stats.followingCount = res.followCount || 0
+    stats.fansCount = res.fansCount || 0
+  } catch (e) { /* 失败保持 0，不阻断文章/粉丝预览加载 */ }
+}
 
 const isFollowed = ref<boolean>(false)
 
@@ -347,7 +360,7 @@ async function handleArticleDelete(item: MyArticleDto) {
   background: transparent;
   transition: background-color 0.3s ease, box-shadow 0.3s ease;
 }
-.nav-bar-opaque { background: #FFFFFF; box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.06); }
+.nav-bar-opaque { background: var(--edu-surface); box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.06); }
 .nav-bar-inner { display: flex; align-items: center; padding-left: 16rpx; padding-right: 16rpx; }
 .nav-back { width: 72rpx; height: 72rpx; display: flex; align-items: center; justify-content: center; }
 .back-icon { font-size: 44rpx; color: $edu-text-primary; }

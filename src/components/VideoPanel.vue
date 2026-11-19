@@ -81,7 +81,8 @@
           <view class="video-info">
             <view class="instructor-row">
               <view class="instructor-avatar" @tap.stop="goInstructor(item)">
-                <text class="instructor-char">{{ charOf(item.instructorName) }}</text>
+                <image v-if="item.instructorAvatar" class="instructor-avatar-img" :src="item.instructorAvatar" mode="aspectFill" />
+                <text v-else class="instructor-char">{{ charOf(item.instructorName) }}</text>
               </view>
               <text class="instructor-name" @tap.stop="goInstructor(item)">{{ item.instructorName }}</text>
             </view>
@@ -104,7 +105,7 @@
       </swiper-item>
     </swiper>
 
-    <CommentsSheet :visible="commentVisible" :target-type="3" :target-id="commentTargetId" @close="commentVisible = false" />
+    <CommentsSheet :visible="commentVisible" :target-type="3" :target-id="commentTargetId" :locate-comment-id="locateCommentId" @close="commentVisible = false" />
   </view>
 </template>
 
@@ -115,7 +116,8 @@ import ErrorState from '@/components/ErrorState.vue'
 import EmptyState from '@/components/EmptyState.vue'
 import CommentsSheet from '@/components/CommentsSheet.vue'
 import { getShortVideosApi, getPlayInfoApi, formatDuration } from '@/api/course'
-import { toggleLikeApi, toggleFavoriteApi, reportShareApi, getInteractionStatusApi } from '@/api/interaction'
+import { toggleLikeApi, toggleFavoriteApi, reportShareApi, getInteractionStatusApi, reportHistoryApi, getHistoryProgressApi } from '@/api/interaction'
+import { locateCommentApi } from '@/api/comment'
 import type { Course } from '@/types/course'
 
 const instance = getCurrentInstance()
@@ -125,6 +127,7 @@ const state = ref<'loading' | 'error' | 'ready'>('loading')
 const currentIndex = ref<number>(0)
 const commentVisible = ref<boolean>(false)
 const commentTargetId = ref<number>(0)
+const locateCommentId = ref<number>(0)
 let loadingMore = false
 
 /* ===== 每个视频的播放状态 ===== */
@@ -238,10 +241,37 @@ async function activateCurrent() {
   if (!cur) return
   await ensurePlayUrl(cur)
   if (!playUrlMap[cur.courseId]) return
+  await ensureResume(cur)
+  const id = cur.courseId
+  const pos = resumeMap[id] || 0
+  const shouldSeek = !resumeApplied[id] && pos > 2 && !!cur.duration && pos < cur.duration - 3
   setTimeout(() => {
-    const ctx = getCtx(cur.courseId)
-    if (ctx) ctx.play()
+    const ctx = getCtx(id)
+    if (!ctx) return
+    ctx.play()
+    if (shouldSeek) {
+      // seek 延后到播放器就绪，过早 seek 会触发黑屏重载
+      setTimeout(() => {
+        const c2 = getCtx(id)
+        if (c2 && currentIndex.value === indexOf(cur)) c2.seek(pos)
+      }, 800)
+    }
+    resumeApplied[id] = true
   }, 100)
+}
+
+/* ===== 断点续播：本会话每个视频只查一次、只 seek 一次（服务器进度最多滞后 15s，重复 seek 会倒回） ===== */
+const resumeMap: Record<number, number> = {}
+const resumeApplied: Record<number, boolean> = {}
+const resumeFetching: Record<number, boolean> = {}
+function ensureResume(item: Course): Promise<void> {
+  const id = item.courseId
+  if (resumeApplied[id] || resumeFetching[id]) return Promise.resolve()
+  resumeFetching[id] = true
+  return getHistoryProgressApi('shortVideo', id)
+    .then((p) => { if (p.found) resumeMap[id] = p.position || 0 })
+    .catch(() => {})
+    .then(() => { resumeFetching[id] = false })
 }
 
 /** 单击视频区域：暂停 / 继续 */
@@ -255,13 +285,25 @@ function togglePlay(item: Course) {
 }
 
 function onPlay(item: Course) { pausedMap[item.courseId] = false }
-function onPause(item: Course) { pausedMap[item.courseId] = true }
-function onTimeUpdate(item: Course, e: any) {
-  currentTimeMap[item.courseId] = (e && e.detail && e.detail.currentTime) || 0
+function onPause(item: Course) {
+  pausedMap[item.courseId] = true
+  reportHistory(item)   // 暂停/划走时落一次最新位置
 }
-function onVideoError(item: Course, e: any) {
-  // 文件缺失/网络问题时静默处理，不再弹 toast 打扰（首页会误弹）
-  console.warn('[VideoPanel] 视频源加载失败:', item.courseId, e)
+function onTimeUpdate(item: Course, e: any) {
+  const cur = (e && e.detail && e.detail.currentTime) || 0
+  currentTimeMap[item.courseId] = cur
+  const now = Date.now()
+  if (!historyTsMap[item.courseId] || now - historyTsMap[item.courseId] >= 15000) {
+    historyTsMap[item.courseId] = now
+    reportHistory(item, cur)
+  }
+}
+
+/** 观看历史心跳：每 15s 及暂停时上报（后端 upsert，重看覆盖进度；首次上报会 +1 播放数） */
+const historyTsMap: Record<number, number> = {}
+function reportHistory(item: Course, position?: number) {
+  const pos = position != null ? position : (currentTimeMap[item.courseId] || 0)
+  reportHistoryApi({ targetType: 'shortVideo', targetId: item.courseId, position: pos, duration: item.duration }).catch(() => {})
 }
 
 async function loadMore() {
@@ -299,7 +341,7 @@ function handleShare(item: Course) {
   uni.showToast({ title: '已复制链接', icon: 'none' })
 }
 
-function openComments(item: Course) { commentTargetId.value = item.courseId; commentVisible.value = true }
+function openComments(item: Course) { commentTargetId.value = item.courseId; locateCommentId.value = 0; commentVisible.value = true }
 function goDetail(item: Course) { uni.navigateTo({ url: `/pages-sub/course/detail?courseId=${item.courseId}` }) }
 
 function goInstructor(item: Course) {
@@ -319,6 +361,20 @@ onUnmounted(() => {
   })
 })
 
+/** 历史/收藏直达：按短视频ID切到对应 slide（列表懒加载，轮询等待就绪） */
+async function onOpenById(videoId: number) {
+  maybeLoad()
+  for (let i = 0; i < 10 && list.value.length === 0; i++) {
+    await new Promise((r) => setTimeout(r, 300))
+  }
+  const idx = list.value.findIndex((x) => x.courseId === videoId)
+  if (idx >= 0) switchTo(idx)
+  else uni.showToast({ title: '该视频已下架', icon: 'none' })
+}
+
+onMounted(() => { uni.$on('video:open', onOpenById) })
+onUnmounted(() => { uni.$off('video:open', onOpenById) })
+
 /** 懒加载：首次切到「视频」Tab 才拉列表，避免启动即在首页触发加载/报错 */
 let loaded = false
 function maybeLoad() {
@@ -328,6 +384,24 @@ function maybeLoad() {
 }
 onMounted(() => { uni.$on('video:show', maybeLoad) })
 onUnmounted(() => { uni.$off('video:show', maybeLoad) })
+
+/** 通知精准跳转：index 页收到 ?locateComment= 后派发；定位到短视频评论区并高亮 */
+async function onLocateFromNotification(commentId: number) {
+  try {
+    const loc = await locateCommentApi(commentId)
+    if (loc.targetType !== 3 || !loc.targetId) return
+    if (loc.deleted) { uni.showToast({ title: '该评论已被删除', icon: 'none' }); return }
+    maybeLoad()
+    commentTargetId.value = loc.targetId
+    locateCommentId.value = commentId
+    commentVisible.value = true
+  } catch (e) {
+    uni.showToast({ title: '评论定位失败', icon: 'none' })
+  }
+}
+
+onMounted(() => { uni.$on('video:locate', onLocateFromNotification) })
+onUnmounted(() => { uni.$off('video:locate', onLocateFromNotification) })
 </script>
 
 <style lang="scss" scoped>
@@ -355,7 +429,8 @@ onUnmounted(() => { uni.$off('video:show', maybeLoad) })
 
 .video-info { position: absolute; left: 32rpx; right: 160rpx; bottom: 200rpx; z-index: 3; }
 .instructor-row { display: flex; align-items: center; margin-bottom: 20rpx; }
-.instructor-avatar { width: 64rpx; height: 64rpx; border-radius: 50%; background: $edu-primary-container; display: flex; align-items: center; justify-content: center; margin-right: 16rpx; }
+.instructor-avatar { width: 64rpx; height: 64rpx; border-radius: 50%; background: $edu-primary-container; display: flex; align-items: center; justify-content: center; margin-right: 16rpx; overflow: hidden; flex-shrink: 0; }
+.instructor-avatar-img { width: 100%; height: 100%; border-radius: 50%; }
 .instructor-char { font-size: 28rpx; font-weight: 700; color: #0C2C6B; }
 .instructor-name { font-size: 30rpx; font-weight: 600; color: #FFFFFF; }
 .video-title { display: block; font-size: 32rpx; font-weight: 700; color: #FFFFFF; line-height: 1.4; margin-bottom: 12rpx; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }

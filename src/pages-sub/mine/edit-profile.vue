@@ -1,5 +1,5 @@
 <template>
-  <view class="edit-profile-page">
+  <view class="edit-profile-page" :class="themeClass">
     <!-- 顶部栏：返回 + 标题 -->
     <view class="nav-bar" :style="{ paddingTop: statusBarHeight + 'px' }">
       <view class="nav-bar-inner" :style="{ height: navContentHeight + 'px' }">
@@ -90,8 +90,10 @@ import { ref, reactive, computed } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import { useAuthStore } from '@/store/auth'
 import { getProfileApi, updateProfileApi, uploadAvatarApi, resolveFileUrl } from '@/api/user'
+import { useTheme } from '@/composables/useTheme'
 
 const auth = useAuthStore()
+const { themeClass } = useTheme()
 
 /* ===== 顶部栏高度（含状态栏 + 胶囊区） ===== */
 const statusBarHeight = ref<number>(0)

@@ -142,12 +142,12 @@ function normalizeComment(c: BackendComment): CommentDto {
     }
 }
 
-/** GET /api/v1/comment/list —— 一级评论（含内联 children），total 为一级评论数 */
-export async function getCommentsApi(targetType: number, targetId: number, cursor?: string, size = 20): Promise<CommentPage> {
+/** GET /api/v1/comment/list —— 一级评论（含内联 children），total 为一级评论数；pageNum 供通知定位跳页 */
+export async function getCommentsApi(targetType: number, targetId: number, cursor?: string, size = 20, pageNum = 1): Promise<CommentPage> {
     if (!API_READY.comment) {
         return { list: list(targetType, targetId).slice(), nextCursor: '', hasMore: false }
     }
-    const body: any = await get(v1('/comment/list'), { targetType, targetId, pageNum: 1, pageSize: size })
+    const body: any = await get(v1('/comment/list'), { targetType, targetId, pageNum, pageSize: size })
     const rows: BackendComment[] = (body && Array.isArray(body.rows)) ? body.rows : []
     const arr = rows.map(normalizeComment)
     const total = (body && body.total != null) ? Number(body.total) : arr.length
@@ -157,6 +157,31 @@ export async function getCommentsApi(targetType: number, targetId: number, curso
 /** 楼中楼：后端已随列表内联返回 children，无独立接口；保留签名兼容旧调用 */
 export function getRepliesApi(rootId: number, cursor?: string, size = 20): Promise<CommentPage> {
     return Promise.resolve({ list: [], nextCursor: '', hasMore: false })
+}
+
+/** GET /api/v1/comment/locate 返回（AjaxResult 顶层字段） */
+export interface CommentLocate {
+    commentId: number
+    targetType: number   // 1帖子 3短视频（后端只支持这两种）
+    targetId: number
+    rootId: number       // 所属一级评论ID（一级评论=自身）
+    rootIndex: number    // 比它新的一级评论数
+    pageNum: number      // 按 pageSize 分页时所在页
+    deleted: boolean     // 评论已删除（仍可取到原 target 跳内容页）
+}
+
+/** 从通知定位评论：点「评论/回复」通知时先调本接口拿页码，再跳内容页高亮 */
+export async function locateCommentApi(commentId: number, pageSize = 20): Promise<CommentLocate> {
+    const body: any = await get(v1('/comment/locate'), { commentId: String(commentId), pageSize }, { showError: false })
+    return {
+        commentId: Number(body?.commentId ?? commentId),
+        targetType: Number(body?.targetType),
+        targetId: Number(body?.targetId),
+        rootId: Number(body?.rootId ?? commentId),
+        rootIndex: Number(body?.rootIndex ?? 0),
+        pageNum: Number(body?.pageNum ?? 1),
+        deleted: body?.deleted === true || body?.deleted === 'true'
+    }
 }
 
 export interface AddCommentParams {

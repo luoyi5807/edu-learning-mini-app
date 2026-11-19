@@ -1,142 +1,24 @@
 <template>
-  <view class="favorites-page">
-    <!-- 固定顶部栏：返回 + 标题 -->
-    <view class="nav-bar" :class="{ 'nav-bar-opaque': navBarOpaque }" :style="{ paddingTop: statusBarHeight + 'px' }">
-      <view class="nav-bar-inner" :style="{ height: navContentHeight + 'px' }">
-        <view class="nav-back" @tap="goBack">
-          <text class="back-icon">←</text>
-        </view>
-        <text class="nav-title">我的收藏</text>
-      </view>
-    </view>
-
-    <!-- 占位 -->
-    <view class="nav-placeholder" :style="{ height: (statusBarHeight + navContentHeight) + 'px' }"></view>
-
-    <!-- 筛选标签：全部 / 文章 / 视频 -->
-    <view class="filter-tabs">
-      <view
-          v-for="tab in filterTabs"
-          :key="tab.value"
-          class="filter-pill"
-          :class="{ 'filter-pill-active': activeFilter === tab.value }"
-          @tap="activeFilter = tab.value"
-      >
-        <text class="filter-pill-text">{{ tab.label }}</text>
-      </view>
-    </view>
-
-    <!-- 收藏列表 -->
-    <view class="fav-list" v-if="filteredList.length > 0">
-      <view
-          v-for="(item, idx) in filteredList"
-          :key="item.targetType + '-' + item.targetId"
-          class="fav-item"
-          :class="{ 'fav-item-divider': idx < filteredList.length - 1 }"
-          @tap="handleItemTap(item)"
-      >
-        <image v-if="item.cover" class="fav-cover" :src="item.cover" mode="aspectFill" />
-        <view v-else class="fav-cover fav-cover-placeholder"></view>
-        <view class="fav-info">
-          <text class="fav-title">{{ item.title }}</text>
-          <text class="fav-time">{{ item.collectTime }}</text>
-        </view>
-      </view>
-    </view>
-
-    <!-- 空态 -->
-    <EmptyState v-else text="还没有收藏内容" action-text="去逛逛社区" @action="goCommunity" />
-
-    <!-- 加载更多 / 没有更多了 -->
-    <view class="load-more" v-if="filteredList.length > 0 && hasMore" @tap="handleLoadMore">
-      <text class="load-more-text">{{ loadingMore ? '加载中...' : '上拉加载更多' }}</text>
-    </view>
-    <view class="load-more load-more-end" v-else-if="filteredList.length > 0">
-      <text class="load-more-text">没有更多了</text>
-    </view>
-  </view>
+  <MineTargetList :class="themeClass" title="我的收藏" :items="list" time-label="收藏于：" />
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
-import { onLoad, onPageScroll } from '@dcloudio/uni-app'
-import EmptyState from '@/components/EmptyState.vue'
-import { getMyFavoritesApi } from '@/api/interaction'
+import { ref } from 'vue'
+import { onLoad } from '@dcloudio/uni-app'
+import MineTargetList from '@/components/MineTargetList.vue'
 import type { UserTargetItem } from '@/types/user'
+import { getMyFavoritesApi } from '@/api/interaction'
+import { useTheme } from '@/composables/useTheme'
 
-/* ===== 顶部栏高度（含状态栏 + 胶囊区） ===== */
-const statusBarHeight = ref<number>(0)
-const navContentHeight = ref<number>(44)
+const { themeClass } = useTheme()
 
-const sysInfo = uni.getSystemInfoSync()
-statusBarHeight.value = sysInfo.statusBarHeight || 0
-// #ifdef MP-WEIXIN
-const menuButton = uni.getMenuButtonBoundingClientRect()
-if (menuButton) {
-  navContentHeight.value = (menuButton.top - statusBarHeight.value) * 2 + menuButton.height
-}
-// #endif
-
-/* ===== 顶栏滚动变白 ===== */
-const scrollTop = ref<number>(0)
-const navBarOpaque = computed<boolean>(() => scrollTop.value > 40)
-onPageScroll((e) => {
-  scrollTop.value = e.scrollTop
-})
-
-/* ===== 筛选 ===== */
-interface FilterTab { label: string; value: number }
-const filterTabs: FilterTab[] = [
-  { label: '全部', value: 0 },
-  { label: '文章', value: 1 },
-  { label: '视频', value: 2 }
-]
-const activeFilter = ref<number>(0)
-
-/* ===== 收藏数据（真实接口 /api/v1/interaction/myFavorites） ===== */
-const favorites = ref<UserTargetItem[]>([])
-
-const filteredList = computed<UserTargetItem[]>(() => {
-  if (activeFilter.value === 0) return favorites.value
-  return favorites.value.filter((f) => f.targetType === activeFilter.value)
-})
-
-const hasMore = ref<boolean>(false)
-const loadingMore = ref<boolean>(false)
-
-/* ===== 交互 ===== */
-function goBack() {
-  const pages = getCurrentPages()
-  if (pages.length > 1) {
-    uni.navigateBack()
-  } else {
-    uni.reLaunch({ url: '/pages/index/index' })
-  }
-}
-
-function goCommunity() {
-  uni.switchTab ? uni.reLaunch({ url: '/pages/index/index' }) : uni.reLaunch({ url: '/pages/index/index' })
-}
-
-// 蓝本通用跳转规则：targetType==1 文章详情，否则课程详情
-function handleItemTap(item: UserTargetItem) {
-  if (item.targetType === 1) {
-    uni.showToast({ title: `文章详情开发中：${item.title}`, icon: 'none' })
-  } else {
-    uni.showToast({ title: `课程详情开发中：${item.title}`, icon: 'none' })
-  }
-}
-
-function handleLoadMore() {
-  if (loadingMore.value) return
-  uni.showToast({ title: '加载更多（接口待接入）', icon: 'none' })
-}
+const list = ref<UserTargetItem[]>([])
 
 onLoad(async () => {
   try {
-    favorites.value = await getMyFavoritesApi()
+    list.value = await getMyFavoritesApi()
   } catch (e) {
-    // 拉取失败保持空列表，展示空态
+    // 拉取失败保持空列表，组件展示空态
   }
 })
 </script>
@@ -159,7 +41,7 @@ onLoad(async () => {
   background: transparent;
   transition: background-color 0.3s ease, box-shadow 0.3s ease;
 }
-.nav-bar-opaque { background: #FFFFFF; box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.06); }
+.nav-bar-opaque { background: var(--edu-surface); box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.06); }
 .nav-bar-inner { display: flex; align-items: center; padding-left: 16rpx; }
 .nav-back { width: 72rpx; height: 72rpx; display: flex; align-items: center; justify-content: center; }
 .back-icon { font-size: 44rpx; color: $edu-text-primary; }

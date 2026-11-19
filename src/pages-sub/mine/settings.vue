@@ -1,5 +1,5 @@
 <template>
-  <view class="settings-page">
+  <view class="settings-page" :class="themeClass">
     <!-- 固定顶部栏：返回 + 标题 -->
     <view class="nav-bar" :class="{ 'nav-bar-opaque': navBarOpaque }" :style="{ paddingTop: statusBarHeight + 'px' }">
       <view class="nav-bar-inner" :style="{ height: navContentHeight + 'px' }">
@@ -109,8 +109,10 @@ import { ref, computed } from 'vue'
 import { onLoad, onPageScroll } from '@dcloudio/uni-app'
 import { useAuthStore } from '@/store/auth'
 import { updatePwdApi } from '@/api/user'
+import { useTheme } from '@/composables/useTheme'
 
 const auth = useAuthStore()
+const { themeClass, themeMode, setThemeMode } = useTheme()
 const appVersion = '1.0.0'
 
 /* ===== 顶部栏高度（含状态栏 + 胶囊区） ===== */
@@ -132,34 +134,23 @@ onPageScroll((e) => {
   navBarOpaque.value = e.scrollTop > 40
 })
 
-/* ===== 主题模式（偏好本地持久化，深色样式待全站适配） ===== */
-interface ThemeOption { label: string; value: string }
+/* ===== 主题模式（深浅两套色板见配色方案_2 §三/§四，即时生效） ===== */
+interface ThemeOption { label: string; value: 'light' | 'dark' | 'system' }
 const themeOptions: ThemeOption[] = [
   { label: '浅色', value: 'light' },
   { label: '深色', value: 'dark' },
   { label: '跟随系统', value: 'system' }
 ]
-const themeMode = ref<string>('light')
 const themeLabel = computed<string>(
-    () => themeOptions.find((o) => o.value === themeMode.value)?.label || '浅色'
+    () => themeOptions.find((o) => o.value === themeMode.value)?.label || '跟随系统'
 )
-
-onLoad(() => {
-  const saved = uni.getStorageSync('themeMode')
-  if (saved) themeMode.value = saved
-})
 
 function handleTheme() {
   uni.showActionSheet({
     itemList: themeOptions.map((o) => o.label),
     success: (r) => {
-      themeMode.value = themeOptions[r.tapIndex].value
-      uni.setStorageSync('themeMode', themeMode.value)
-      if (themeMode.value === 'dark') {
-        uni.showToast({ title: '深色模式适配中，暂仅保存偏好', icon: 'none' })
-      } else {
-        uni.showToast({ title: '已切换主题', icon: 'none' })
-      }
+      setThemeMode(themeOptions[r.tapIndex].value)
+      uni.showToast({ title: '已切换主题', icon: 'none' })
     }
   })
 }
@@ -182,35 +173,17 @@ function handleClearCache() {
   })
 }
 
-/* ===== 协议 / 关于 ===== */
+/* ===== 协议 / 关于：跳转后端 agreement 模块渲染真实富文本（免登录可访问） ===== */
 function handleAgreement() {
-  uni.showModal({
-    title: '用户协议',
-    content: '本协议约定账号使用、内容发布与违规处理等基本条款。完整协议文本待后端 app_config 下发后展示。',
-    showCancel: false,
-    confirmText: '知道了',
-    confirmColor: '#3677EF'
-  })
+  uni.navigateTo({ url: '/pages-sub/mine/agreement?type=user_agreement' })
 }
 
 function handlePrivacy() {
-  uni.showModal({
-    title: '隐私政策',
-    content: '我们仅收集为提供学习服务所必需的信息（账号、学习进度、签到定位）。完整政策文本待后端配置下发后展示。',
-    showCancel: false,
-    confirmText: '知道了',
-    confirmColor: '#3677EF'
-  })
+  uni.navigateTo({ url: '/pages-sub/mine/agreement?type=privacy_policy' })
 }
 
 function handleAbout() {
-  uni.showModal({
-    title: '关于我们',
-    content: `学习平台 v${appVersion}\n一个帮你坚持学习、沉淀知识的移动学习应用。`,
-    showCancel: false,
-    confirmText: '知道了',
-    confirmColor: '#3677EF'
-  })
+  uni.navigateTo({ url: '/pages-sub/mine/agreement?type=about_us' })
 }
 
 /* ===== 修改密码 ===== */
@@ -291,6 +264,7 @@ function goBack() {
   if (pages.length > 1) uni.navigateBack()
   else uni.reLaunch({ url: '/pages/index/index' })
 }
+
 </script>
 
 <style lang="scss" scoped>
@@ -309,7 +283,7 @@ function goBack() {
   background: transparent;
   transition: background-color 0.3s ease, box-shadow 0.3s ease;
 }
-.nav-bar-opaque { background: #FFFFFF; box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.06); }
+.nav-bar-opaque { background: var(--edu-surface); box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.06); }
 .nav-bar-inner { display: flex; align-items: center; padding-left: 16rpx; }
 .nav-back { width: 72rpx; height: 72rpx; display: flex; align-items: center; justify-content: center; }
 .back-icon { font-size: 44rpx; color: $edu-text-primary; }

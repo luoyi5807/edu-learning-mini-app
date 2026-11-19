@@ -91,17 +91,17 @@ $edu-accent-coral: #D04030;
 $edu-accent-pink: #F0B0B0;
 $edu-accent-teal: #00B0C0;
 
-/* 中性色 · 浅色模式 */
-$edu-bg: #F7F9FC;
-$edu-surface: #FFFFFF;
-$edu-surface-variant: #F0F3F8;
-$edu-text-primary: #1A1A1A;
-$edu-text-secondary: #666666;
-$edu-text-hint: #999999;
-$edu-divider: #EEEEEE;
-$edu-outline: #DADCE0;
-$edu-error-container: #FDE0DF;
-$edu-error-text: #7F1D1B;
+/* 中性色 · 运行时 CSS 变量（值由 App.vue 声明的 .theme-light/.theme-dark 提供，SCSS 侧仅做引用） */
+$edu-bg: var(--edu-bg);
+$edu-surface: var(--edu-surface);
+$edu-surface-variant: var(--edu-surface-variant);
+$edu-text-primary: var(--edu-text-primary);
+$edu-text-secondary: var(--edu-text-secondary);
+$edu-text-hint: var(--edu-text-hint);
+$edu-divider: var(--edu-divider);
+$edu-outline: var(--edu-outline);
+$edu-error-container: var(--edu-error-container);
+$edu-error-text: var(--edu-error-text);
 
 /* 底栏四色 */
 $edu-tab-unselected: #9A9AA3;
@@ -110,42 +110,78 @@ $edu-tab-video-fg: #0E6E78;     $edu-tab-video-bg: #D9F0F3;
 $edu-tab-community-fg: #A8453C; $edu-tab-community-bg: #FBE4E0;
 $edu-tab-profile-fg: #96650C;   $edu-tab-profile-bg: #FBEFD2;
 
-/* 页面渐变：strong 用于二级页/详情/空态（对齐配色方案 §四：白 → 页面全局背景 #F7F9FC） */
+/* 深浅两套变量值：配色方案_2 §一~§五 为准；错误色/功能渐变的深色为近似值（设计稿未给，待确认） */
+@mixin eduThemeLight {
+  --edu-bg: #F7F9FC; --edu-surface: #FFFFFF; --edu-surface-variant: #F0F3F8;
+  --edu-text-primary: #1A1A1A; --edu-text-secondary: #666666; --edu-text-hint: #999999;
+  --edu-divider: #EEEEEE; --edu-outline: #DADCE0;
+  --edu-error-container: #FDE0DF; --edu-error-text: #7F1D1B;
+  --edu-grad-strong-top: #FFFFFF;
+  --edu-grad-weak-a: #F8F0ED; --edu-grad-weak-b: #FFFBF2;
+  --edu-grad-home-t: #F5F7FF; --edu-grad-home-b: #E8ECF8;
+  --edu-grad-community-t: #FFF8F6; --edu-grad-community-b: #FBE9E5;
+  --edu-grad-profile-t: #FFFBF2; --edu-grad-profile-b: #F8F0DD;
+  --edu-grad-wash-t: #FFFCF7; --edu-grad-wash-b: #FEF8F4;
+  --edu-grad-sel-t: rgba(220,232,255,0.7); --edu-grad-sel-b: #FFFFFF;
+  --edu-grad-warm-t: #FFF8E8; --edu-grad-warm-b: #FFFDF8;
+  --edu-grad-teal-t: #DCF2F5; --edu-grad-teal-b: #F4FBFC;
+  --edu-grad-pink-t: #FDE7E3; --edu-grad-pink-b: #FFF7F5;
+  --edu-grad-blue-t: #E3ECFD; --edu-grad-blue-b: #F6F9FF;
+}
+@mixin eduThemeDark {
+  --edu-bg: #151A26; --edu-surface: #1E2536; --edu-surface-variant: #28304A;
+  --edu-text-primary: #E8EAF0; --edu-text-secondary: #9AA3B5; --edu-text-hint: #6B7385;
+  --edu-divider: #2A3040; --edu-outline: #353B4D;
+  --edu-error-container: #3D2A2E; --edu-error-text: #F2B8B5;
+  --edu-grad-strong-top: #1E2536;
+  --edu-grad-weak-a: #232A3D; --edu-grad-weak-b: #1E2536;
+  --edu-grad-home-t: #1B1E2E; --edu-grad-home-b: #151A26;
+  --edu-grad-community-t: #2A1F1E; --edu-grad-community-b: #1F1A1C;
+  --edu-grad-profile-t: #2A2416; --edu-grad-profile-b: #211D14;
+  --edu-grad-wash-t: #1E2536; --edu-grad-wash-b: #1B2231;
+  --edu-grad-sel-t: rgba(54,119,239,0.28); --edu-grad-sel-b: #1E2536;
+  --edu-grad-warm-t: #33290D; --edu-grad-warm-b: #2A2410;
+  --edu-grad-teal-t: #0F3237; --edu-grad-teal-b: #142A2E;
+  --edu-grad-pink-t: #3A2422; --edu-grad-pink-b: #2E211F;
+  --edu-grad-blue-t: #1D2A45; --edu-grad-blue-b: #1A2334;
+}
+
+/* 页面渐变：strong 用于二级页/详情/空态 */
 @mixin eduPageGradientStrong {
-  background: linear-gradient(180deg, #FFFFFF 0%, $edu-bg 100%);
+  background: linear-gradient(180deg, var(--edu-grad-strong-top) 0%, var(--edu-bg) 100%);
 }
 /* 页面渐变：weak 保留兼容历史长列表页 */
 @mixin eduPageGradientWeak {
   background: linear-gradient(180deg,
-    #F8F0ED 0%, #FFFBF2 10%, #F7F9FC 28%, #F7F9FC 100%);
+    var(--edu-grad-weak-a) 0%, var(--edu-grad-weak-b) 10%, var(--edu-bg) 28%, var(--edu-bg) 100%);
 }
-/* 配色方案 §五：三个 Tab 主题渐变（渐变顶部 → 渐变底部） */
+/* 配色方案 §五：三个 Tab 主题渐变 */
 @mixin eduPageGradientHome {
-  background: linear-gradient(180deg, #F5F7FF 0%, #E8ECF8 100%);
+  background: linear-gradient(180deg, var(--edu-grad-home-t) 0%, var(--edu-grad-home-b) 100%);
 }
 @mixin eduPageGradientCommunity {
-  background: linear-gradient(180deg, #FFF8F6 0%, #FBE9E5 100%);
+  background: linear-gradient(180deg, var(--edu-grad-community-t) 0%, var(--edu-grad-community-b) 100%);
 }
 @mixin eduPageGradientProfile {
-  background: linear-gradient(180deg, #FFFBF2 0%, #F8F0DD 100%);
+  background: linear-gradient(180deg, var(--edu-grad-profile-t) 0%, var(--edu-grad-profile-b) 100%);
 }
 /* 卡片/胶囊轻渐变（暖白，融入奶油底） */
 @mixin eduSurfaceWash {
-  background: linear-gradient(180deg, #FFFCF7 0%, #FEF8F4 100%);
+  background: linear-gradient(180deg, var(--edu-grad-wash-t) 0%, var(--edu-grad-wash-b) 100%);
 }
 /* 选中态轻渐变 */
 @mixin eduSurfaceWashSelected {
-  background: linear-gradient(180deg, rgba(220,232,255,0.7) 0%, #FFFFFF 100%);
+  background: linear-gradient(180deg, var(--edu-grad-sel-t) 0%, var(--edu-grad-sel-b) 100%);
 }
-/* 品牌主渐变 */
+/* 品牌主渐变（深浅通用，不随主题） */
 @mixin eduBrandGradient {
   background: linear-gradient(135deg, #5B9BFF 0%, #3677EF 100%);
 }
 /* 功能区块浅渐变 */
-@mixin eduWarmYellowGradient { background: linear-gradient(135deg, #FFF8E8 0%, #FFFDF8 100%); }
-@mixin eduSoftTealGradient   { background: linear-gradient(135deg, #DCF2F5 0%, #F4FBFC 100%); }
-@mixin eduSoftPinkGradient   { background: linear-gradient(135deg, #FDE7E3 0%, #FFF7F5 100%); }
-@mixin eduSoftBlueGradient   { background: linear-gradient(135deg, #E3ECFD 0%, #F6F9FF 100%); }
+@mixin eduWarmYellowGradient { background: linear-gradient(135deg, var(--edu-grad-warm-t) 0%, var(--edu-grad-warm-b) 100%); }
+@mixin eduSoftTealGradient   { background: linear-gradient(135deg, var(--edu-grad-teal-t) 0%, var(--edu-grad-teal-b) 100%); }
+@mixin eduSoftPinkGradient   { background: linear-gradient(135deg, var(--edu-grad-pink-t) 0%, var(--edu-grad-pink-b) 100%); }
+@mixin eduSoftBlueGradient   { background: linear-gradient(135deg, var(--edu-grad-blue-t) 0%, var(--edu-grad-blue-b) 100%); }
 
 /* 柔光圆 GlowOrb（径向多段模拟，禁模糊） */
 @mixin eduGlowOrb($size) {

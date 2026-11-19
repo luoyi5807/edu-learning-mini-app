@@ -1,5 +1,5 @@
 <template>
-  <view class="record-page">
+  <view class="record-page" :class="themeClass">
     <!-- 固定顶部栏：返回 + 标题 -->
     <view class="nav-bar" :class="{ 'nav-bar-opaque': navBarOpaque }" :style="{ paddingTop: statusBarHeight + 'px' }">
       <view class="nav-bar-inner" :style="{ height: navContentHeight + 'px' }">
@@ -110,6 +110,11 @@ import { ref, reactive, computed } from 'vue'
 import { onLoad, onPageScroll } from '@dcloudio/uni-app'
 import { rewardOf } from '@/composables/pointsRule'
 import { getSignCalendarApi } from '@/api/user'
+import { getCheckinRecordsApi } from '@/api/checkin'
+import { getPointsAccountApi } from '@/api/points'
+import { useTheme } from '@/composables/useTheme'
+
+const { themeClass } = useTheme()
 
 /* ===================================================================
  * 日期处理约定（防 off-by-one）：
@@ -326,7 +331,7 @@ onLoad(() => {
   background: transparent;
   transition: background-color 0.3s ease, box-shadow 0.3s ease;
 }
-.nav-bar-opaque { background: #FFFFFF; box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.06); }
+.nav-bar-opaque { background: var(--edu-surface); box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.06); }
 .nav-bar-inner { display: flex; align-items: center; padding-left: 16rpx; }
 .nav-back { width: 72rpx; height: 72rpx; display: flex; align-items: center; justify-content: center; }
 .back-icon { font-size: 44rpx; color: $edu-text-primary; }

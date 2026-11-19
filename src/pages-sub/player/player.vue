@@ -3,13 +3,14 @@
     <video
         v-if="playUrl"
         id="course-video"
+        :key="currentLessonId"
         class="player-video"
         :src="playUrl"
         :autoplay="true"
         :show-fullscreen-btn="true"
         :enable-play-gesture="true"
         :playback-rate="playbackRate"
-        initial-time="0"
+        :initial-time="initialTime"
         @timeupdate="onTimeUpdate"
         @ended="onEnded"
     />
@@ -61,6 +62,8 @@ import { onLoad } from '@dcloudio/uni-app'
 import LoadingState from '@/components/LoadingState.vue'
 import ErrorState from '@/components/ErrorState.vue'
 import { getCourseDetailApi, formatDuration } from '@/api/course'
+import { reportStudyApi } from '@/api/study'
+import { reportHistoryApi, getHistoryProgressApi } from '@/api/interaction'
 import type { CourseDetailDto, LessonDto } from '@/types/course'
 
 const statusBarHeight = ref<number>(0)
@@ -78,6 +81,8 @@ const course = ref<CourseDetailDto | null>(null)
 const playUrl = ref<string>('')
 const state = ref<'loading' | 'error' | 'ready'>('loading')
 const showCatalog = ref<boolean>(false)
+const initialTime = ref<number>(0)
+let explicitLesson = false
 
 const speeds = [1, 1.25, 1.5, 2, 0.75]
 const speedIndex = ref<number>(0)
@@ -95,10 +100,28 @@ async function loadCourse() {
   try {
     course.value = await getCourseDetailApi(courseId.value)
     if (!currentLessonId.value && allLessons.value.length) currentLessonId.value = allLessons.value[0].lessonId
+    await applyResume()
     applyPlayUrl()
   } catch (e) {
     state.value = 'error'
   }
+}
+
+/** 断点续播：查 /history/progress；外部进入（未指定小节）回到上次小节，位置匹配则从断点起播 */
+async function applyResume() {
+  if (!courseId.value) return
+  try {
+    const p = await getHistoryProgressApi('course', courseId.value)
+    if (!p.found) return
+    if (!explicitLesson && p.videoId && allLessons.value.some((l) => l.lessonId === p.videoId)) {
+      currentLessonId.value = p.videoId
+    }
+    const sameLesson = !p.videoId || p.videoId === currentLessonId.value
+    const dur = currentLesson.value?.duration || p.duration || 0
+    if (sameLesson && p.position && p.position > 2 && (!dur || p.position < dur - 5)) {
+      initialTime.value = Math.floor(p.position)
+    }
+  } catch (e) { /* 查断点失败不影响正常播放 */ }
 }
 
 /** 播放地址来自详情返回的视频直链（后端无独立播放凭证接口） */
@@ -111,10 +134,18 @@ function applyPlayUrl() {
 function switchLesson(ls: LessonDto) {
   currentLessonId.value = ls.lessonId
   showCatalog.value = false
+  initialTime.value = 0
+  lastCurrentTime = 0
+  lastReportTs = 0
   applyPlayUrl()
 }
 
 function onEnded() {
+  const vid = currentLessonId.value
+  if (vid) {
+    reportStudyApi({ targetType: 'courseVideo', videoId: vid, seconds: 5, finished: 1 }).catch(() => {})
+    reportHistoryApi({ targetType: 'course', targetId: courseId.value, videoId: vid, position: currentLesson.value?.duration || 0, duration: currentLesson.value?.duration }).catch(() => {})
+  }
   const idx = allLessons.value.findIndex((l) => l.lessonId === currentLessonId.value)
   if (idx >= 0 && idx < allLessons.value.length - 1) {
     uni.showToast({ title: '即将播放下一节', icon: 'none' })
@@ -122,12 +153,22 @@ function onEnded() {
   }
 }
 
-let lastReport = 0
+let lastReportTs = 0
+let lastCurrentTime = 0
+
 function onTimeUpdate(e: any) {
   const now = Date.now()
-  if (now - lastReport < 15000) return   // 心跳：约 15s 上报一次进度
-  lastReport = now
-  // POST courses/progress/sync { courseId, lessonId, progressSeconds:e.detail.currentTime }（后端待接入）
+  if (now - lastReportTs < 15000) return   // 心跳：约 15s 上报一次
+  lastReportTs = now
+  const cur = Math.floor((e && e.detail && e.detail.currentTime) || 0)
+  let delta = cur - lastCurrentTime
+  lastCurrentTime = cur
+  if (delta <= 0) delta = 1     // seek / 倍速抖动兜底，至少计 1 秒
+  if (delta > 30) delta = 30    // 单次最多 30 秒，防拖动跳秒刷分
+  const vid = currentLessonId.value
+  if (!vid) return
+  reportStudyApi({ targetType: 'courseVideo', videoId: vid, seconds: delta }).catch(() => {})
+  reportHistoryApi({ targetType: 'course', targetId: courseId.value, videoId: vid, position: cur, duration: currentLesson.value?.duration }).catch(() => {})
 }
 
 function cycleSpeed() {
@@ -146,7 +187,9 @@ function goBack() {
 
 onLoad((query) => {
   courseId.value = Number((query && query.courseId) || 0)
-  currentLessonId.value = Number((query && query.lessonId) || 0)
+  const lessonParam = Number((query && query.lessonId) || 0)
+  explicitLesson = lessonParam > 0
+  currentLessonId.value = lessonParam
   loadCourse()
 })
 </script>

@@ -175,6 +175,7 @@ const menuItems: MenuItem[] = [
   { key: 'favorites', label: '我的收藏', icon: '⭐', color: 'yellow' },
   { key: 'likes', label: '我的点赞', icon: '❤️', color: 'pink' },
   { key: 'notes', label: '笔记本', icon: '📖', color: 'purple' },
+  { key: 'articles', label: '我的发布', icon: '📝', color: 'blue' },
   { key: 'settings', label: '设置', icon: '⚙️', color: 'gray' },
   { key: 'logout', label: '退出登录', icon: '🚪', color: 'gray' }
 ]

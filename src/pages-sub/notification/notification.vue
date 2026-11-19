@@ -1,6 +1,6 @@
 <!-- src/pages-sub/notification/notification.vue -->
 <template>
-  <view class="notice-page">
+  <view class="notice-page" :class="themeClass">
     <!-- 固定顶部栏：返回 + 标题 + 全部已读 -->
     <view class="nav-bar" :class="{ 'nav-bar-opaque': navBarOpaque }" :style="{ paddingTop: statusBarHeight + 'px' }">
       <view class="nav-bar-inner" :style="{ height: navContentHeight + 'px' }">
@@ -62,9 +62,12 @@ import {
   NOTICE_TABS,
   type NotificationDto
 } from '@/api/notification'
+import { locateCommentApi } from '@/api/comment'
 import { useNotification } from '@/composables/useNotification'
+import { useTheme } from '@/composables/useTheme'
 
 const { refreshUnread } = useNotification()
+const { themeClass } = useTheme()
 
 /* ===== 顶部栏高度（含状态栏 + 胶囊区） ===== */
 const statusBarHeight = ref<number>(0)
@@ -134,9 +137,30 @@ async function handleOpen(n: NotificationDto) {
     if (n.actorUserId) uni.navigateTo({ url: `/pages-sub/mine/blog-home?userId=${n.actorUserId}` })
     return
   }
-  // 点赞 / 评论 / 收藏：跳对应文章
+  // 评论/回复且携带 commentId：先调 locate 拿真实目标与页码，精准跳到那条评论
+  // （后端 commentId 挂在「新评论」行上，历史通知为 null 走下面的通用跳转）
+  if ((n.type === 3 || n.type === 5) && n.commentId) {
+    try {
+      const loc = await locateCommentApi(n.commentId)
+      if (loc.deleted) uni.showToast({ title: '该评论已被删除', icon: 'none' })
+      if (!loc.deleted && loc.targetType === 1 && loc.targetId) {
+        uni.navigateTo({ url: `/pages-sub/article/detail?articleId=${loc.targetId}&locateComment=${n.commentId}` })
+        return
+      }
+      if (!loc.deleted && loc.targetType === 3 && loc.targetId) {
+        // 短视频评论面板在首页视频 Tab 内：reLaunch 过去并由 index 派发定位事件
+        uni.reLaunch({ url: `/pages/index/index?tab=video&locateComment=${n.commentId}` })
+        return
+      }
+    } catch (e) {
+      // 定位失败（评论已删且无 target 等）：落回通用跳转
+    }
+  }
+  // 点赞 / 收藏 / 无 commentId 的评论：跳对应内容
   if (n.targetType === 1 && n.targetId) {
     uni.navigateTo({ url: `/pages-sub/article/detail?articleId=${n.targetId}` })
+  } else if (n.targetType === 3) {
+    uni.reLaunch({ url: '/pages/index/index?tab=video' })
   }
 }
 
@@ -177,7 +201,7 @@ onShow(() => { loadUnreadBadges() })
   background: transparent;
   transition: background-color 0.3s ease, box-shadow 0.3s ease;
 }
-.nav-bar-opaque { background: #FFFFFF; box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.06); }
+.nav-bar-opaque { background: var(--edu-surface); box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.06); }
 .nav-bar-inner { display: flex; align-items: center; padding-left: 16rpx; }
 .nav-back { width: 72rpx; height: 72rpx; display: flex; align-items: center; justify-content: center; }
 .back-icon { font-size: 44rpx; color: $edu-text-primary; }

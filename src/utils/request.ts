@@ -44,14 +44,30 @@ interface RequestOptions {
     auth?: boolean
     /** 业务/HTTP 错误是否自动 toast，默认 true */
     showError?: boolean
+    /** 401 时不弹提示、不跳登录页（观看历史上报/查断点这类后台尽力型请求用），默认 false */
+    silentAuth?: boolean
 }
 
 function toLogin() {
     uni.reLaunch({ url: '/pages-sub/auth/login' })
 }
 
+/** GET 查询参数里 undefined/null/'' 会被拼成 "undefined" 等字符串导致后端参数绑定 500，发送前统一剔除 */
+function pruneEmpty(data: any): any {
+    if (!data || typeof data !== 'object' || Array.isArray(data)) return data
+    const out: Record<string, any> = {}
+    Object.keys(data).forEach((k) => {
+        const v = data[k]
+        if (v !== undefined && v !== null && v !== '') out[k] = v
+    })
+    return out
+}
+
 export function request<T = any>(opts: RequestOptions): Promise<ApiResult<T>> {
-    const { url, method = 'GET', data, header = {}, auth = true, showError = true } = opts
+    const { url, method = 'GET', data, header = {}, auth = true, showError = true, silentAuth = false } = opts
+    const sendData = method === 'GET' ? pruneEmpty(data) : data
+    // 调用方传的多为 /api/v1/xxx 相对路径，统一在此拼 BASE_URL；已是完整 http(s) 地址则原样
+    const fullUrl = /^https?:\/\//i.test(url) ? url : BASE_URL + (url.startsWith('/') ? url : '/' + url)
 
     return new Promise<ApiResult<T>>((resolve, reject) => {
         const headers: Record<string, string> = { 'Content-Type': 'application/json', ...header }
@@ -64,48 +80,53 @@ export function request<T = any>(opts: RequestOptions): Promise<ApiResult<T>> {
         }
 
         uni.request({
-            url: BASE_URL + url,
+            url: fullUrl,
             method: method as any,
-            data,
-            header: headers,
+            data: sendData,
             timeout: 15000,
-            success: (res) => {
+            header: headers,
+            success: (res: any) => {
+                const body: any = res
                 // HTTP 401：Token 缺失/失效（后端无刷新机制），清理本地并跳登录重登
-                if (res.statusCode === 401) {
+                if (body.statusCode === 401) {
                     clearToken()
-                    if (showError) uni.showToast({ title: '登录已过期，请重新登录', icon: 'none' })
-                    toLogin()
+                    if (!silentAuth) {
+                        if (showError) uni.showToast({ title: '登录已过期，请重新登录', icon: 'none' })
+                        toLogin()
+                    }
                     reject(new Error('HTTP 401'))
                     return
                 }
-                if (res.statusCode !== 200) {
-                    if (showError) uni.showToast({ title: `请求失败(${res.statusCode})`, icon: 'none' })
-                    reject(new Error('HTTP ' + res.statusCode))
+                if (body.statusCode !== 200) {
+                    if (showError) uni.showToast({ title: `请求失败(${body.statusCode})`, icon: 'none' })
+                    reject(new Error('HTTP ' + body.statusCode))
                     return
                 }
 
-                const body = res.data as ApiResult<T>
+                const r = body.data as ApiResult<T>
                 // 业务层：兼容契约 code=0 与 RuoYi code=200，其余视为失败
-                if (body && typeof body.code !== 'undefined' && !isSuccessCode(body.code)) {
-                    if (body.code === 401) {
+                if (r && typeof r.code !== 'undefined' && !isSuccessCode(r.code)) {
+                    if (r.code === 401) {
                         clearToken()
-                        if (showError) uni.showToast({ title: body.msg || body.message || '登录已过期', icon: 'none' })
-                        toLogin()
+                        if (!silentAuth) {
+                            if (showError) uni.showToast({ title: r.msg || r.message || '登录已过期', icon: 'none' })
+                            toLogin()
+                        }
                     } else if (showError) {
-                        uni.showToast({ title: body.msg || body.message || '操作失败', icon: 'none' })
+                        uni.showToast({ title: r.msg || r.message || '操作失败', icon: 'none' })
                     }
-                    reject(body)
+                    reject(r)
                     return
                 }
                 // 归一化：契约用 message、RuoYi 用 msg，补齐双字段，页面读取任一个都可用
-                if (body) {
-                    if (typeof body.message === 'undefined' && typeof body.msg !== 'undefined') body.message = body.msg
-                    if (typeof body.msg === 'undefined' && typeof body.message !== 'undefined') body.msg = body.message
+                if (r) {
+                    if (typeof r.message === 'undefined' && typeof r.msg !== 'undefined') r.message = r.msg
+                    if (typeof r.msg === 'undefined' && typeof r.message !== 'undefined') r.msg = r.message
                 }
-                resolve(body)
+                resolve(r)
             },
-            fail: (err) => {
-                if (showError) uni.showToast({ title: '网络异常，请确认后端服务已启动', icon: 'none' })
+            fail: (err: any) => {
+                if (showError) uni.showToast({ title: '网络请求失败', icon: 'none' })
                 reject(err)
             }
         })

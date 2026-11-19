@@ -1,5 +1,5 @@
 <template>
-  <view class="publish-page">
+  <view class="publish-page" :class="themeClass">
     <view class="nav-bar" :style="{ paddingTop: statusBarHeight + 'px' }">
       <view class="nav-bar-inner" :style="{ height: navContentHeight + 'px' }">
         <view class="nav-back" @tap="goBack"><text class="back-icon">←</text></view>
@@ -38,46 +38,31 @@
         </view>
       </scroll-view>
 
-      <!-- 封面（选填） -->
-      <text class="section-label">封面（选填）</text>
-      <view class="cover-row">
-        <view class="cover-preview" @tap="chooseCover">
-          <image v-if="form.coverUrl" class="cover-preview-img" :src="form.coverUrl" mode="aspectFill" />
-        </view>
-        <view class="cover-actions">
-          <view class="cover-pick-btn" @tap="chooseCover"><text class="cover-pick-text">从相册选择</text></view>
-          <input class="cover-link-input" v-model="coverLinkDraft" placeholder="或粘贴图片直链" placeholder-class="ph" @blur="applyCoverLink" />
-        </view>
-      </view>
-      <text class="cover-hint">上传走 POST /api/v1/files/upload（scene=article_cover），本地已自动压到长边 1600px / 质量 85</text>
-
-      <!-- 标签 -->
+      <!-- 标签（对齐安卓：单行横滑） -->
       <text class="section-label">标签（最多选 {{ maxTags }} 个）</text>
-      <view class="chip-row">
-        <view
-            v-for="t in tagPool"
-            :key="t.tagId"
-            class="choice-chip"
-            :class="{ 'choice-chip-active': isTagSelected(t) }"
-            @tap="toggleTag(t)"
-        >
-          <text class="choice-chip-text" :class="{ 'choice-chip-text-active': isTagSelected(t) }">#{{ t.tagName }}</text>
+      <scroll-view class="chip-scroll" scroll-x :show-scrollbar="false">
+        <view class="chip-row">
+          <view
+              v-for="t in tagPool"
+              :key="t.tagId"
+              class="choice-chip"
+              :class="{ 'choice-chip-active': isTagSelected(t) }"
+              @tap="toggleTag(t)"
+          >
+            <text class="choice-chip-text" :class="{ 'choice-chip-text-active': isTagSelected(t) }">#{{ t.tagName }}</text>
+          </view>
         </view>
-      </view>
-      <view class="tag-input-row">
-        <input class="tag-input" v-model="tagDraft" placeholder="自定义标签，回车添加" placeholder-class="ph" confirm-type="done" @confirm="addTag" />
-        <text class="tag-add" @tap="addTag">添加</text>
-      </view>
-      <view class="chip-row" v-if="customTags.length">
-        <view class="tag-chip" v-for="(t, i) in customTags" :key="t" @tap="removeCustomTag(i)">
-          <text class="tag-chip-text">#{{ t }}</text>
-          <text class="tag-chip-x">×</text>
-        </view>
-      </view>
+      </scroll-view>
 
       <!-- 正文 -->
       <text class="section-label">正文</text>
       <view class="field-card">
+        <view class="content-toolbar">
+          <view class="toolbar-btn" :class="{ 'toolbar-btn-disabled': inserting }" @tap="insertImage">
+            <text class="toolbar-btn-text">{{ inserting ? '上传中…' : '🖼 插入图片' }}</text>
+          </view>
+          <text class="toolbar-hint">图片上传后插入正文，暂不支持视频</text>
+        </view>
         <view class="content-head">
           <text class="content-icon">✏️</text>
           <textarea class="field-textarea-content" v-model="form.content" placeholder="在这里写正文，空行表示分段" placeholder-class="ph" :maxlength="5000" auto-height />
@@ -101,7 +86,11 @@ import { ref, reactive, computed } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import { publishArticleApi, updateArticleApi, getEditableArticleApi, getArticleTagsApi } from '@/api/article'
 import { getArticleCategoryTreeApi, type CategoryNode } from '@/api/category'
+import { uploadAvatarApi } from '@/api/user'
+import { useTheme } from '@/composables/useTheme'
 import type { ArticleTag } from '@/types/article'
+
+const { themeClass } = useTheme()
 
 const statusBarHeight = ref<number>(0)
 const navContentHeight = ref<number>(44)
@@ -119,9 +108,7 @@ const maxTags = 5
 
 const categories = ref<CategoryNode[]>([])
 const tagPool = ref<ArticleTag[]>([])
-const tagDraft = ref<string>('')
-const coverLinkDraft = ref<string>('')
-const customTags = ref<string[]>([])
+const inserting = ref<boolean>(false)
 
 const form = reactive({
   title: '',
@@ -150,35 +137,35 @@ function toggleTag(t: ArticleTag) {
     form.tagIds.splice(i, 1)
     form.selectedTags = form.selectedTags.filter((x) => x.tagId !== t.tagId)
   } else {
-    if (form.tagIds.length + customTags.value.length >= maxTags) { uni.showToast({ title: `最多选 ${maxTags} 个标签`, icon: 'none' }); return }
+    if (form.tagIds.length >= maxTags) { uni.showToast({ title: `最多选 ${maxTags} 个标签`, icon: 'none' }); return }
     form.tagIds.push(t.tagId)
     form.selectedTags.push(t)
   }
 }
 
-function addTag() {
-  const t = tagDraft.value.trim().replace(/^#/, '')
-  if (!t) return
-  if (form.tagIds.length + customTags.value.length >= maxTags) { uni.showToast({ title: `最多选 ${maxTags} 个标签`, icon: 'none' }); return }
-  const hit = tagPool.value.find((x) => x.tagName === t)
-  if (hit) {
-    if (!isTagSelected(hit)) toggleTag(hit)
-  } else if (customTags.value.indexOf(t) < 0) {
-    customTags.value.push(t)
-  }
-  tagDraft.value = ''
-}
-function removeCustomTag(i: number) { customTags.value.splice(i, 1) }
-
-function chooseCover() {
+/** 正文插图：复用 POST /api/v1/upload（multipart file，图片≤5MB），成功后以 Markdown 图片语法追加到正文，详情页 rich-text 可渲染 */
+function insertImage() {
+  if (inserting.value) return
   uni.chooseImage({
-    count: 1, sizeType: ['compressed'], sourceType: ['album'],
-    success: (res: any) => { form.coverUrl = res.tempFilePaths[0] }
+    count: 3, sizeType: ['compressed'], sourceType: ['album'],
+    success: async (res: any) => {
+      inserting.value = true
+      try {
+        for (const p of res.tempFilePaths as string[]) {
+          const url = await uploadAvatarApi(p)
+          if (url) {
+            const sep = (!form.content || form.content.endsWith('\n')) ? '' : '\n\n'
+            form.content += sep + '![图片](' + url + ')\n'
+          }
+        }
+        uni.showToast({ title: '已插入图片', icon: 'success' })
+      } catch (e: any) {
+        uni.showToast({ title: (e && e.msg) || '图片上传失败', icon: 'none' })
+      } finally {
+        inserting.value = false
+      }
+    }
   })
-}
-function applyCoverLink() {
-  const link = coverLinkDraft.value.trim()
-  if (link) form.coverUrl = link
 }
 
 async function handleSave(publish: number) {
@@ -232,7 +219,6 @@ onLoad(async (query) => {
     if (a) {
       form.title = a.title
       form.summary = a.summary || ''
-      form.coverUrl = a.coverUrl || ''
       form.categoryName = a.categoryName || ''
     }
   }
@@ -244,7 +230,7 @@ onLoad(async (query) => {
   height: 100vh; display: flex; flex-direction: column; box-sizing: border-box;
   @include eduPageGradientStrong;
 }
-.nav-bar { position: fixed; top: 0; left: 0; right: 0; z-index: 99; background: rgba(255, 255, 255, 0.9); }
+.nav-bar { position: fixed; top: 0; left: 0; right: 0; z-index: 99; background: var(--edu-surface); }
 .nav-bar-inner { display: flex; align-items: center; padding-left: 16rpx; padding-right: 24rpx; }
 .nav-back { width: 72rpx; height: 72rpx; display: flex; align-items: center; justify-content: center; }
 .back-icon { font-size: 44rpx; color: $edu-text-primary; }
@@ -256,7 +242,7 @@ onLoad(async (query) => {
 
 .section-label { display: block; font-size: 32rpx; font-weight: 700; color: $edu-text-primary; margin: 28rpx 0 16rpx; }
 
-.field-card { border-radius: 24rpx; background-color: rgba(255, 255, 255, 0.6); padding: 24rpx 28rpx; box-sizing: border-box; }
+.field-card { border-radius: 24rpx; background-color: var(--edu-surface); padding: 24rpx 28rpx; box-sizing: border-box; }
 .field-input { width: 100%; height: 64rpx; font-size: 32rpx; color: $edu-text-primary; }
 .field-textarea-summary { width: 100%; min-height: 72rpx; font-size: 30rpx; line-height: 1.6; color: $edu-text-primary; }
 .ph { color: $edu-text-hint; font-size: 28rpx; }
@@ -264,37 +250,19 @@ onLoad(async (query) => {
 .chip-scroll { width: 100%; white-space: nowrap; }
 .chip-row { display: flex; flex-wrap: wrap; }
 .choice-chip {
-  padding: 16rpx 32rpx; border-radius: 999rpx; background-color: rgba(255, 255, 255, 0.75);
+  padding: 16rpx 32rpx; border-radius: 999rpx; background-color: var(--edu-surface);
   border: 2rpx solid transparent; margin: 0 16rpx 16rpx 0; flex-shrink: 0;
 }
 .choice-chip-active { background-color: $edu-primary-container; border-color: $edu-primary; }
 .choice-chip-text { font-size: 28rpx; color: $edu-text-secondary; }
 .choice-chip-text-active { color: $edu-primary; font-weight: 600; }
 
-.cover-row { display: flex; align-items: flex-start; }
-.cover-preview {
-  width: 180rpx; height: 180rpx; border-radius: 20rpx; background-color: rgba(255, 255, 255, 0.75);
-  overflow: hidden; margin-right: 24rpx; flex-shrink: 0;
-}
-.cover-preview-img { width: 100%; height: 100%; }
-.cover-actions { flex: 1; display: flex; flex-direction: column; }
-.cover-pick-btn {
-  height: 84rpx; border-radius: 999rpx; background-color: rgba(255, 255, 255, 0.75);
-  display: flex; align-items: center; justify-content: center;
-}
-.cover-pick-text { font-size: 30rpx; color: $edu-text-primary; }
-.cover-link-input {
-  margin-top: 16rpx; height: 72rpx; border-radius: 20rpx; background-color: rgba(255, 255, 255, 0.6);
-  padding: 0 24rpx; font-size: 28rpx; color: $edu-text-primary; box-sizing: border-box;
-}
-.cover-hint { display: block; font-size: 24rpx; color: $edu-text-hint; line-height: 1.6; margin-top: 16rpx; }
-
-.tag-input-row { display: flex; align-items: center; margin-top: 4rpx; }
-.tag-input { flex: 1; height: 80rpx; border-radius: 24rpx; background-color: rgba(255, 255, 255, 0.6); padding: 0 24rpx; font-size: 28rpx; color: $edu-text-primary; box-sizing: border-box; }
-.tag-add { font-size: 28rpx; color: $edu-primary; padding: 0 24rpx; font-weight: 600; }
-.tag-chip { display: flex; align-items: center; background-color: $edu-primary-container; border-radius: 999rpx; padding: 16rpx 24rpx; margin: 0 16rpx 16rpx 0; }
-.tag-chip-text { font-size: 26rpx; color: #0C2C6B; }
-.tag-chip-x { font-size: 28rpx; color: #0C2C6B; margin-left: 8rpx; }
+/* 正文工具栏 */
+.content-toolbar { display: flex; align-items: center; margin-bottom: 20rpx; }
+.toolbar-btn { height: 64rpx; padding: 0 28rpx; border-radius: 999rpx; background-color: $edu-primary-container; display: flex; align-items: center; }
+.toolbar-btn-text { font-size: 26rpx; font-weight: 600; color: $edu-primary; }
+.toolbar-btn-disabled { opacity: 0.5; }
+.toolbar-hint { font-size: 22rpx; color: $edu-text-hint; margin-left: 20rpx; }
 
 .content-head { display: flex; align-items: flex-start; }
 .content-icon { font-size: 30rpx; margin-right: 12rpx; margin-top: 8rpx; }

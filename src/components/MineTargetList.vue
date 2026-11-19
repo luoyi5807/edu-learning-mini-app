@@ -34,7 +34,8 @@
             :class="{ 'fav-item-divider': idx < filteredList.length - 1 }"
             @tap="handleItemTap(item)"
         >
-          <view class="fav-cover-wrap">
+          <!-- 文章/帖子无封面概念，整块封面不渲染；视频类空封面才画占位渐变 -->
+          <view class="fav-cover-wrap" v-if="item.targetType !== 1">
             <image v-if="item.cover" class="fav-cover" :src="item.cover" mode="aspectFill" />
             <view v-else class="fav-cover fav-cover-placeholder"></view>
             <view class="progress-track" v-if="showProgress">
@@ -106,6 +107,7 @@ const activeFilter = ref<number>(0)
 
 const filteredList = computed<UserTargetItem[]>(() => {
   if (activeFilter.value === 0) return props.items
+  if (activeFilter.value === 2) return props.items.filter((f) => f.targetType === 2 || f.targetType === 3)
   return props.items.filter((f) => f.targetType === activeFilter.value)
 })
 
@@ -123,12 +125,15 @@ function goBack() {
   }
 }
 
-// 通用跳转规则：targetType==1 文章详情，否则课程详情
+// 跳转：1帖子→文章详情；2课程→播放页（有 videoId 直接定位上次小节）；3短视频→首页视频Tab并定位
 function handleItemTap(item: UserTargetItem) {
   if (item.targetType === 1) {
-    uni.showToast({ title: `文章详情开发中：${item.title}`, icon: 'none' })
-  } else {
-    uni.showToast({ title: `课程详情开发中：${item.title}`, icon: 'none' })
+    uni.navigateTo({ url: `/pages-sub/article/detail?articleId=${item.targetId}` })
+  } else if (item.targetType === 2) {
+    const lesson = item.videoId ? `&lessonId=${item.videoId}` : ''
+    uni.navigateTo({ url: `/pages-sub/player/player?courseId=${item.targetId}${lesson}` })
+  } else if (item.targetType === 3) {
+    uni.reLaunch({ url: `/pages/index/index?tab=video&videoId=${item.targetId}` })
   }
 }
 </script>

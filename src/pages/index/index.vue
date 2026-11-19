@@ -1,5 +1,5 @@
 <template>
-  <view class="app-shell">
+  <view class="app-shell" :class="themeClass">
     <!-- 常驻顶部栏（透明→白，随当前面板滚动） -->
     <view
       class="nav-bar"
@@ -64,13 +64,16 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
-import { onShow } from '@dcloudio/uni-app'
+import { ref, computed, nextTick } from 'vue'
+import { onShow, onLoad } from '@dcloudio/uni-app'
 import HomePanel from '@/components/HomePanel.vue'
 import ProfilePanel from '@/components/ProfilePanel.vue'
 import CommunityPanel from '@/components/CommunityPanel.vue'
 import VideoPanel from '@/components/VideoPanel.vue'
 import { useNotification } from '@/composables/useNotification'
+import { useTheme } from '@/composables/useTheme'
+
+const { themeClass, resolvedDark } = useTheme()
 
 /* ===== 固定栏高度（含状态栏 + 胶囊区） ===== */
 const statusBarHeight = ref<number>(0)
@@ -114,11 +117,17 @@ const scrollTop = ref<number>(0)
 const navBarOpaque = computed<boolean>(() => activeTab.value !== 'video' && scrollTop.value > 40)
 function onScroll(e: any) { scrollTop.value = e.detail.scrollTop }
 
-/* 顶栏透明态底色 = 当前 Tab §五 渐变顶部色，与面板无缝衔接；视频页保持透明 */
-const navTabTop: Record<string, string> = { home: '#F5F7FF', community: '#FFF8F6', profile: '#FFFBF2' }
-const navBgColor = computed<string>(() =>
-  navBarOpaque.value ? '#FFFFFF' : (navTabTop[activeTab.value] || 'transparent')
-)
+/* 顶栏透明态底色 = 当前 Tab §五 渐变顶部色，与面板无缝衔接；视频页保持透明；深色取近似暗值 */
+const navTabTop: Record<string, [string, string]> = {
+  home: ['#F5F7FF', '#1B1E2E'],
+  community: ['#FFF8F6', '#2A1F1E'],
+  profile: ['#FFFBF2', '#2A2416']
+}
+const navBgColor = computed<string>(() => {
+  if (navBarOpaque.value) return resolvedDark.value ? '#1E2536' : '#FFFFFF'
+  const pair = navTabTop[activeTab.value]
+  return pair ? (resolvedDark.value ? pair[1] : pair[0]) : 'transparent'
+})
 
 /* ===== 通知入口：动态未读红点 + 跳转通知页 ===== */
 const { hasUnread, refreshUnread } = useNotification()
@@ -128,6 +137,21 @@ function goVideoSearch() { uni.navigateTo({ url: '/pages-sub/search/search?type=
 // 从通知页返回时刷新未读，红点随真实未读数显隐（非固定）
 onShow(() => { refreshUnread() })
 
+/* ===== 深链入口：/pages/index/index?tab=video[&locateComment=xx][&videoId=xx]（通知/历史精准跳转用） ===== */
+onLoad((query) => {
+  const q = (query || {}) as Record<string, string>
+  const locate = Number(q.locateComment || 0)
+  const videoId = Number(q.videoId || 0)
+  if (q.tab === 'video' || locate || videoId) {
+    activeTab.value = 'video'
+    nextTick(() => {
+      uni.$emit('video:show')
+      // 等 VideoPanel 首次挂载/列表加载完成后再派发定位
+      if (locate) setTimeout(() => uni.$emit('video:locate', locate), 800)
+      if (videoId) setTimeout(() => uni.$emit('video:open', videoId), 800)
+    })
+  }
+})
 </script>
 
 <style lang="scss" scoped>

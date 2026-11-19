@@ -11,7 +11,7 @@
  Target Server Version : 80046 (8.0.46)
  File Encoding         : 65001
 
- Date: 10/11/2026 09:50:56
+ Date: 19/11/2026 09:25:01
 */
 
 SET NAMES utf8mb4;
@@ -302,6 +302,58 @@ CREATE TABLE `gen_table_column`  (
 -- ----------------------------
 
 -- ----------------------------
+-- Table structure for learning_ad_view
+-- ----------------------------
+DROP TABLE IF EXISTS `learning_ad_view`;
+CREATE TABLE `learning_ad_view`  (
+  `id` bigint NOT NULL AUTO_INCREMENT COMMENT '主键',
+  `user_id` bigint NOT NULL COMMENT '用户ID',
+  `ad_id` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '广告唯一标识（广告位/广告ID）',
+  `view_date` date NOT NULL COMMENT '观看日期（东八区）',
+  `seconds` int NOT NULL DEFAULT 0 COMMENT '本次观看秒数',
+  `points` int NOT NULL DEFAULT 0 COMMENT '发放积分',
+  `create_time` datetime NULL DEFAULT NULL COMMENT '创建时间',
+  PRIMARY KEY (`id`) USING BTREE,
+  UNIQUE INDEX `uk_user_ad_date`(`user_id` ASC, `ad_id` ASC, `view_date` ASC) USING BTREE
+) ENGINE = InnoDB AUTO_INCREMENT = 8 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '积分-广告观看去重' ROW_FORMAT = Dynamic;
+
+-- ----------------------------
+-- Records of learning_ad_view
+-- ----------------------------
+INSERT INTO `learning_ad_view` VALUES (4, 121, 'prod-test-ad-1', '2026-11-12', 15, 10, '2026-11-12 14:43:50');
+INSERT INTO `learning_ad_view` VALUES (5, 112, '46D97695-B513-4A1D-9DFD-A55880CCE811', '2026-11-18', 81, 10, '2026-11-18 18:17:32');
+INSERT INTO `learning_ad_view` VALUES (6, 112, 'F4A7C21C-E0B4-4307-81B8-C4748D934096', '2026-11-18', 48, 10, '2026-11-18 21:54:50');
+INSERT INTO `learning_ad_view` VALUES (7, 112, '830E2E4D-9DEA-4277-A551-45C368C559B6', '2026-11-18', 41, 10, '2026-11-18 21:55:58');
+
+-- ----------------------------
+-- Table structure for learning_agreement
+-- ----------------------------
+DROP TABLE IF EXISTS `learning_agreement`;
+CREATE TABLE `learning_agreement`  (
+  `agreement_id` bigint NOT NULL AUTO_INCREMENT COMMENT '协议ID',
+  `agreement_type` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '协议类型（user_agreement=用户协议 privacy_policy=隐私政策 about_us=关于我们）',
+  `title` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '协议标题',
+  `content` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL COMMENT '协议正文（HTML）',
+  `order_num` int NULL DEFAULT 0 COMMENT '显示顺序',
+  `status` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT '0' COMMENT '状态（0正常 1停用）',
+  `del_flag` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT '0' COMMENT '删除标志（0存在 2删除）',
+  `create_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT '' COMMENT '创建者',
+  `create_time` datetime NULL DEFAULT NULL COMMENT '创建时间',
+  `update_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT '' COMMENT '更新者',
+  `update_time` datetime NULL DEFAULT NULL COMMENT '更新时间',
+  `remark` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '备注',
+  PRIMARY KEY (`agreement_id`) USING BTREE,
+  INDEX `idx_agreement_type`(`agreement_type` ASC, `del_flag` ASC, `status` ASC, `order_num` ASC) USING BTREE
+) ENGINE = InnoDB AUTO_INCREMENT = 4 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '学习平台-平台协议（用户协议/隐私政策/关于我们）' ROW_FORMAT = Dynamic;
+
+-- ----------------------------
+-- Records of learning_agreement
+-- ----------------------------
+INSERT INTO `learning_agreement` VALUES (1, 'user_agreement', '用户协议', '<h2>用户协议</h2><p>欢迎使用本学习平台。本协议约定您与平台之间的权利与义务，请仔细阅读。</p><p>（内容由管理员在后台「协议管理」中完善）</p>', 1, '0', '0', 'admin', '2026-11-17 16:14:18', 'admin', '2026-11-18 14:43:39', '系统初始化');
+INSERT INTO `learning_agreement` VALUES (2, 'privacy_policy', '隐私政策', '<h2>隐私政策</h2><p>我们重视您的个人信息保护。本政策说明我们如何收集、使用和保护您的信息。</p><p>（内容由管理员在后台「协议管理」中完善）</p>', 2, '0', '0', 'admin', '2026-11-17 16:14:19', '', NULL, '系统初始化');
+INSERT INTO `learning_agreement` VALUES (3, 'about_us', '关于我们', '<h2>关于我们</h2><p>本学习平台致力于提供课程、社区与短视频学习体验。</p><p>（内容由管理员在后台「协议管理」中完善）</p>', 3, '0', '0', 'admin', '2026-11-17 16:14:19', '', NULL, '系统初始化');
+
+-- ----------------------------
 -- Table structure for learning_api_token
 -- ----------------------------
 DROP TABLE IF EXISTS `learning_api_token`;
@@ -315,7 +367,7 @@ CREATE TABLE `learning_api_token`  (
   PRIMARY KEY (`token_id`) USING BTREE,
   UNIQUE INDEX `uk_learning_api_token`(`token` ASC) USING BTREE,
   INDEX `idx_learning_api_token_user`(`user_id` ASC) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 486 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '学习平台API访问令牌表' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 571 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '学习平台API访问令牌表' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Records of learning_api_token
@@ -323,15 +375,7 @@ CREATE TABLE `learning_api_token`  (
 INSERT INTO `learning_api_token` VALUES (107, '985ffb85c95548a99fd455b315f788ec', 106, '58.16.41.98', '2026-11-14 16:01:43', '2026-10-15 16:01:43');
 INSERT INTO `learning_api_token` VALUES (108, '4d35d9a1837c4b46b4fc12e025b73547', 106, '58.16.41.98', '2026-11-14 16:06:22', '2026-10-15 16:06:22');
 INSERT INTO `learning_api_token` VALUES (109, 'e97abcfa7f744bbf81b5fd51ca09450c', 106, '58.16.41.98', '2026-11-14 17:29:06', '2026-10-15 17:29:06');
-INSERT INTO `learning_api_token` VALUES (110, 'b98248d8a2ac48b8be64ffd802038f10', 112, '220.197.4.211', '2026-11-14 17:37:10', '2026-10-15 17:37:10');
-INSERT INTO `learning_api_token` VALUES (111, 'af6b19476b3d47fe95e409cf7335e999', 112, '220.197.4.211', '2026-11-14 17:38:35', '2026-10-15 17:38:35');
-INSERT INTO `learning_api_token` VALUES (112, '9a3b51d3d1b248c1bddb414074423c4d', 112, '220.197.4.211', '2026-11-14 17:39:24', '2026-10-15 17:39:24');
-INSERT INTO `learning_api_token` VALUES (113, '73ac6d58ffd64ff2b91cfdbcb58577d1', 112, '127.0.0.1', '2026-11-15 14:41:05', '2026-10-16 14:41:05');
-INSERT INTO `learning_api_token` VALUES (115, '34e61e5d711e471c9718acc7db6f5095', 112, '127.0.0.1', '2026-11-15 15:04:54', '2026-10-16 15:04:54');
-INSERT INTO `learning_api_token` VALUES (116, '3dd2197bc3934bc8ac6a5476b57cd32b', 112, '127.0.0.1', '2026-11-15 15:30:56', '2026-10-16 15:30:56');
 INSERT INTO `learning_api_token` VALUES (117, '5e7a1e80b51b427e91c3b0773b4237ae', 114, '127.0.0.1', '2026-11-15 15:52:07', '2026-10-16 15:52:07');
-INSERT INTO `learning_api_token` VALUES (118, '7010503a0b194c8dbe445dffc7c10fe9', 112, '127.0.0.1', '2026-11-15 16:50:31', '2026-10-16 16:50:31');
-INSERT INTO `learning_api_token` VALUES (119, 'a6bf5ba1faf549dda302811161c1948e', 112, '127.0.0.1', '2026-11-15 16:52:37', '2026-10-16 16:52:37');
 INSERT INTO `learning_api_token` VALUES (129, '729b1fbb8e55419ab92d3dd9078fd764', 106, '58.16.41.98', '2026-11-18 11:41:50', '2026-10-19 11:41:50');
 INSERT INTO `learning_api_token` VALUES (138, '89958369598b4843b6a26a6dfe40e057', 112, '127.0.0.1', '2026-11-19 12:51:34', '2026-10-20 12:51:34');
 INSERT INTO `learning_api_token` VALUES (139, '0037477f72674f87a85fd9545b4552f8', 112, '127.0.0.1', '2026-11-19 12:52:41', '2026-10-20 12:52:41');
@@ -609,12 +653,85 @@ INSERT INTO `learning_api_token` VALUES (476, '1175ee4b91ff448cb9405670dc732f1f'
 INSERT INTO `learning_api_token` VALUES (477, '71933b5cf0024d06b4889b6d5239701c', 115, '192.168.88.3', '2026-12-09 09:23:19', '2026-11-09 09:23:19');
 INSERT INTO `learning_api_token` VALUES (478, '1ea390b7d3724c41bf98737eec527f90', 115, '192.168.88.1', '2026-12-09 10:59:39', '2026-11-09 10:59:39');
 INSERT INTO `learning_api_token` VALUES (479, '730ae9a0fbea4c22a1a6f39aae1a3640', 119, '192.168.88.1', '2026-12-09 10:59:40', '2026-11-09 10:59:40');
-INSERT INTO `learning_api_token` VALUES (480, '2bb1dcde74c14e3b9231ec9caa91d7ba', 112, '127.0.0.1', '2026-12-09 11:00:27', '2026-11-09 11:00:27');
 INSERT INTO `learning_api_token` VALUES (481, 'a286abd8db734f408689f6cf73b0282f', 115, '127.0.0.1', '2026-12-09 11:10:37', '2026-11-09 11:10:37');
 INSERT INTO `learning_api_token` VALUES (482, '60759e23e9734feda921e2b995d47195', 115, '127.0.0.1', '2026-12-09 11:10:44', '2026-11-09 11:10:44');
 INSERT INTO `learning_api_token` VALUES (483, '10ac737e3cfe4c898adca87d2fadacc2', 115, '127.0.0.1', '2026-12-09 11:10:55', '2026-11-09 11:10:55');
 INSERT INTO `learning_api_token` VALUES (484, '9575a61107064193956618d66c95b7a1', 111, '127.0.0.1', '2026-12-10 09:39:41', '2026-11-10 09:39:41');
 INSERT INTO `learning_api_token` VALUES (485, '8e01fcab7e604b2db981abd85c98e6fd', 111, '127.0.0.1', '2026-12-10 09:40:07', '2026-11-10 09:40:07');
+INSERT INTO `learning_api_token` VALUES (486, 'f852161f65404f52b6275e87bcb72f88', 111, '127.0.0.1', '2026-12-10 15:51:00', '2026-11-10 15:51:00');
+INSERT INTO `learning_api_token` VALUES (487, 'ae5077e681b1485ca08072a5da37a994', 111, '127.0.0.1', '2026-12-10 15:54:47', '2026-11-10 15:54:47');
+INSERT INTO `learning_api_token` VALUES (489, 'daf8c090099c46bfaf2dc5942ff0b9a4', 118, '127.0.0.1', '2026-12-11 10:30:54', '2026-11-11 10:30:54');
+INSERT INTO `learning_api_token` VALUES (490, '7d642074073a4199929d7fd1ed77c306', 118, '127.0.0.1', '2026-12-11 10:32:25', '2026-11-11 10:32:25');
+INSERT INTO `learning_api_token` VALUES (491, '201fb8d9634e43c5ae72290a5a3f8037', 118, '127.0.0.1', '2026-12-11 10:32:39', '2026-11-11 10:32:39');
+INSERT INTO `learning_api_token` VALUES (492, '4f4b0bfa62414fb89ebc0fd41e1fde4c', 111, '127.0.0.1', '2026-12-11 11:04:04', '2026-11-11 11:04:04');
+INSERT INTO `learning_api_token` VALUES (493, 'e98e5be4cd9e48ffaaf56d79051bd87e', 115, '127.0.0.1', '2026-12-11 14:04:45', '2026-11-11 14:04:45');
+INSERT INTO `learning_api_token` VALUES (494, '39a5355974294ceca0eb32ba1b2203f7', 115, '127.0.0.1', '2026-12-11 14:04:49', '2026-11-11 14:04:49');
+INSERT INTO `learning_api_token` VALUES (495, 'e4ba6a4462fa4764ae910df94271ecc4', 115, '127.0.0.1', '2026-12-11 14:07:18', '2026-11-11 14:07:18');
+INSERT INTO `learning_api_token` VALUES (496, '8676b3edf03e4dd19e26a2a85400ee07', 115, '127.0.0.1', '2026-12-11 14:08:00', '2026-11-11 14:08:00');
+INSERT INTO `learning_api_token` VALUES (497, 'eb08c2af74f449c4b179051079e66cce', 115, '127.0.0.1', '2026-12-11 15:31:40', '2026-11-11 15:31:40');
+INSERT INTO `learning_api_token` VALUES (498, 'c43ef36847d44567a1d342ef4def72f3', 115, '127.0.0.1', '2026-12-11 15:33:09', '2026-11-11 15:33:09');
+INSERT INTO `learning_api_token` VALUES (499, '064d4ad40564433399b5899c7b2fd775', 115, '127.0.0.1', '2026-12-11 15:39:38', '2026-11-11 15:39:38');
+INSERT INTO `learning_api_token` VALUES (500, 'b955362391a5453b9aa21ba7813d90de', 115, '127.0.0.1', '2026-12-11 15:44:31', '2026-11-11 15:44:31');
+INSERT INTO `learning_api_token` VALUES (501, '3dfdd714d7d44bcf9ef919ee334d7c7d', 115, '127.0.0.1', '2026-12-11 15:53:50', '2026-11-11 15:53:50');
+INSERT INTO `learning_api_token` VALUES (502, 'f0bacc2e41364c1e81aa607dbc91f047', 115, '127.0.0.1', '2026-12-11 15:57:32', '2026-11-11 15:57:32');
+INSERT INTO `learning_api_token` VALUES (503, '5f5e4be73a334191aec210624ba7af78', 115, '192.168.101.194', '2026-12-11 17:18:03', '2026-11-11 17:18:03');
+INSERT INTO `learning_api_token` VALUES (504, '15834f3f5ee7456b8906fd58216f4954', 121, '58.16.41.98', '2026-12-12 14:42:30', '2026-11-12 14:42:30');
+INSERT INTO `learning_api_token` VALUES (505, '116f3b8b4fa24d359cb9abe66d2e46e2', 121, '58.16.41.98', '2026-12-12 14:43:16', '2026-11-12 14:43:16');
+INSERT INTO `learning_api_token` VALUES (506, '90fdc108050c4e35bbc4b5e67aa4cbf4', 121, '58.16.41.98', '2026-12-12 14:43:50', '2026-11-12 14:43:50');
+INSERT INTO `learning_api_token` VALUES (507, '4cad2a0ad8684756865a0d873190029a', 121, '58.16.41.98', '2026-12-12 14:44:05', '2026-11-12 14:44:05');
+INSERT INTO `learning_api_token` VALUES (508, 'bfddcd34b46f4eada0e883812f160df8', 111, '127.0.0.1', '2026-12-13 10:59:38', '2026-11-13 10:59:38');
+INSERT INTO `learning_api_token` VALUES (509, 'd07ef1f5c0f841aa867856cb6e805428', 112, '127.0.0.1', '2026-12-13 18:11:59', '2026-11-13 18:11:59');
+INSERT INTO `learning_api_token` VALUES (510, '4fa9d7a966174fba936d8d242959b9d1', 112, '127.0.0.1', '2026-12-13 18:33:00', '2026-11-13 18:33:00');
+INSERT INTO `learning_api_token` VALUES (511, '1d823244a11842a4b475606fba1e5d4c', 122, '127.0.0.1', '2026-12-16 09:06:41', '2026-11-16 09:06:41');
+INSERT INTO `learning_api_token` VALUES (512, '2ce559ab80844dfabc2545f21f2b000b', 122, '127.0.0.1', '2026-12-16 09:06:55', '2026-11-16 09:06:55');
+INSERT INTO `learning_api_token` VALUES (513, '263baa98c3224a6283b9fa6555f66836', 122, '127.0.0.1', '2026-12-16 09:10:23', '2026-11-16 09:10:23');
+INSERT INTO `learning_api_token` VALUES (514, '32b8296a368e425e980142fb00dc6e02', 111, '192.168.101.121', '2026-12-17 09:07:00', '2026-11-17 09:07:00');
+INSERT INTO `learning_api_token` VALUES (516, 'aafc1ea82734491a98b61cb38f41f3eb', 111, '127.0.0.1', '2026-12-17 09:16:24', '2026-11-17 09:16:24');
+INSERT INTO `learning_api_token` VALUES (517, '039a3e287ba24e4eadceea71dd93e149', 111, '127.0.0.1', '2026-12-17 14:18:19', '2026-11-17 14:18:19');
+INSERT INTO `learning_api_token` VALUES (521, 'f52aa416c1874dd7810f1cefc2030560', 112, '127.0.0.1', '2026-12-17 14:56:02', '2026-11-17 14:56:02');
+INSERT INTO `learning_api_token` VALUES (522, 'd698e6f7d5eb40ea9b8a8ee295344629', 125, '127.0.0.1', '2026-12-17 15:07:23', '2026-11-17 15:07:23');
+INSERT INTO `learning_api_token` VALUES (523, '473b04f1fb064f44b4df016c381d0985', 126, '127.0.0.1', '2026-12-17 15:09:41', '2026-11-17 15:09:41');
+INSERT INTO `learning_api_token` VALUES (524, 'e6f005725dd045358b602f73201d8e6a', 125, '127.0.0.1', '2026-12-17 15:10:14', '2026-11-17 15:10:14');
+INSERT INTO `learning_api_token` VALUES (525, '16ca2c1e8fae41b1839ff728190c46d4', 125, '127.0.0.1', '2026-12-17 15:11:08', '2026-11-17 15:11:08');
+INSERT INTO `learning_api_token` VALUES (527, 'c8da20f520204272b30c90961a8104eb', 125, '127.0.0.1', '2026-12-17 15:19:18', '2026-11-17 15:19:18');
+INSERT INTO `learning_api_token` VALUES (528, 'dd4742c850c745df8cb8e1fe5d760cff', 125, '127.0.0.1', '2026-12-17 15:21:41', '2026-11-17 15:21:41');
+INSERT INTO `learning_api_token` VALUES (533, '582ebc49b2ae4ab6ab436301477ef33f', 112, '127.0.0.1', '2026-12-17 15:51:10', '2026-11-17 15:51:10');
+INSERT INTO `learning_api_token` VALUES (534, '90c03c6b8a5a4645b7ebe3702f34aa93', 111, '192.168.101.121', '2026-12-17 16:12:48', '2026-11-17 16:12:48');
+INSERT INTO `learning_api_token` VALUES (535, '6c927f20429845edbfb652fe2c05ac1f', 112, '127.0.0.1', '2026-12-17 16:55:05', '2026-11-17 16:55:05');
+INSERT INTO `learning_api_token` VALUES (536, 'f61df9301806494e9df0c6113bfb3aec', 112, '127.0.0.1', '2026-12-17 16:58:41', '2026-11-17 16:58:41');
+INSERT INTO `learning_api_token` VALUES (537, '62235c76e06a4a7ba48dfe781feb20d0', 115, '127.0.0.1', '2026-12-17 21:09:31', '2026-11-17 21:09:31');
+INSERT INTO `learning_api_token` VALUES (538, 'bf7e04a7f3684545a65316d54f43c910', 115, '127.0.0.1', '2026-12-17 21:09:36', '2026-11-17 21:09:36');
+INSERT INTO `learning_api_token` VALUES (539, '6982b59b77db4b56b107bbf9564d4cdb', 115, '127.0.0.1', '2026-12-17 21:09:37', '2026-11-17 21:09:37');
+INSERT INTO `learning_api_token` VALUES (540, '719e88aa91ae4d2bb70fa8da684f807f', 115, '127.0.0.1', '2026-12-17 21:09:44', '2026-11-17 21:09:44');
+INSERT INTO `learning_api_token` VALUES (541, 'dc571cb3a5834b1594911200069f062f', 115, '127.0.0.1', '2026-12-18 10:24:37', '2026-11-18 10:24:37');
+INSERT INTO `learning_api_token` VALUES (542, '69f984edf83447fd95007416ed25226d', 115, '127.0.0.1', '2026-12-18 10:24:50', '2026-11-18 10:24:50');
+INSERT INTO `learning_api_token` VALUES (543, 'b679b0730fe841878710d9d11e3edf84', 118, '127.0.0.1', '2026-12-18 11:13:57', '2026-11-18 11:13:57');
+INSERT INTO `learning_api_token` VALUES (544, '453ceedcd8d3469bbba7f2a9b78139b0', 111, '127.0.0.1', '2026-12-18 11:13:59', '2026-11-18 11:13:59');
+INSERT INTO `learning_api_token` VALUES (545, 'f971af60508d4d6da0d34303a7b09bf6', 118, '127.0.0.1', '2026-12-18 11:14:51', '2026-11-18 11:14:51');
+INSERT INTO `learning_api_token` VALUES (546, '7801c40de20e4dfa98de90dd059dd41a', 111, '127.0.0.1', '2026-12-18 11:14:53', '2026-11-18 11:14:53');
+INSERT INTO `learning_api_token` VALUES (547, '8237e8608ba346dfb82b6171b1aa3594', 111, '127.0.0.1', '2026-12-18 11:15:58', '2026-11-18 11:15:58');
+INSERT INTO `learning_api_token` VALUES (548, '4d9b0f6b4ee144cfbfe457f4c1db7c6b', 122, '58.16.41.98', '2026-12-18 11:37:21', '2026-11-18 11:37:21');
+INSERT INTO `learning_api_token` VALUES (549, '93d4ff3fc76c4cb9848cf78ad894301e', 118, '127.0.0.1', '2026-12-18 11:48:18', '2026-11-18 11:48:18');
+INSERT INTO `learning_api_token` VALUES (550, '7f4169a1a4e448e8a9c38b013bfbc224', 118, '127.0.0.1', '2026-12-18 11:48:30', '2026-11-18 11:48:30');
+INSERT INTO `learning_api_token` VALUES (551, '7ffa10fe011a466bbe13748f53f0912a', 115, '127.0.0.1', '2026-12-18 14:11:04', '2026-11-18 14:11:04');
+INSERT INTO `learning_api_token` VALUES (552, 'b151a2da5988408b97ccc637f27d365b', 112, '127.0.0.1', '2026-12-18 15:17:48', '2026-11-18 15:17:48');
+INSERT INTO `learning_api_token` VALUES (553, '139770b94e6a4900925f86b73654d67b', 112, '127.0.0.1', '2026-12-18 15:17:58', '2026-11-18 15:17:58');
+INSERT INTO `learning_api_token` VALUES (554, 'd255d9a3e90c442c8543633c46dce0a6', 112, '127.0.0.1', '2026-12-18 15:18:08', '2026-11-18 15:18:08');
+INSERT INTO `learning_api_token` VALUES (555, '1a585ac0ad3446ab89b7115f2d4bf33f', 112, '127.0.0.1', '2026-12-18 15:35:56', '2026-11-18 15:35:56');
+INSERT INTO `learning_api_token` VALUES (556, '84fbc78791fd46aca95101b4f6edd429', 112, '127.0.0.1', '2026-12-18 15:53:26', '2026-11-18 15:53:26');
+INSERT INTO `learning_api_token` VALUES (557, 'b553600e756b44748d396bb714b27150', 112, '127.0.0.1', '2026-12-18 15:53:44', '2026-11-18 15:53:44');
+INSERT INTO `learning_api_token` VALUES (558, 'dfe4ed2f4632496ba9b48ce6e9c6863f', 112, '127.0.0.1', '2026-12-18 15:54:02', '2026-11-18 15:54:02');
+INSERT INTO `learning_api_token` VALUES (559, 'b1f4d70597c445c8889401e565beaa7a', 112, '127.0.0.1', '2026-12-18 15:54:17', '2026-11-18 15:54:17');
+INSERT INTO `learning_api_token` VALUES (560, 'fb150fd01a4846328a39d4e0f1d2d4c9', 112, '127.0.0.1', '2026-12-18 15:55:08', '2026-11-18 15:55:08');
+INSERT INTO `learning_api_token` VALUES (561, '14d889393f1b4c4e81f0af4ee166a5c8', 112, '127.0.0.1', '2026-12-18 15:55:21', '2026-11-18 15:55:21');
+INSERT INTO `learning_api_token` VALUES (562, '7d7e36e1d8364168a312f1ec27a296c1', 112, '127.0.0.1', '2026-12-18 15:55:34', '2026-11-18 15:55:34');
+INSERT INTO `learning_api_token` VALUES (563, '181bdd05c5a6463982b7097b92f6c8a8', 112, '220.197.4.230', '2026-12-18 15:59:36', '2026-11-18 15:59:36');
+INSERT INTO `learning_api_token` VALUES (564, 'ec7a34a8a2174435b23cd6373321240b', 128, '114.138.157.27', '2026-12-18 16:09:38', '2026-11-18 16:09:38');
+INSERT INTO `learning_api_token` VALUES (565, 'c59c3946c48f4a769507525dba154f61', 112, '114.139.112.68', '2026-12-18 16:14:16', '2026-11-18 16:14:16');
+INSERT INTO `learning_api_token` VALUES (566, '03695c37cee44e36bfbd6850a372021f', 112, '127.0.0.1', '2026-12-18 16:19:19', '2026-11-18 16:19:19');
+INSERT INTO `learning_api_token` VALUES (567, 'c2ccc13ef45e4766927387ab1dde6fd5', 112, '114.139.112.68', '2026-12-18 16:21:01', '2026-11-18 16:21:01');
+INSERT INTO `learning_api_token` VALUES (569, '284bdb2fdd6d4d2894526d3d19531b6d', 111, '39.144.231.36', '2026-12-18 16:27:18', '2026-11-18 16:27:18');
+INSERT INTO `learning_api_token` VALUES (570, 'dc20e2600e084c7994212747124db3cd', 112, '127.0.0.1', '2026-12-18 16:39:56', '2026-11-18 16:39:56');
 
 -- ----------------------------
 -- Table structure for learning_banner
@@ -706,28 +823,37 @@ CREATE TABLE `learning_checkin`  (
   PRIMARY KEY (`checkin_id`) USING BTREE,
   UNIQUE INDEX `uk_checkin_user_date`(`user_id` ASC, `sign_date` ASC) USING BTREE,
   INDEX `idx_checkin_user_date`(`user_id` ASC, `sign_date` ASC) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 34 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '签到记录' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 63 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '签到记录' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Records of learning_checkin
 -- ----------------------------
-INSERT INTO `learning_checkin` VALUES (17, 112, '2026-10-20', 5, 1, '2026-10-20 15:01:03');
-INSERT INTO `learning_checkin` VALUES (18, 112, '2026-10-27', 5, 1, '2026-10-27 09:34:59');
-INSERT INTO `learning_checkin` VALUES (19, 111, '2026-10-27', 5, 1, '2026-10-27 11:06:16');
-INSERT INTO `learning_checkin` VALUES (20, 118, '2026-10-27', 5, 1, '2026-10-27 17:57:35');
-INSERT INTO `learning_checkin` VALUES (21, 112, '2026-10-28', 8, 2, '2026-10-28 11:11:34');
-INSERT INTO `learning_checkin` VALUES (22, 118, '2026-10-28', 8, 2, '2026-10-28 11:31:43');
-INSERT INTO `learning_checkin` VALUES (23, 115, '2026-10-28', 5, 1, '2026-10-28 19:58:03');
-INSERT INTO `learning_checkin` VALUES (24, 112, '2026-10-29', 10, 3, '2026-10-29 14:33:26');
-INSERT INTO `learning_checkin` VALUES (25, 111, '2026-10-30', 5, 1, '2026-10-30 15:38:54');
-INSERT INTO `learning_checkin` VALUES (26, 112, '2026-11-02', 5, 1, '2026-11-02 09:25:48');
-INSERT INTO `learning_checkin` VALUES (27, 111, '2026-11-02', 5, 1, '2026-11-02 09:43:41');
-INSERT INTO `learning_checkin` VALUES (28, 115, '2026-11-02', 5, 1, '2026-11-02 14:05:51');
-INSERT INTO `learning_checkin` VALUES (29, 111, '2026-11-04', 5, 1, '2026-11-04 14:15:29');
-INSERT INTO `learning_checkin` VALUES (30, 112, '2026-11-06', 5, 1, '2026-11-06 11:07:52');
-INSERT INTO `learning_checkin` VALUES (31, 115, '2026-11-06', 5, 1, '2026-11-06 23:06:27');
-INSERT INTO `learning_checkin` VALUES (32, 112, '2026-11-09', 5, 1, '2026-11-09 11:11:11');
-INSERT INTO `learning_checkin` VALUES (33, 111, '2026-11-09', 5, 1, '2026-11-09 11:13:10');
+INSERT INTO `learning_checkin` VALUES (35, 111, '2026-11-05', 1, 1, '2026-11-05 10:00:00');
+INSERT INTO `learning_checkin` VALUES (36, 111, '2026-11-06', 2, 2, '2026-11-06 10:00:00');
+INSERT INTO `learning_checkin` VALUES (37, 111, '2026-11-07', 3, 3, '2026-11-07 10:00:00');
+INSERT INTO `learning_checkin` VALUES (38, 111, '2026-11-08', 4, 4, '2026-11-08 10:00:00');
+INSERT INTO `learning_checkin` VALUES (39, 111, '2026-11-09', 5, 5, '2026-11-09 10:00:00');
+INSERT INTO `learning_checkin` VALUES (40, 111, '2026-11-10', 6, 6, '2026-11-10 10:00:00');
+INSERT INTO `learning_checkin` VALUES (41, 112, '2026-11-08', 1, 1, '2026-11-08 09:10:00');
+INSERT INTO `learning_checkin` VALUES (42, 112, '2026-11-09', 2, 2, '2026-11-09 09:10:00');
+INSERT INTO `learning_checkin` VALUES (43, 112, '2026-11-10', 3, 3, '2026-11-10 09:10:00');
+INSERT INTO `learning_checkin` VALUES (44, 115, '2026-11-07', 1, 1, '2026-11-07 21:05:00');
+INSERT INTO `learning_checkin` VALUES (45, 115, '2026-11-08', 2, 2, '2026-11-08 21:05:00');
+INSERT INTO `learning_checkin` VALUES (46, 118, '2026-11-07', 1, 1, '2026-11-07 20:00:00');
+INSERT INTO `learning_checkin` VALUES (47, 118, '2026-11-08', 2, 2, '2026-11-08 20:00:00');
+INSERT INTO `learning_checkin` VALUES (49, 111, '2026-11-11', 7, 7, '2026-11-11 11:07:29');
+INSERT INTO `learning_checkin` VALUES (50, 115, '2026-11-11', 5, 1, '2026-11-11 14:22:46');
+INSERT INTO `learning_checkin` VALUES (51, 112, '2026-11-11', 12, 4, '2026-11-11 14:35:35');
+INSERT INTO `learning_checkin` VALUES (52, 112, '2026-11-12', 5, 5, '2026-11-12 10:26:07');
+INSERT INTO `learning_checkin` VALUES (53, 121, '2026-11-12', 1, 1, '2026-11-12 14:43:50');
+INSERT INTO `learning_checkin` VALUES (55, 112, '2026-11-13', 6, 6, '2026-11-13 09:03:21');
+INSERT INTO `learning_checkin` VALUES (56, 112, '2026-11-17', 1, 1, '2026-11-17 15:41:42');
+INSERT INTO `learning_checkin` VALUES (57, 126, '2026-11-17', 1, 1, '2026-11-17 15:52:40');
+INSERT INTO `learning_checkin` VALUES (58, 111, '2026-11-17', 1, 1, '2026-11-17 16:18:18');
+INSERT INTO `learning_checkin` VALUES (59, 112, '2026-11-18', 2, 2, '2026-11-18 11:36:52');
+INSERT INTO `learning_checkin` VALUES (60, 115, '2026-11-18', 1, 1, '2026-11-18 13:59:38');
+INSERT INTO `learning_checkin` VALUES (61, 111, '2026-11-18', 2, 2, '2026-11-18 14:35:13');
+INSERT INTO `learning_checkin` VALUES (62, 128, '2026-11-18', 1, 1, '2026-11-18 16:11:23');
 
 -- ----------------------------
 -- Table structure for learning_comment
@@ -748,7 +874,7 @@ CREATE TABLE `learning_comment`  (
   INDEX `idx_target`(`target_type` ASC, `target_id` ASC, `del_flag` ASC, `comment_id` ASC) USING BTREE,
   INDEX `idx_user`(`user_id` ASC, `del_flag` ASC) USING BTREE,
   INDEX `idx_parent`(`parent_id` ASC, `del_flag` ASC, `comment_id` ASC) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 166 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '学习平台评论表' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 180 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '学习平台评论表' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Records of learning_comment
@@ -777,10 +903,10 @@ INSERT INTO `learning_comment` VALUES (120, 118, '3', 201, 105, 111, '6', '0', '
 INSERT INTO `learning_comment` VALUES (121, 118, '3', 201, 117, 118, '你猜猜', '0', '2026-10-27 19:32:43', NULL);
 INSERT INTO `learning_comment` VALUES (122, 118, '3', 201, 117, 118, '2222', '0', '2026-10-27 19:32:50', NULL);
 INSERT INTO `learning_comment` VALUES (123, 118, '1', 205, NULL, NULL, '666', '0', '2026-10-27 20:17:09', NULL);
-INSERT INTO `learning_comment` VALUES (124, 118, '1', 205, 123, 118, '666', '0', '2026-10-27 20:18:45', NULL);
+INSERT INTO `learning_comment` VALUES (124, 118, '1', 205, 123, 118, '666', '2', '2026-10-27 20:18:45', '2026-11-10 14:47:30');
 INSERT INTO `learning_comment` VALUES (125, 118, '1', 205, 109, 112, '你也是人才', '0', '2026-10-27 20:35:13', NULL);
 INSERT INTO `learning_comment` VALUES (126, 118, '1', 205, NULL, NULL, '哈哈哈', '0', '2026-10-27 20:35:24', NULL);
-INSERT INTO `learning_comment` VALUES (127, 118, '1', 211, NULL, NULL, '讲的太好了，我要哭了', '0', '2026-10-28 10:56:39', NULL);
+INSERT INTO `learning_comment` VALUES (127, 118, '1', 211, NULL, NULL, '讲的太好了，我要哭了', '2', '2026-10-28 10:56:39', '2026-11-10 14:34:35');
 INSERT INTO `learning_comment` VALUES (128, 118, '2', 202, NULL, NULL, '实践出真知，不错', '0', '2026-10-28 10:58:46', NULL);
 INSERT INTO `learning_comment` VALUES (129, 118, '2', 201, NULL, NULL, '听不懂啊', '0', '2026-10-28 10:59:37', NULL);
 INSERT INTO `learning_comment` VALUES (130, 115, '1', 211, NULL, NULL, 'integration test comment A', '2', '2026-10-29 00:03:55', '2026-10-29 00:14:04');
@@ -791,12 +917,12 @@ INSERT INTO `learning_comment` VALUES (134, 106, '1', 203, NULL, NULL, '这是�
 INSERT INTO `learning_comment` VALUES (135, 112, '1', 211, NULL, NULL, 'test-cmt', '2', '2026-10-29 14:30:03', '2026-10-29 14:30:43');
 INSERT INTO `learning_comment` VALUES (136, 115, '2', 202, NULL, NULL, '666', '0', '2026-10-29 20:43:16', NULL);
 INSERT INTO `learning_comment` VALUES (137, 111, '1', 216, NULL, NULL, 'Nice', '2', '2026-10-30 14:56:43', '2026-10-30 15:38:07');
-INSERT INTO `learning_comment` VALUES (138, 112, '3', 203, NULL, NULL, '1¹1', '0', '2026-11-02 09:23:20', NULL);
+INSERT INTO `learning_comment` VALUES (138, 112, '3', 203, NULL, NULL, '1¹1', '2', '2026-11-02 09:23:20', '2026-11-18 14:01:10');
 INSERT INTO `learning_comment` VALUES (139, 115, '2', 201, NULL, NULL, '000000', '0', '2026-11-02 09:30:47', NULL);
 INSERT INTO `learning_comment` VALUES (140, 115, '2', 201, 129, 118, '11111111', '0', '2026-11-02 09:31:26', NULL);
 INSERT INTO `learning_comment` VALUES (141, 115, '1', 218, NULL, NULL, '111', '2', '2026-11-02 09:37:16', '2026-11-02 13:51:41');
 INSERT INTO `learning_comment` VALUES (142, 112, '3', 201, NULL, NULL, '8888', '0', '2026-11-02 09:45:55', NULL);
-INSERT INTO `learning_comment` VALUES (143, 112, '3', 201, 142, 112, '666', '0', '2026-11-02 09:46:07', NULL);
+INSERT INTO `learning_comment` VALUES (143, 112, '3', 201, 142, 112, '666', '2', '2026-11-02 09:46:07', '2026-11-18 12:19:11');
 INSERT INTO `learning_comment` VALUES (144, 112, '1', 219, NULL, NULL, '9999', '2', '2026-11-02 09:49:24', '2026-11-02 10:02:19');
 INSERT INTO `learning_comment` VALUES (145, 112, '1', 219, 144, 112, '88', '2', '2026-11-02 09:49:33', '2026-11-02 10:02:19');
 INSERT INTO `learning_comment` VALUES (146, 115, '1', 214, NULL, NULL, '00000', '2', '2026-11-02 14:05:03', '2026-11-02 14:05:26');
@@ -804,21 +930,32 @@ INSERT INTO `learning_comment` VALUES (147, 115, '1', 214, 146, 115, '11111', '2
 INSERT INTO `learning_comment` VALUES (148, 111, '3', 201, NULL, NULL, '管理员删除测试评论', '2', '2026-11-02 16:19:00', '2026-11-02 16:19:02');
 INSERT INTO `learning_comment` VALUES (149, 111, '2', 202, NULL, NULL, '222', '0', '2026-11-04 14:13:39', NULL);
 INSERT INTO `learning_comment` VALUES (150, 111, '2', 202, 136, 115, '555', '0', '2026-11-04 14:13:53', NULL);
-INSERT INTO `learning_comment` VALUES (151, 112, '1', 214, NULL, NULL, 'shazidx', '0', '2026-11-06 14:34:12', NULL);
+INSERT INTO `learning_comment` VALUES (151, 112, '1', 214, NULL, NULL, 'shazidx', '2', '2026-11-06 14:34:12', '2026-11-18 14:02:04');
 INSERT INTO `learning_comment` VALUES (152, 112, '1', 211, NULL, NULL, 'zdjd', '0', '2026-11-06 14:34:35', NULL);
 INSERT INTO `learning_comment` VALUES (153, 112, '1', 101, NULL, NULL, '1111', '0', '2026-11-06 14:56:34', NULL);
 INSERT INTO `learning_comment` VALUES (154, 112, '1', 201, NULL, NULL, '666', '0', '2026-11-06 15:19:44', NULL);
 INSERT INTO `learning_comment` VALUES (155, 112, '3', 203, NULL, NULL, '666', '2', '2026-11-06 15:20:50', '2026-11-06 15:39:48');
-INSERT INTO `learning_comment` VALUES (156, 112, '1', 223, NULL, NULL, '1', '0', '2026-11-06 15:41:08', NULL);
+INSERT INTO `learning_comment` VALUES (156, 112, '1', 223, NULL, NULL, '1', '2', '2026-11-06 15:41:08', '2026-11-18 12:08:12');
 INSERT INTO `learning_comment` VALUES (157, 112, '2', 202, NULL, NULL, '111', '0', '2026-11-06 15:42:17', NULL);
 INSERT INTO `learning_comment` VALUES (158, 112, '3', 203, NULL, NULL, 'haoma', '2', '2026-11-06 16:08:38', '2026-11-06 16:09:15');
-INSERT INTO `learning_comment` VALUES (159, 112, '3', 203, 138, 112, 'hiazai', '0', '2026-11-06 16:08:49', NULL);
+INSERT INTO `learning_comment` VALUES (159, 112, '3', 203, 138, 112, 'hiazai', '2', '2026-11-06 16:08:49', '2026-11-18 14:00:27');
 INSERT INTO `learning_comment` VALUES (160, 112, '3', 201, 117, 118, '1111111111 1111111111111111111111', '0', '2026-11-06 16:21:40', NULL);
 INSERT INTO `learning_comment` VALUES (161, 112, '1', 205, 109, 112, '111111111111111111111111', '2', '2026-11-06 16:23:00', '2026-11-06 16:30:11');
-INSERT INTO `learning_comment` VALUES (162, 112, '3', 201, NULL, NULL, '12345', '0', '2026-11-09 10:49:39', NULL);
+INSERT INTO `learning_comment` VALUES (162, 112, '3', 201, NULL, NULL, '12345', '2', '2026-11-09 10:49:39', '2026-11-18 12:18:38');
 INSERT INTO `learning_comment` VALUES (163, 111, '3', 201, NULL, NULL, '管理员删除测试-评论', '2', '2026-11-10 09:39:43', '2026-11-10 09:39:44');
 INSERT INTO `learning_comment` VALUES (164, 111, '3', 202, NULL, NULL, '级联测试-根评论', '2', '2026-11-10 09:40:07', '2026-11-10 09:40:10');
 INSERT INTO `learning_comment` VALUES (165, 111, '3', 202, 164, 111, '级联测试-回复', '2', '2026-11-10 09:40:09', '2026-11-10 09:40:11');
+INSERT INTO `learning_comment` VALUES (166, 121, '1', 101, NULL, NULL, '线上测试评论', '2', '2026-11-12 14:43:50', '2026-11-12 14:44:05');
+INSERT INTO `learning_comment` VALUES (167, 121, '1', 101, 166, 121, '线上测试回复', '2', '2026-11-12 14:44:05', '2026-11-12 14:44:05');
+INSERT INTO `learning_comment` VALUES (168, 112, '1', 223, 156, 112, '棒棒棒棒', '2', '2026-11-17 15:43:08', '2026-11-18 12:07:31');
+INSERT INTO `learning_comment` VALUES (172, 112, '1', 223, 156, 112, 'multi——reply——test', '2', '2026-11-18 11:50:57', '2026-11-18 11:57:50');
+INSERT INTO `learning_comment` VALUES (173, 112, '3', 201, 117, 112, 'video——reply——test', '2', '2026-11-18 11:54:58', '2026-11-18 11:55:51');
+INSERT INTO `learning_comment` VALUES (174, 112, '1', 223, 156, 112, '111111', '2', '2026-11-18 11:58:24', '2026-11-18 11:58:30');
+INSERT INTO `learning_comment` VALUES (175, 112, '3', 201, 105, 118, '111111', '0', '2026-11-18 13:48:46', NULL);
+INSERT INTO `learning_comment` VALUES (176, 112, '3', 201, 117, 112, '1111', '2', '2026-11-18 13:48:55', '2026-11-18 13:48:58');
+INSERT INTO `learning_comment` VALUES (177, 112, '1', 223, NULL, NULL, '11111', '2', '2026-11-18 13:49:27', '2026-11-18 13:53:14');
+INSERT INTO `learning_comment` VALUES (178, 112, '1', 205, 109, 112, '我是大帅比', '0', '2026-11-18 16:04:40', NULL);
+INSERT INTO `learning_comment` VALUES (179, 112, '1', 205, 123, 118, '你是不是ly', '0', '2026-11-18 16:04:53', NULL);
 
 -- ----------------------------
 -- Table structure for learning_course
@@ -861,10 +998,10 @@ INSERT INTO `learning_course` VALUES (105, '分类测试课程C', 101, '', '测�
 INSERT INTO `learning_course` VALUES (107, '评分回归课程', 101, '', '回归', 0, 0, 0, 0, 0, '0', '2', 'admin', '2026-10-16 14:49:25', '', '2026-10-16 14:50:14', NULL, 0);
 INSERT INTO `learning_course` VALUES (112, '笔记测试课程(可删)', NULL, '', '', 0, 0, 0, 0, 0, '0', '2', '', '2026-10-19 10:50:39', '', '2026-10-28 11:27:37', NULL, 0);
 INSERT INTO `learning_course` VALUES (201, 'Java 从入门到实战', 101, 'https://zhinengguanggaopingtai.oss-cn-shanghai.aliyuncs.com/upload/2026/10/27/3_20261027203937A003.jpg', '面向初学者的 Java 系统课程：环境搭建、语法基础、面向对象与集合框架', 2, 3, 3, 5, 21, '0', '0', 'admin', '2026-10-20 14:20:43', 'admin', '2026-11-10 09:11:28', '测试数据-前端调试', 5);
-INSERT INTO `learning_course` VALUES (202, 'MySQL 性能优化实战', 103, 'https://zhinengguanggaopingtai.oss-cn-shanghai.aliyuncs.com/upload/2026/10/27/2_20261027203926A002.jpg', '从索引原理到执行计划，实战排查慢查询与 SQL 优化', 1, 3, 5, 4, 18, '0', '0', 'admin', '2026-10-20 14:20:43', 'admin', '2026-10-28 09:39:13', '测试数据-前端调试', 4);
-INSERT INTO `learning_course` VALUES (203, 'Redis 缓存原理与实战', 105, 'https://zhinengguanggaopingtai.oss-cn-shanghai.aliyuncs.com/upload/2026/10/27/1_20261027203507A001.jpg', 'Redis 数据类型、持久化与缓存穿透/击穿/雪崩解决方案', 1, 1, 7, 2, 6, '0', '0', 'admin', '2026-10-20 14:20:43', 'admin', '2026-10-28 09:36:46', '测试数据-前端调试', 5);
-INSERT INTO `learning_course` VALUES (204, 'Kafka入门与实践', 107, 'https://zhinengguanggaopingtai.oss-cn-shanghai.aliyuncs.com/upload/2026/10/27/5_20261027222945A003.jpg', 'kafka新手小白入门', 1, 1, 0, 1, 4, '0', '0', 'admin', '2026-10-28 11:29:49', '', NULL, NULL, 4);
-INSERT INTO `learning_course` VALUES (205, '计算机网络', 109, 'https://zhinengguanggaopingtai.oss-cn-shanghai.aliyuncs.com/upload/2026/10/27/4_20261027223033A004.jpg', '计算机网络教程攻破', 0, 0, 0, 2, 8, '0', '0', 'admin', '2026-10-28 11:30:21', '', NULL, NULL, 6);
+INSERT INTO `learning_course` VALUES (202, 'MySQL 性能优化实战', 103, 'https://zhinengguanggaopingtai.oss-cn-shanghai.aliyuncs.com/upload/2026/10/27/2_20261027203926A002.jpg', '从索引原理到执行计划，实战排查慢查询与 SQL 优化', 2, 3, 5, 4, 18, '0', '0', 'admin', '2026-10-20 14:20:43', 'admin', '2026-10-28 09:39:13', '测试数据-前端调试', 5);
+INSERT INTO `learning_course` VALUES (203, 'Redis 缓存原理与实战', 105, 'https://zhinengguanggaopingtai.oss-cn-shanghai.aliyuncs.com/upload/2026/10/27/1_20261027203507A001.jpg', 'Redis 数据类型、持久化与缓存穿透/击穿/雪崩解决方案', 1, 1, 7, 2, 6, '0', '0', 'admin', '2026-10-20 14:20:43', 'admin', '2026-10-28 09:36:46', '测试数据-前端调试', 6);
+INSERT INTO `learning_course` VALUES (204, 'Kafka入门与实践', 107, 'https://zhinengguanggaopingtai.oss-cn-shanghai.aliyuncs.com/upload/2026/10/27/5_20261027222945A003.jpg', 'kafka新手小白入门', 1, 1, 0, 1, 4, '0', '0', 'admin', '2026-10-28 11:29:49', '', NULL, NULL, 5);
+INSERT INTO `learning_course` VALUES (205, '计算机网络', 109, 'https://zhinengguanggaopingtai.oss-cn-shanghai.aliyuncs.com/upload/2026/10/27/4_20261027223033A004.jpg', '计算机网络教程攻破', 0, 0, 0, 3, 11, '0', '0', 'admin', '2026-10-28 11:30:21', '', NULL, NULL, 7);
 
 -- ----------------------------
 -- Table structure for learning_course_chapter
@@ -912,17 +1049,23 @@ CREATE TABLE `learning_course_progress`  (
   PRIMARY KEY (`progress_id`) USING BTREE,
   UNIQUE INDEX `uk_progress_user_video`(`user_id` ASC, `video_id` ASC) USING BTREE,
   INDEX `idx_progress_user_course`(`user_id` ASC, `course_id` ASC) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 21 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '课程小节学习进度' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 98 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '课程小节学习进度' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Records of learning_course_progress
 -- ----------------------------
 INSERT INTO `learning_course_progress` VALUES (1, 111, 201, 201, 1, 1000, '2026-11-02 09:37:56', '2026-11-02 10:38:07');
 INSERT INTO `learning_course_progress` VALUES (3, 111, 201, 202, 1, 190, '2026-11-02 09:37:58', '2026-11-02 10:53:20');
-INSERT INTO `learning_course_progress` VALUES (5, 111, 202, 203, 0, 110, '2026-11-02 09:38:19', '2026-11-04 14:16:18');
+INSERT INTO `learning_course_progress` VALUES (5, 111, 202, 203, 0, 141, '2026-11-02 09:38:19', '2026-11-17 10:56:01');
 INSERT INTO `learning_course_progress` VALUES (9, 111, 203, 205, 0, 60, '2026-11-02 10:38:07', '2026-11-02 10:38:07');
-INSERT INTO `learning_course_progress` VALUES (17, 115, 201, 201, 0, 5, '2026-11-05 16:16:01', '2026-11-05 16:16:01');
-INSERT INTO `learning_course_progress` VALUES (18, 115, 202, 203, 0, 27, '2026-11-06 21:19:58', '2026-11-06 21:20:21');
+INSERT INTO `learning_course_progress` VALUES (17, 115, 201, 201, 1, 50, '2026-11-05 16:16:01', '2026-11-11 17:28:40');
+INSERT INTO `learning_course_progress` VALUES (18, 115, 202, 203, 0, 230, '2026-11-06 21:19:58', '2026-11-11 17:35:45');
+INSERT INTO `learning_course_progress` VALUES (21, 118, 201, 201, 0, 45, '2026-11-11 10:31:07', '2026-11-11 10:31:09');
+INSERT INTO `learning_course_progress` VALUES (24, 118, 201, 202, 0, 30, '2026-11-11 10:32:42', '2026-11-11 10:32:42');
+INSERT INTO `learning_course_progress` VALUES (46, 112, 201, 201, 1, 133, '2026-11-13 11:10:18', '2026-11-17 17:26:38');
+INSERT INTO `learning_course_progress` VALUES (58, 112, 202, 203, 1, 244, '2026-11-17 15:50:25', '2026-11-17 16:13:13');
+INSERT INTO `learning_course_progress` VALUES (59, 112, 201, 202, 1, 15, '2026-11-17 15:52:10', '2026-11-17 15:56:10');
+INSERT INTO `learning_course_progress` VALUES (65, 112, 202, 204, 1, 55, '2026-11-17 15:59:28', '2026-11-17 16:03:03');
 
 -- ----------------------------
 -- Table structure for learning_course_rating
@@ -938,7 +1081,7 @@ CREATE TABLE `learning_course_rating`  (
   `content` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '文字评价（可空）',
   PRIMARY KEY (`rating_id`) USING BTREE,
   UNIQUE INDEX `uk_course_user`(`course_id` ASC, `user_id` ASC) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 128 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '学习平台课程评分表' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 129 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '学习平台课程评分表' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Records of learning_course_rating
@@ -957,6 +1100,7 @@ INSERT INTO `learning_course_rating` VALUES (123, 202, 112, 3, '2026-11-06 14:03
 INSERT INTO `learning_course_rating` VALUES (124, 204, 112, 4, '2026-11-06 14:27:58', '2026-11-06 14:27:59', NULL);
 INSERT INTO `learning_course_rating` VALUES (125, 203, 112, 2, '2026-11-06 14:43:26', NULL, NULL);
 INSERT INTO `learning_course_rating` VALUES (126, 201, 112, 3, '2026-11-09 09:10:23', '2026-11-09 10:47:13', 'S');
+INSERT INTO `learning_course_rating` VALUES (128, 205, 121, 3, '2026-11-12 14:43:50', '2026-11-12 14:44:05', '线上测试评价-改三星');
 
 -- ----------------------------
 -- Table structure for learning_course_video
@@ -1005,7 +1149,7 @@ CREATE TABLE `learning_follow`  (
   UNIQUE INDEX `uk_user_follow`(`user_id` ASC, `follow_user_id` ASC) USING BTREE,
   INDEX `idx_user_time`(`user_id` ASC, `create_time` ASC) USING BTREE,
   INDEX `idx_follow_user_time`(`follow_user_id` ASC, `create_time` ASC) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 121 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '学习平台用户关注表' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 122 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '学习平台用户关注表' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Records of learning_follow
@@ -1019,6 +1163,7 @@ INSERT INTO `learning_follow` VALUES (117, 118, 111, '2026-10-30 09:51:30');
 INSERT INTO `learning_follow` VALUES (118, 111, 118, '2026-10-30 15:24:24');
 INSERT INTO `learning_follow` VALUES (119, 112, 115, '2026-11-02 09:49:56');
 INSERT INTO `learning_follow` VALUES (120, 115, 112, '2026-11-02 14:04:36');
+INSERT INTO `learning_follow` VALUES (121, 112, 106, '2026-11-18 10:46:31');
 
 -- ----------------------------
 -- Table structure for learning_interaction
@@ -1034,7 +1179,7 @@ CREATE TABLE `learning_interaction`  (
   PRIMARY KEY (`id`) USING BTREE,
   UNIQUE INDEX `uk_user_target`(`user_id` ASC, `target_type` ASC, `target_id` ASC, `type` ASC) USING BTREE,
   INDEX `idx_target`(`target_type` ASC, `target_id` ASC, `type` ASC) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 537 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '学习平台点赞收藏表' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 555 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '学习平台点赞收藏表' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Records of learning_interaction
@@ -1080,7 +1225,13 @@ INSERT INTO `learning_interaction` VALUES (512, 112, '2', 203, '1', '2026-11-06 
 INSERT INTO `learning_interaction` VALUES (514, 112, '2', 203, '2', '2026-11-06 14:43:20');
 INSERT INTO `learning_interaction` VALUES (525, 112, '3', 202, '1', '2026-11-06 15:16:14');
 INSERT INTO `learning_interaction` VALUES (526, 112, '3', 202, '2', '2026-11-06 15:16:15');
-INSERT INTO `learning_interaction` VALUES (534, 112, '1', 214, '1', '2026-11-09 11:20:02');
+INSERT INTO `learning_interaction` VALUES (541, 115, '3', 203, '1', '2026-11-11 17:29:17');
+INSERT INTO `learning_interaction` VALUES (547, 112, '1', 214, '1', '2026-11-17 16:02:52');
+INSERT INTO `learning_interaction` VALUES (548, 111, '1', 214, '1', '2026-11-17 16:12:59');
+INSERT INTO `learning_interaction` VALUES (549, 111, '1', 214, '2', '2026-11-17 16:13:04');
+INSERT INTO `learning_interaction` VALUES (552, 111, '2', 202, '1', '2026-11-18 14:49:37');
+INSERT INTO `learning_interaction` VALUES (553, 112, '1', 205, '1', '2026-11-18 16:05:07');
+INSERT INTO `learning_interaction` VALUES (554, 112, '1', 205, '2', '2026-11-18 16:05:10');
 
 -- ----------------------------
 -- Table structure for learning_note
@@ -1134,187 +1285,207 @@ CREATE TABLE `learning_notification`  (
   `type` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '通知类型（1点赞 2收藏 3评论 4关注 5回复评论）',
   `target_type` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '目标类型（1帖子 3短视频；关注类为NULL；课程永不产生通知）',
   `target_id` bigint NULL DEFAULT NULL COMMENT '目标ID（关注类为NULL）',
+  `comment_id` bigint NULL DEFAULT NULL COMMENT '关联评论ID（评论/回复通知用；历史通知为空）',
   `content` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '评论摘要（仅评论类有值，与 learning_comment.content 一致）',
   `is_read` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '0' COMMENT '读取状态（0未读 1已读）',
   `read_time` datetime NULL DEFAULT NULL COMMENT '读取时间（未读为NULL）',
   `create_time` datetime NULL DEFAULT NULL COMMENT '产生时间',
   PRIMARY KEY (`notification_id`) USING BTREE,
   INDEX `idx_user_time`(`user_id` ASC, `create_time` ASC) USING BTREE,
-  INDEX `idx_user_read_time`(`user_id` ASC, `is_read` ASC, `create_time` ASC) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 315 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '学习平台用户通知表' ROW_FORMAT = Dynamic;
+  INDEX `idx_user_read_time`(`user_id` ASC, `is_read` ASC, `create_time` ASC) USING BTREE,
+  INDEX `idx_notification_comment`(`comment_id` ASC) USING BTREE
+) ENGINE = InnoDB AUTO_INCREMENT = 343 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '学习平台用户通知表' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Records of learning_notification
 -- ----------------------------
-INSERT INTO `learning_notification` VALUES (100, 1, 106, '3', '1', 101, '评论测试一级', '0', NULL, '2026-10-15 17:37:25');
-INSERT INTO `learning_notification` VALUES (101, 1, 106, '3', '1', 101, '评论测试二级回复', '0', NULL, '2026-10-15 17:37:50');
-INSERT INTO `learning_notification` VALUES (102, 104, 106, '4', NULL, NULL, NULL, '0', NULL, '2026-10-15 17:53:56');
-INSERT INTO `learning_notification` VALUES (103, 1, 106, '4', NULL, NULL, NULL, '0', NULL, '2026-10-15 17:54:13');
-INSERT INTO `learning_notification` VALUES (104, 104, 106, '1', '3', 100, NULL, '0', NULL, '2026-10-15 17:55:55');
-INSERT INTO `learning_notification` VALUES (105, 104, 111, '1', '3', 100, NULL, '0', NULL, '2026-10-16 14:15:56');
-INSERT INTO `learning_notification` VALUES (106, 104, 112, '1', '3', 100, NULL, '0', NULL, '2026-10-16 16:58:18');
-INSERT INTO `learning_notification` VALUES (107, 104, 112, '1', '3', 100, NULL, '0', NULL, '2026-10-16 16:58:19');
-INSERT INTO `learning_notification` VALUES (108, 104, 112, '1', '3', 100, NULL, '0', NULL, '2026-10-16 16:58:20');
-INSERT INTO `learning_notification` VALUES (109, 104, 112, '2', '3', 100, NULL, '0', NULL, '2026-10-16 16:58:27');
-INSERT INTO `learning_notification` VALUES (110, 104, 112, '1', '3', 100, NULL, '0', NULL, '2026-10-16 16:58:47');
-INSERT INTO `learning_notification` VALUES (111, 104, 112, '3', '3', 100, 'hhh', '0', NULL, '2026-10-16 17:27:43');
-INSERT INTO `learning_notification` VALUES (116, 104, 111, '1', '3', 100, NULL, '0', NULL, '2026-10-22 14:15:42');
-INSERT INTO `learning_notification` VALUES (117, 104, 111, '1', '3', 100, NULL, '0', NULL, '2026-10-22 14:47:29');
-INSERT INTO `learning_notification` VALUES (119, 104, 111, '1', '3', 100, NULL, '0', NULL, '2026-10-27 09:42:56');
-INSERT INTO `learning_notification` VALUES (132, 118, 111, '5', '3', 201, '你在干嘛啊兄弟?', '1', '2026-10-28 11:02:25', '2026-10-27 18:58:59');
-INSERT INTO `learning_notification` VALUES (143, 112, 118, '5', '1', 205, '你也是人才', '1', '2026-10-28 11:28:03', '2026-10-27 20:35:13');
-INSERT INTO `learning_notification` VALUES (153, 118, 115, '1', '1', 211, NULL, '1', '2026-10-30 09:51:15', '2026-10-28 17:25:34');
-INSERT INTO `learning_notification` VALUES (154, 115, 119, '4', NULL, NULL, NULL, '1', '2026-10-29 00:02:24', '2026-10-28 23:52:02');
-INSERT INTO `learning_notification` VALUES (155, 119, 115, '4', NULL, NULL, NULL, '0', NULL, '2026-10-28 23:52:10');
-INSERT INTO `learning_notification` VALUES (156, 118, 115, '3', '1', 211, 'integration test comment A', '1', '2026-10-30 09:51:15', '2026-10-29 00:03:55');
-INSERT INTO `learning_notification` VALUES (157, 115, 119, '5', '1', 211, 'integration test reply B', '1', '2026-10-29 00:04:26', '2026-10-29 00:03:56');
-INSERT INTO `learning_notification` VALUES (158, 118, 119, '3', '1', 211, 'integration test reply B', '1', '2026-10-30 09:51:15', '2026-10-29 00:03:56');
-INSERT INTO `learning_notification` VALUES (159, 118, 115, '2', '1', 211, NULL, '1', '2026-10-30 09:51:15', '2026-10-29 00:15:19');
-INSERT INTO `learning_notification` VALUES (160, 119, 115, '4', NULL, NULL, NULL, '0', NULL, '2026-10-29 00:18:55');
-INSERT INTO `learning_notification` VALUES (164, 118, 115, '4', NULL, NULL, NULL, '1', '2026-10-30 09:51:15', '2026-10-29 10:55:16');
-INSERT INTO `learning_notification` VALUES (166, 118, 115, '4', NULL, NULL, NULL, '1', '2026-10-30 09:51:15', '2026-10-29 11:02:29');
-INSERT INTO `learning_notification` VALUES (172, 111, 106, '1', '1', 201, NULL, '1', '2026-10-30 09:52:15', '2026-10-29 14:14:19');
-INSERT INTO `learning_notification` VALUES (173, 111, 106, '2', '1', 202, NULL, '1', '2026-10-30 09:52:15', '2026-10-29 14:14:20');
-INSERT INTO `learning_notification` VALUES (174, 111, 106, '3', '1', 203, '这是一条测试评论', '1', '2026-10-30 09:52:15', '2026-10-29 14:14:20');
-INSERT INTO `learning_notification` VALUES (175, 111, 106, '4', NULL, NULL, NULL, '1', '2026-10-30 09:52:15', '2026-10-29 14:14:21');
-INSERT INTO `learning_notification` VALUES (176, 111, 104, '1', '1', 202, NULL, '1', '2026-10-26 15:18:34', '2026-10-26 15:18:34');
-INSERT INTO `learning_notification` VALUES (177, 111, 1, '1', '1', 203, NULL, '1', '2026-10-26 14:18:34', '2026-10-26 14:18:34');
-INSERT INTO `learning_notification` VALUES (178, 111, 106, '1', '3', 201, NULL, '1', '2026-10-26 13:18:34', '2026-10-26 13:18:34');
-INSERT INTO `learning_notification` VALUES (179, 111, 104, '1', '1', 205, NULL, '1', '2026-10-26 12:18:34', '2026-10-26 12:18:34');
-INSERT INTO `learning_notification` VALUES (180, 111, 1, '1', '1', 201, NULL, '1', '2026-10-26 11:18:34', '2026-10-26 11:18:34');
-INSERT INTO `learning_notification` VALUES (181, 111, 106, '1', '3', 201, NULL, '1', '2026-10-26 10:18:34', '2026-10-26 10:18:34');
-INSERT INTO `learning_notification` VALUES (182, 111, 104, '1', '1', 203, NULL, '1', '2026-10-26 09:18:34', '2026-10-26 09:18:34');
-INSERT INTO `learning_notification` VALUES (183, 111, 1, '1', '1', 204, NULL, '1', '2026-10-26 08:18:34', '2026-10-26 08:18:34');
-INSERT INTO `learning_notification` VALUES (184, 111, 106, '1', '3', 201, NULL, '1', '2026-10-26 07:18:34', '2026-10-26 07:18:34');
-INSERT INTO `learning_notification` VALUES (185, 111, 104, '1', '1', 201, NULL, '1', '2026-10-26 06:18:34', '2026-10-26 06:18:34');
-INSERT INTO `learning_notification` VALUES (186, 111, 1, '2', '1', 202, NULL, '1', '2026-10-30 09:52:15', '2026-10-26 05:18:34');
-INSERT INTO `learning_notification` VALUES (187, 111, 106, '2', '3', 201, NULL, '1', '2026-10-30 09:52:15', '2026-10-26 04:18:34');
-INSERT INTO `learning_notification` VALUES (188, 111, 104, '2', '1', 204, NULL, '1', '2026-10-30 09:52:15', '2026-10-26 03:18:34');
-INSERT INTO `learning_notification` VALUES (189, 111, 1, '2', '1', 205, NULL, '1', '2026-10-30 09:52:15', '2026-10-26 02:18:34');
-INSERT INTO `learning_notification` VALUES (190, 111, 106, '2', '3', 201, NULL, '1', '2026-10-30 09:52:15', '2026-10-26 01:18:34');
-INSERT INTO `learning_notification` VALUES (191, 111, 104, '2', '1', 202, NULL, '1', '2026-10-30 09:52:15', '2026-10-26 00:18:34');
-INSERT INTO `learning_notification` VALUES (192, 111, 1, '2', '1', 203, NULL, '1', '2026-10-30 09:52:15', '2026-10-25 23:18:34');
-INSERT INTO `learning_notification` VALUES (193, 111, 106, '2', '3', 201, NULL, '1', '2026-10-30 09:52:15', '2026-10-25 22:18:34');
-INSERT INTO `learning_notification` VALUES (194, 111, 104, '2', '1', 205, NULL, '1', '2026-10-30 09:52:15', '2026-10-25 21:18:34');
-INSERT INTO `learning_notification` VALUES (195, 111, 1, '2', '1', 201, NULL, '1', '2026-10-30 09:52:15', '2026-10-25 20:18:34');
-INSERT INTO `learning_notification` VALUES (196, 111, 106, '2', '3', 201, NULL, '1', '2026-10-30 09:52:15', '2026-10-25 19:18:34');
-INSERT INTO `learning_notification` VALUES (197, 111, 104, '3', '1', 203, '正好在学这块，感谢分享', '1', '2026-10-30 09:52:15', '2026-10-25 18:18:34');
-INSERT INTO `learning_notification` VALUES (198, 111, 1, '3', '1', 204, '有个小问题想请教：并发场景下怎么处理？', '1', '2026-10-30 09:52:15', '2026-10-25 17:18:34');
-INSERT INTO `learning_notification` VALUES (199, 111, 106, '3', '1', 205, '总结得很到位', '1', '2026-10-30 09:52:15', '2026-10-25 16:18:34');
-INSERT INTO `learning_notification` VALUES (200, 111, 104, '3', '1', 201, '讲得太细了，赞一个', '1', '2026-10-30 09:52:15', '2026-10-25 15:18:34');
-INSERT INTO `learning_notification` VALUES (201, 111, 1, '3', '1', 202, '这个坑我也踩过', '1', '2026-10-30 09:52:15', '2026-10-25 14:18:34');
-INSERT INTO `learning_notification` VALUES (202, 111, 106, '3', '1', 203, '看完受益匪浅', '1', '2026-10-30 09:52:15', '2026-10-25 13:18:34');
-INSERT INTO `learning_notification` VALUES (203, 111, 104, '3', '1', 204, '例子能再详细点就更好了', '1', '2026-10-30 09:52:15', '2026-10-25 12:18:34');
-INSERT INTO `learning_notification` VALUES (204, 111, 1, '3', '1', 205, '支持一下', '1', '2026-10-30 09:52:15', '2026-10-25 11:18:34');
-INSERT INTO `learning_notification` VALUES (205, 111, 106, '3', '1', 201, '写得很好，学到了', '1', '2026-10-30 09:52:15', '2026-10-25 10:18:34');
-INSERT INTO `learning_notification` VALUES (206, 111, 104, '3', '1', 202, '这篇讲得很清楚，收藏了', '1', '2026-10-30 09:52:15', '2026-10-25 09:18:34');
-INSERT INTO `learning_notification` VALUES (207, 111, 1, '3', '1', 203, '正好在学这块，感谢分享', '1', '2026-10-30 09:52:15', '2026-10-25 08:18:34');
-INSERT INTO `learning_notification` VALUES (208, 111, 106, '4', NULL, NULL, NULL, '1', '2026-10-30 09:52:15', '2026-10-25 07:18:34');
-INSERT INTO `learning_notification` VALUES (209, 111, 104, '4', NULL, NULL, NULL, '1', '2026-10-30 09:52:15', '2026-10-25 06:18:34');
-INSERT INTO `learning_notification` VALUES (210, 111, 1, '4', NULL, NULL, NULL, '1', '2026-10-30 09:52:15', '2026-10-25 05:18:34');
-INSERT INTO `learning_notification` VALUES (211, 111, 106, '4', NULL, NULL, NULL, '1', '2026-10-30 09:52:15', '2026-10-25 04:18:34');
-INSERT INTO `learning_notification` VALUES (212, 111, 104, '4', NULL, NULL, NULL, '1', '2026-10-30 09:52:15', '2026-10-25 03:18:34');
-INSERT INTO `learning_notification` VALUES (213, 111, 1, '4', NULL, NULL, NULL, '1', '2026-10-30 09:52:15', '2026-10-25 02:18:34');
-INSERT INTO `learning_notification` VALUES (214, 111, 106, '5', '1', 205, '支持一下', '1', '2026-10-30 09:52:15', '2026-10-25 01:18:34');
-INSERT INTO `learning_notification` VALUES (215, 111, 104, '5', '1', 201, '写得很好，学到了', '1', '2026-10-30 09:52:15', '2026-10-25 00:18:34');
-INSERT INTO `learning_notification` VALUES (216, 118, 112, '1', '1', 211, NULL, '1', '2026-10-30 09:51:15', '2026-10-29 14:27:43');
-INSERT INTO `learning_notification` VALUES (217, 118, 112, '2', '1', 211, NULL, '1', '2026-10-30 09:51:15', '2026-10-29 14:28:32');
-INSERT INTO `learning_notification` VALUES (218, 118, 112, '3', '1', 211, 'test-cmt', '1', '2026-10-30 09:51:15', '2026-10-29 14:30:04');
-INSERT INTO `learning_notification` VALUES (219, 111, 112, '2', '3', 201, NULL, '1', '2026-10-30 09:52:15', '2026-10-29 15:47:20');
-INSERT INTO `learning_notification` VALUES (220, 111, 112, '2', '3', 201, NULL, '1', '2026-10-30 09:52:15', '2026-10-29 15:47:22');
-INSERT INTO `learning_notification` VALUES (221, 111, 112, '2', '3', 201, NULL, '1', '2026-10-30 09:52:15', '2026-10-29 15:47:24');
-INSERT INTO `learning_notification` VALUES (222, 111, 112, '2', '3', 201, NULL, '1', '2026-10-30 09:52:15', '2026-10-29 15:47:31');
-INSERT INTO `learning_notification` VALUES (223, 111, 112, '2', '3', 201, NULL, '1', '2026-10-30 09:52:15', '2026-10-29 15:49:09');
-INSERT INTO `learning_notification` VALUES (224, 111, 112, '2', '3', 201, NULL, '1', '2026-10-30 09:52:15', '2026-10-29 15:49:11');
-INSERT INTO `learning_notification` VALUES (225, 111, 112, '1', '3', 201, NULL, '1', '2026-10-30 09:52:15', '2026-10-29 15:54:04');
-INSERT INTO `learning_notification` VALUES (226, 111, 112, '2', '3', 201, NULL, '1', '2026-10-30 09:52:15', '2026-10-29 15:57:42');
-INSERT INTO `learning_notification` VALUES (227, 111, 112, '2', '3', 201, NULL, '1', '2026-10-30 09:52:15', '2026-10-29 15:57:53');
-INSERT INTO `learning_notification` VALUES (228, 111, 112, '1', '3', 203, NULL, '1', '2026-10-30 09:52:15', '2026-10-29 16:03:40');
-INSERT INTO `learning_notification` VALUES (229, 111, 112, '2', '3', 203, NULL, '1', '2026-10-30 09:52:15', '2026-10-29 16:03:53');
-INSERT INTO `learning_notification` VALUES (230, 111, 112, '1', '3', 203, NULL, '1', '2026-10-30 09:52:15', '2026-10-29 16:04:05');
-INSERT INTO `learning_notification` VALUES (231, 111, 112, '1', '3', 201, NULL, '1', '2026-10-30 09:52:15', '2026-10-29 16:05:32');
-INSERT INTO `learning_notification` VALUES (232, 111, 112, '1', '3', 203, NULL, '1', '2026-10-30 09:52:15', '2026-10-29 16:09:43');
-INSERT INTO `learning_notification` VALUES (233, 111, 112, '2', '3', 203, NULL, '1', '2026-10-30 09:52:15', '2026-10-29 16:09:54');
-INSERT INTO `learning_notification` VALUES (234, 111, 112, '1', '3', 203, NULL, '1', '2026-10-30 09:52:15', '2026-10-29 16:10:22');
-INSERT INTO `learning_notification` VALUES (235, 111, 112, '1', '3', 203, NULL, '1', '2026-10-30 09:52:15', '2026-10-29 16:20:04');
-INSERT INTO `learning_notification` VALUES (236, 111, 112, '2', '3', 203, NULL, '1', '2026-10-30 09:52:15', '2026-10-29 16:20:24');
-INSERT INTO `learning_notification` VALUES (237, 111, 112, '1', '3', 203, NULL, '1', '2026-10-30 09:52:15', '2026-10-29 16:20:30');
-INSERT INTO `learning_notification` VALUES (238, 111, 112, '1', '3', 203, NULL, '1', '2026-10-30 09:52:15', '2026-10-29 16:21:03');
-INSERT INTO `learning_notification` VALUES (239, 111, 112, '1', '3', 203, NULL, '1', '2026-10-30 09:52:15', '2026-10-29 16:21:25');
-INSERT INTO `learning_notification` VALUES (240, 111, 112, '2', '3', 203, NULL, '1', '2026-10-30 09:52:15', '2026-10-29 16:21:32');
-INSERT INTO `learning_notification` VALUES (241, 111, 112, '1', '3', 203, NULL, '1', '2026-10-30 09:52:15', '2026-10-29 16:23:01');
-INSERT INTO `learning_notification` VALUES (242, 111, 112, '1', '3', 203, NULL, '1', '2026-10-30 09:52:15', '2026-10-29 16:23:06');
-INSERT INTO `learning_notification` VALUES (243, 111, 112, '2', '3', 203, NULL, '1', '2026-10-30 09:52:15', '2026-10-29 16:23:14');
-INSERT INTO `learning_notification` VALUES (244, 111, 112, '1', '3', 201, NULL, '1', '2026-10-30 09:52:15', '2026-10-29 16:25:22');
-INSERT INTO `learning_notification` VALUES (245, 111, 112, '1', '3', 201, NULL, '1', '2026-10-30 09:52:15', '2026-10-29 16:25:24');
-INSERT INTO `learning_notification` VALUES (246, 111, 112, '1', '3', 201, NULL, '1', '2026-10-30 09:52:15', '2026-10-29 16:25:40');
-INSERT INTO `learning_notification` VALUES (247, 111, 112, '1', '3', 201, NULL, '1', '2026-10-30 09:52:15', '2026-10-29 16:25:43');
-INSERT INTO `learning_notification` VALUES (248, 111, 112, '2', '3', 202, NULL, '1', '2026-10-30 09:52:15', '2026-10-29 16:25:44');
-INSERT INTO `learning_notification` VALUES (249, 111, 112, '1', '3', 203, NULL, '1', '2026-10-30 09:52:15', '2026-10-29 16:29:56');
-INSERT INTO `learning_notification` VALUES (250, 111, 112, '1', '3', 203, NULL, '1', '2026-10-30 09:52:15', '2026-10-29 16:30:05');
-INSERT INTO `learning_notification` VALUES (251, 111, 112, '2', '3', 203, NULL, '1', '2026-10-30 09:52:15', '2026-10-29 16:30:05');
-INSERT INTO `learning_notification` VALUES (252, 111, 112, '1', '3', 203, NULL, '1', '2026-10-30 09:52:15', '2026-10-29 16:30:28');
-INSERT INTO `learning_notification` VALUES (253, 111, 115, '2', '3', 201, NULL, '1', '2026-10-30 09:52:15', '2026-10-29 17:08:29');
-INSERT INTO `learning_notification` VALUES (254, 111, 118, '4', NULL, NULL, NULL, '1', '2026-10-30 09:52:15', '2026-10-30 09:51:30');
-INSERT INTO `learning_notification` VALUES (255, 112, 111, '1', '1', 214, NULL, '1', '2026-11-06 16:42:56', '2026-10-30 10:06:29');
-INSERT INTO `learning_notification` VALUES (256, 112, 106, '1', '1', 214, NULL, '1', '2026-11-06 17:12:46', '2026-10-30 10:06:29');
-INSERT INTO `learning_notification` VALUES (257, 118, 106, '1', '1', 211, NULL, '0', NULL, '2026-10-30 10:06:29');
-INSERT INTO `learning_notification` VALUES (258, 112, 109, '1', '1', 214, NULL, '1', '2026-11-06 16:37:23', '2026-10-30 10:06:29');
-INSERT INTO `learning_notification` VALUES (259, 118, 109, '1', '1', 211, NULL, '0', NULL, '2026-10-30 10:06:29');
-INSERT INTO `learning_notification` VALUES (260, 1, 109, '1', '1', 101, NULL, '0', NULL, '2026-10-30 10:06:29');
-INSERT INTO `learning_notification` VALUES (261, 118, 111, '4', NULL, NULL, NULL, '0', NULL, '2026-10-30 15:24:24');
-INSERT INTO `learning_notification` VALUES (262, 111, 112, '1', '3', 203, NULL, '1', '2026-11-04 09:40:24', '2026-11-02 09:23:11');
-INSERT INTO `learning_notification` VALUES (263, 111, 112, '3', '3', 203, '1¹1', '1', '2026-11-04 09:40:24', '2026-11-02 09:23:20');
-INSERT INTO `learning_notification` VALUES (264, 111, 112, '1', '3', 202, NULL, '1', '2026-11-04 09:40:24', '2026-11-02 09:23:46');
-INSERT INTO `learning_notification` VALUES (265, 111, 112, '2', '3', 202, NULL, '1', '2026-11-04 09:40:24', '2026-11-02 09:23:46');
-INSERT INTO `learning_notification` VALUES (266, 118, 115, '5', '2', 201, '11111111', '0', NULL, '2026-11-02 09:31:26');
-INSERT INTO `learning_notification` VALUES (267, 111, 112, '1', '3', 201, NULL, '1', '2026-11-04 09:40:24', '2026-11-02 09:45:41');
-INSERT INTO `learning_notification` VALUES (268, 111, 112, '2', '3', 201, NULL, '1', '2026-11-04 09:40:24', '2026-11-02 09:45:43');
-INSERT INTO `learning_notification` VALUES (269, 111, 112, '3', '3', 201, '8888', '1', '2026-11-04 09:40:24', '2026-11-02 09:45:55');
-INSERT INTO `learning_notification` VALUES (270, 111, 112, '3', '3', 201, '666', '1', '2026-11-04 09:39:58', '2026-11-02 09:46:08');
-INSERT INTO `learning_notification` VALUES (271, 115, 112, '4', NULL, NULL, NULL, '0', NULL, '2026-11-02 09:49:56');
-INSERT INTO `learning_notification` VALUES (273, 112, 115, '4', NULL, NULL, NULL, '1', '2026-11-06 16:37:39', '2026-11-02 14:04:36');
-INSERT INTO `learning_notification` VALUES (274, 112, 115, '1', '1', 214, NULL, '1', '2026-11-06 16:37:19', '2026-11-02 14:04:43');
-INSERT INTO `learning_notification` VALUES (275, 112, 115, '1', '1', 214, NULL, '1', '2026-11-06 16:37:10', '2026-11-02 14:04:53');
-INSERT INTO `learning_notification` VALUES (276, 112, 115, '2', '1', 214, NULL, '1', '2026-11-06 16:37:29', '2026-11-02 14:04:55');
-INSERT INTO `learning_notification` VALUES (277, 112, 115, '3', '1', 214, '00000', '1', '2026-11-06 16:37:32', '2026-11-02 14:05:04');
-INSERT INTO `learning_notification` VALUES (278, 112, 115, '3', '1', 214, '11111', '1', '2026-11-06 16:37:35', '2026-11-02 14:05:16');
-INSERT INTO `learning_notification` VALUES (279, 115, 111, '5', '2', 202, '555', '0', NULL, '2026-11-04 14:13:53');
-INSERT INTO `learning_notification` VALUES (280, 111, 115, '1', '3', 203, NULL, '0', NULL, '2026-11-06 09:06:45');
-INSERT INTO `learning_notification` VALUES (281, 111, 112, '2', '1', 223, NULL, '0', NULL, '2026-11-06 09:39:46');
-INSERT INTO `learning_notification` VALUES (282, 111, 112, '2', '1', 223, NULL, '0', NULL, '2026-11-06 09:39:50');
-INSERT INTO `learning_notification` VALUES (283, 111, 112, '2', '1', 223, NULL, '0', NULL, '2026-11-06 09:40:02');
-INSERT INTO `learning_notification` VALUES (284, 111, 112, '2', '3', 202, NULL, '0', NULL, '2026-11-06 09:40:33');
-INSERT INTO `learning_notification` VALUES (285, 111, 112, '2', '3', 203, NULL, '0', NULL, '2026-11-06 09:51:38');
-INSERT INTO `learning_notification` VALUES (286, 111, 112, '2', '3', 202, NULL, '0', NULL, '2026-11-06 09:51:43');
-INSERT INTO `learning_notification` VALUES (287, 111, 112, '2', '3', 201, NULL, '0', NULL, '2026-11-06 09:51:48');
-INSERT INTO `learning_notification` VALUES (288, 111, 112, '1', '3', 202, NULL, '0', NULL, '2026-11-06 09:54:29');
-INSERT INTO `learning_notification` VALUES (289, 111, 115, '1', '3', 202, NULL, '0', NULL, '2026-11-06 10:49:29');
-INSERT INTO `learning_notification` VALUES (290, 111, 112, '1', '3', 201, NULL, '0', NULL, '2026-11-06 11:43:02');
-INSERT INTO `learning_notification` VALUES (291, 111, 112, '1', '3', 202, NULL, '0', NULL, '2026-11-06 11:43:37');
-INSERT INTO `learning_notification` VALUES (292, 118, 112, '2', '1', 211, NULL, '0', NULL, '2026-11-06 14:29:08');
-INSERT INTO `learning_notification` VALUES (293, 118, 112, '1', '1', 211, NULL, '0', NULL, '2026-11-06 14:29:09');
-INSERT INTO `learning_notification` VALUES (294, 111, 112, '1', '1', 223, NULL, '0', NULL, '2026-11-06 14:29:35');
-INSERT INTO `learning_notification` VALUES (295, 118, 112, '3', '1', 211, 'zdjd', '0', NULL, '2026-11-06 14:34:35');
-INSERT INTO `learning_notification` VALUES (296, 1, 112, '3', '1', 101, '1111', '0', NULL, '2026-11-06 14:56:35');
-INSERT INTO `learning_notification` VALUES (297, 111, 112, '1', '3', 202, NULL, '0', NULL, '2026-11-06 15:13:52');
-INSERT INTO `learning_notification` VALUES (298, 111, 112, '2', '3', 202, NULL, '0', NULL, '2026-11-06 15:13:54');
-INSERT INTO `learning_notification` VALUES (299, 111, 112, '1', '3', 202, NULL, '0', NULL, '2026-11-06 15:16:11');
-INSERT INTO `learning_notification` VALUES (300, 111, 112, '2', '3', 202, NULL, '0', NULL, '2026-11-06 15:16:12');
-INSERT INTO `learning_notification` VALUES (301, 111, 112, '1', '3', 202, NULL, '0', NULL, '2026-11-06 15:16:14');
-INSERT INTO `learning_notification` VALUES (302, 111, 112, '2', '3', 202, NULL, '0', NULL, '2026-11-06 15:16:15');
-INSERT INTO `learning_notification` VALUES (303, 111, 112, '3', '1', 201, '666', '0', NULL, '2026-11-06 15:19:44');
-INSERT INTO `learning_notification` VALUES (304, 111, 112, '3', '3', 203, '666', '0', NULL, '2026-11-06 15:20:50');
-INSERT INTO `learning_notification` VALUES (305, 111, 112, '3', '1', 223, '1', '0', NULL, '2026-11-06 15:41:09');
-INSERT INTO `learning_notification` VALUES (306, 111, 112, '3', '3', 203, 'haoma', '0', NULL, '2026-11-06 16:08:39');
-INSERT INTO `learning_notification` VALUES (307, 111, 112, '3', '3', 203, 'hiazai', '0', NULL, '2026-11-06 16:08:49');
-INSERT INTO `learning_notification` VALUES (308, 118, 112, '5', '3', 201, '1111111111 1111111111111111111111', '0', NULL, '2026-11-06 16:21:40');
-INSERT INTO `learning_notification` VALUES (309, 111, 112, '3', '3', 201, '1111111111 1111111111111111111111', '0', NULL, '2026-11-06 16:21:40');
-INSERT INTO `learning_notification` VALUES (310, 111, 112, '3', '1', 205, '111111111111111111111111', '0', NULL, '2026-11-06 16:23:00');
-INSERT INTO `learning_notification` VALUES (311, 111, 112, '1', '3', 201, NULL, '0', NULL, '2026-11-09 10:25:50');
-INSERT INTO `learning_notification` VALUES (312, 111, 112, '2', '3', 201, NULL, '0', NULL, '2026-11-09 10:31:14');
-INSERT INTO `learning_notification` VALUES (313, 111, 112, '1', '3', 201, NULL, '0', NULL, '2026-11-09 10:36:46');
-INSERT INTO `learning_notification` VALUES (314, 111, 112, '3', '3', 201, '12345', '0', NULL, '2026-11-09 10:49:40');
+INSERT INTO `learning_notification` VALUES (100, 1, 106, '3', '1', 101, NULL, '评论测试一级', '0', NULL, '2026-10-15 17:37:25');
+INSERT INTO `learning_notification` VALUES (101, 1, 106, '3', '1', 101, NULL, '评论测试二级回复', '0', NULL, '2026-10-15 17:37:50');
+INSERT INTO `learning_notification` VALUES (102, 104, 106, '4', NULL, NULL, NULL, NULL, '0', NULL, '2026-10-15 17:53:56');
+INSERT INTO `learning_notification` VALUES (103, 1, 106, '4', NULL, NULL, NULL, NULL, '0', NULL, '2026-10-15 17:54:13');
+INSERT INTO `learning_notification` VALUES (104, 104, 106, '1', '3', 100, NULL, NULL, '0', NULL, '2026-10-15 17:55:55');
+INSERT INTO `learning_notification` VALUES (105, 104, 111, '1', '3', 100, NULL, NULL, '0', NULL, '2026-10-16 14:15:56');
+INSERT INTO `learning_notification` VALUES (106, 104, 112, '1', '3', 100, NULL, NULL, '0', NULL, '2026-10-16 16:58:18');
+INSERT INTO `learning_notification` VALUES (107, 104, 112, '1', '3', 100, NULL, NULL, '0', NULL, '2026-10-16 16:58:19');
+INSERT INTO `learning_notification` VALUES (108, 104, 112, '1', '3', 100, NULL, NULL, '0', NULL, '2026-10-16 16:58:20');
+INSERT INTO `learning_notification` VALUES (109, 104, 112, '2', '3', 100, NULL, NULL, '0', NULL, '2026-10-16 16:58:27');
+INSERT INTO `learning_notification` VALUES (110, 104, 112, '1', '3', 100, NULL, NULL, '0', NULL, '2026-10-16 16:58:47');
+INSERT INTO `learning_notification` VALUES (111, 104, 112, '3', '3', 100, NULL, 'hhh', '0', NULL, '2026-10-16 17:27:43');
+INSERT INTO `learning_notification` VALUES (116, 104, 111, '1', '3', 100, NULL, NULL, '0', NULL, '2026-10-22 14:15:42');
+INSERT INTO `learning_notification` VALUES (117, 104, 111, '1', '3', 100, NULL, NULL, '0', NULL, '2026-10-22 14:47:29');
+INSERT INTO `learning_notification` VALUES (119, 104, 111, '1', '3', 100, NULL, NULL, '0', NULL, '2026-10-27 09:42:56');
+INSERT INTO `learning_notification` VALUES (132, 118, 111, '5', '3', 201, 118, '你在干嘛啊兄弟?', '1', '2026-10-28 11:02:25', '2026-10-27 18:58:59');
+INSERT INTO `learning_notification` VALUES (143, 112, 118, '5', '1', 205, 125, '你也是人才', '1', '2026-10-28 11:28:03', '2026-10-27 20:35:13');
+INSERT INTO `learning_notification` VALUES (153, 118, 115, '1', '1', 211, NULL, NULL, '1', '2026-10-30 09:51:15', '2026-10-28 17:25:34');
+INSERT INTO `learning_notification` VALUES (154, 115, 119, '4', NULL, NULL, NULL, NULL, '1', '2026-10-29 00:02:24', '2026-10-28 23:52:02');
+INSERT INTO `learning_notification` VALUES (155, 119, 115, '4', NULL, NULL, NULL, NULL, '0', NULL, '2026-10-28 23:52:10');
+INSERT INTO `learning_notification` VALUES (156, 118, 115, '3', '1', 211, NULL, 'integration test comment A', '1', '2026-10-30 09:51:15', '2026-10-29 00:03:55');
+INSERT INTO `learning_notification` VALUES (157, 115, 119, '5', '1', 211, NULL, 'integration test reply B', '1', '2026-10-29 00:04:26', '2026-10-29 00:03:56');
+INSERT INTO `learning_notification` VALUES (158, 118, 119, '3', '1', 211, NULL, 'integration test reply B', '1', '2026-10-30 09:51:15', '2026-10-29 00:03:56');
+INSERT INTO `learning_notification` VALUES (159, 118, 115, '2', '1', 211, NULL, NULL, '1', '2026-10-30 09:51:15', '2026-10-29 00:15:19');
+INSERT INTO `learning_notification` VALUES (160, 119, 115, '4', NULL, NULL, NULL, NULL, '0', NULL, '2026-10-29 00:18:55');
+INSERT INTO `learning_notification` VALUES (164, 118, 115, '4', NULL, NULL, NULL, NULL, '1', '2026-10-30 09:51:15', '2026-10-29 10:55:16');
+INSERT INTO `learning_notification` VALUES (166, 118, 115, '4', NULL, NULL, NULL, NULL, '1', '2026-10-30 09:51:15', '2026-10-29 11:02:29');
+INSERT INTO `learning_notification` VALUES (172, 111, 106, '1', '1', 201, NULL, NULL, '1', '2026-10-30 09:52:15', '2026-10-29 14:14:19');
+INSERT INTO `learning_notification` VALUES (173, 111, 106, '2', '1', 202, NULL, NULL, '1', '2026-10-30 09:52:15', '2026-10-29 14:14:20');
+INSERT INTO `learning_notification` VALUES (174, 111, 106, '3', '1', 203, 134, '这是一条测试评论', '1', '2026-10-30 09:52:15', '2026-10-29 14:14:20');
+INSERT INTO `learning_notification` VALUES (175, 111, 106, '4', NULL, NULL, NULL, NULL, '1', '2026-10-30 09:52:15', '2026-10-29 14:14:21');
+INSERT INTO `learning_notification` VALUES (176, 111, 104, '1', '1', 202, NULL, NULL, '1', '2026-10-26 15:18:34', '2026-10-26 15:18:34');
+INSERT INTO `learning_notification` VALUES (177, 111, 1, '1', '1', 203, NULL, NULL, '1', '2026-10-26 14:18:34', '2026-10-26 14:18:34');
+INSERT INTO `learning_notification` VALUES (178, 111, 106, '1', '3', 201, NULL, NULL, '1', '2026-10-26 13:18:34', '2026-10-26 13:18:34');
+INSERT INTO `learning_notification` VALUES (179, 111, 104, '1', '1', 205, NULL, NULL, '1', '2026-10-26 12:18:34', '2026-10-26 12:18:34');
+INSERT INTO `learning_notification` VALUES (180, 111, 1, '1', '1', 201, NULL, NULL, '1', '2026-10-26 11:18:34', '2026-10-26 11:18:34');
+INSERT INTO `learning_notification` VALUES (181, 111, 106, '1', '3', 201, NULL, NULL, '1', '2026-10-26 10:18:34', '2026-10-26 10:18:34');
+INSERT INTO `learning_notification` VALUES (182, 111, 104, '1', '1', 203, NULL, NULL, '1', '2026-10-26 09:18:34', '2026-10-26 09:18:34');
+INSERT INTO `learning_notification` VALUES (183, 111, 1, '1', '1', 204, NULL, NULL, '1', '2026-10-26 08:18:34', '2026-10-26 08:18:34');
+INSERT INTO `learning_notification` VALUES (184, 111, 106, '1', '3', 201, NULL, NULL, '1', '2026-10-26 07:18:34', '2026-10-26 07:18:34');
+INSERT INTO `learning_notification` VALUES (185, 111, 104, '1', '1', 201, NULL, NULL, '1', '2026-10-26 06:18:34', '2026-10-26 06:18:34');
+INSERT INTO `learning_notification` VALUES (186, 111, 1, '2', '1', 202, NULL, NULL, '1', '2026-10-30 09:52:15', '2026-10-26 05:18:34');
+INSERT INTO `learning_notification` VALUES (187, 111, 106, '2', '3', 201, NULL, NULL, '1', '2026-10-30 09:52:15', '2026-10-26 04:18:34');
+INSERT INTO `learning_notification` VALUES (188, 111, 104, '2', '1', 204, NULL, NULL, '1', '2026-10-30 09:52:15', '2026-10-26 03:18:34');
+INSERT INTO `learning_notification` VALUES (189, 111, 1, '2', '1', 205, NULL, NULL, '1', '2026-10-30 09:52:15', '2026-10-26 02:18:34');
+INSERT INTO `learning_notification` VALUES (190, 111, 106, '2', '3', 201, NULL, NULL, '1', '2026-10-30 09:52:15', '2026-10-26 01:18:34');
+INSERT INTO `learning_notification` VALUES (191, 111, 104, '2', '1', 202, NULL, NULL, '1', '2026-10-30 09:52:15', '2026-10-26 00:18:34');
+INSERT INTO `learning_notification` VALUES (192, 111, 1, '2', '1', 203, NULL, NULL, '1', '2026-10-30 09:52:15', '2026-10-25 23:18:34');
+INSERT INTO `learning_notification` VALUES (193, 111, 106, '2', '3', 201, NULL, NULL, '1', '2026-10-30 09:52:15', '2026-10-25 22:18:34');
+INSERT INTO `learning_notification` VALUES (194, 111, 104, '2', '1', 205, NULL, NULL, '1', '2026-10-30 09:52:15', '2026-10-25 21:18:34');
+INSERT INTO `learning_notification` VALUES (195, 111, 1, '2', '1', 201, NULL, NULL, '1', '2026-10-30 09:52:15', '2026-10-25 20:18:34');
+INSERT INTO `learning_notification` VALUES (196, 111, 106, '2', '3', 201, NULL, NULL, '1', '2026-10-30 09:52:15', '2026-10-25 19:18:34');
+INSERT INTO `learning_notification` VALUES (197, 111, 104, '3', '1', 203, NULL, '正好在学这块，感谢分享', '1', '2026-10-30 09:52:15', '2026-10-25 18:18:34');
+INSERT INTO `learning_notification` VALUES (198, 111, 1, '3', '1', 204, NULL, '有个小问题想请教：并发场景下怎么处理？', '1', '2026-10-30 09:52:15', '2026-10-25 17:18:34');
+INSERT INTO `learning_notification` VALUES (199, 111, 106, '3', '1', 205, NULL, '总结得很到位', '1', '2026-10-30 09:52:15', '2026-10-25 16:18:34');
+INSERT INTO `learning_notification` VALUES (200, 111, 104, '3', '1', 201, NULL, '讲得太细了，赞一个', '1', '2026-10-30 09:52:15', '2026-10-25 15:18:34');
+INSERT INTO `learning_notification` VALUES (201, 111, 1, '3', '1', 202, NULL, '这个坑我也踩过', '1', '2026-10-30 09:52:15', '2026-10-25 14:18:34');
+INSERT INTO `learning_notification` VALUES (202, 111, 106, '3', '1', 203, NULL, '看完受益匪浅', '1', '2026-10-30 09:52:15', '2026-10-25 13:18:34');
+INSERT INTO `learning_notification` VALUES (203, 111, 104, '3', '1', 204, NULL, '例子能再详细点就更好了', '1', '2026-10-30 09:52:15', '2026-10-25 12:18:34');
+INSERT INTO `learning_notification` VALUES (204, 111, 1, '3', '1', 205, NULL, '支持一下', '1', '2026-10-30 09:52:15', '2026-10-25 11:18:34');
+INSERT INTO `learning_notification` VALUES (205, 111, 106, '3', '1', 201, NULL, '写得很好，学到了', '1', '2026-10-30 09:52:15', '2026-10-25 10:18:34');
+INSERT INTO `learning_notification` VALUES (206, 111, 104, '3', '1', 202, NULL, '这篇讲得很清楚，收藏了', '1', '2026-10-30 09:52:15', '2026-10-25 09:18:34');
+INSERT INTO `learning_notification` VALUES (207, 111, 1, '3', '1', 203, NULL, '正好在学这块，感谢分享', '1', '2026-10-30 09:52:15', '2026-10-25 08:18:34');
+INSERT INTO `learning_notification` VALUES (208, 111, 106, '4', NULL, NULL, NULL, NULL, '1', '2026-10-30 09:52:15', '2026-10-25 07:18:34');
+INSERT INTO `learning_notification` VALUES (209, 111, 104, '4', NULL, NULL, NULL, NULL, '1', '2026-10-30 09:52:15', '2026-10-25 06:18:34');
+INSERT INTO `learning_notification` VALUES (210, 111, 1, '4', NULL, NULL, NULL, NULL, '1', '2026-10-30 09:52:15', '2026-10-25 05:18:34');
+INSERT INTO `learning_notification` VALUES (211, 111, 106, '4', NULL, NULL, NULL, NULL, '1', '2026-10-30 09:52:15', '2026-10-25 04:18:34');
+INSERT INTO `learning_notification` VALUES (212, 111, 104, '4', NULL, NULL, NULL, NULL, '1', '2026-10-30 09:52:15', '2026-10-25 03:18:34');
+INSERT INTO `learning_notification` VALUES (213, 111, 1, '4', NULL, NULL, NULL, NULL, '1', '2026-10-30 09:52:15', '2026-10-25 02:18:34');
+INSERT INTO `learning_notification` VALUES (214, 111, 106, '5', '1', 205, NULL, '支持一下', '1', '2026-10-30 09:52:15', '2026-10-25 01:18:34');
+INSERT INTO `learning_notification` VALUES (215, 111, 104, '5', '1', 201, NULL, '写得很好，学到了', '1', '2026-10-30 09:52:15', '2026-10-25 00:18:34');
+INSERT INTO `learning_notification` VALUES (216, 118, 112, '1', '1', 211, NULL, NULL, '1', '2026-10-30 09:51:15', '2026-10-29 14:27:43');
+INSERT INTO `learning_notification` VALUES (217, 118, 112, '2', '1', 211, NULL, NULL, '1', '2026-10-30 09:51:15', '2026-10-29 14:28:32');
+INSERT INTO `learning_notification` VALUES (218, 118, 112, '3', '1', 211, NULL, 'test-cmt', '1', '2026-10-30 09:51:15', '2026-10-29 14:30:04');
+INSERT INTO `learning_notification` VALUES (219, 111, 112, '2', '3', 201, NULL, NULL, '1', '2026-10-30 09:52:15', '2026-10-29 15:47:20');
+INSERT INTO `learning_notification` VALUES (220, 111, 112, '2', '3', 201, NULL, NULL, '1', '2026-10-30 09:52:15', '2026-10-29 15:47:22');
+INSERT INTO `learning_notification` VALUES (221, 111, 112, '2', '3', 201, NULL, NULL, '1', '2026-10-30 09:52:15', '2026-10-29 15:47:24');
+INSERT INTO `learning_notification` VALUES (222, 111, 112, '2', '3', 201, NULL, NULL, '1', '2026-10-30 09:52:15', '2026-10-29 15:47:31');
+INSERT INTO `learning_notification` VALUES (223, 111, 112, '2', '3', 201, NULL, NULL, '1', '2026-10-30 09:52:15', '2026-10-29 15:49:09');
+INSERT INTO `learning_notification` VALUES (224, 111, 112, '2', '3', 201, NULL, NULL, '1', '2026-10-30 09:52:15', '2026-10-29 15:49:11');
+INSERT INTO `learning_notification` VALUES (225, 111, 112, '1', '3', 201, NULL, NULL, '1', '2026-10-30 09:52:15', '2026-10-29 15:54:04');
+INSERT INTO `learning_notification` VALUES (226, 111, 112, '2', '3', 201, NULL, NULL, '1', '2026-10-30 09:52:15', '2026-10-29 15:57:42');
+INSERT INTO `learning_notification` VALUES (227, 111, 112, '2', '3', 201, NULL, NULL, '1', '2026-10-30 09:52:15', '2026-10-29 15:57:53');
+INSERT INTO `learning_notification` VALUES (228, 111, 112, '1', '3', 203, NULL, NULL, '1', '2026-10-30 09:52:15', '2026-10-29 16:03:40');
+INSERT INTO `learning_notification` VALUES (229, 111, 112, '2', '3', 203, NULL, NULL, '1', '2026-10-30 09:52:15', '2026-10-29 16:03:53');
+INSERT INTO `learning_notification` VALUES (230, 111, 112, '1', '3', 203, NULL, NULL, '1', '2026-10-30 09:52:15', '2026-10-29 16:04:05');
+INSERT INTO `learning_notification` VALUES (231, 111, 112, '1', '3', 201, NULL, NULL, '1', '2026-10-30 09:52:15', '2026-10-29 16:05:32');
+INSERT INTO `learning_notification` VALUES (232, 111, 112, '1', '3', 203, NULL, NULL, '1', '2026-10-30 09:52:15', '2026-10-29 16:09:43');
+INSERT INTO `learning_notification` VALUES (233, 111, 112, '2', '3', 203, NULL, NULL, '1', '2026-10-30 09:52:15', '2026-10-29 16:09:54');
+INSERT INTO `learning_notification` VALUES (234, 111, 112, '1', '3', 203, NULL, NULL, '1', '2026-10-30 09:52:15', '2026-10-29 16:10:22');
+INSERT INTO `learning_notification` VALUES (235, 111, 112, '1', '3', 203, NULL, NULL, '1', '2026-10-30 09:52:15', '2026-10-29 16:20:04');
+INSERT INTO `learning_notification` VALUES (236, 111, 112, '2', '3', 203, NULL, NULL, '1', '2026-10-30 09:52:15', '2026-10-29 16:20:24');
+INSERT INTO `learning_notification` VALUES (237, 111, 112, '1', '3', 203, NULL, NULL, '1', '2026-10-30 09:52:15', '2026-10-29 16:20:30');
+INSERT INTO `learning_notification` VALUES (238, 111, 112, '1', '3', 203, NULL, NULL, '1', '2026-10-30 09:52:15', '2026-10-29 16:21:03');
+INSERT INTO `learning_notification` VALUES (239, 111, 112, '1', '3', 203, NULL, NULL, '1', '2026-10-30 09:52:15', '2026-10-29 16:21:25');
+INSERT INTO `learning_notification` VALUES (240, 111, 112, '2', '3', 203, NULL, NULL, '1', '2026-10-30 09:52:15', '2026-10-29 16:21:32');
+INSERT INTO `learning_notification` VALUES (241, 111, 112, '1', '3', 203, NULL, NULL, '1', '2026-10-30 09:52:15', '2026-10-29 16:23:01');
+INSERT INTO `learning_notification` VALUES (242, 111, 112, '1', '3', 203, NULL, NULL, '1', '2026-10-30 09:52:15', '2026-10-29 16:23:06');
+INSERT INTO `learning_notification` VALUES (243, 111, 112, '2', '3', 203, NULL, NULL, '1', '2026-10-30 09:52:15', '2026-10-29 16:23:14');
+INSERT INTO `learning_notification` VALUES (244, 111, 112, '1', '3', 201, NULL, NULL, '1', '2026-10-30 09:52:15', '2026-10-29 16:25:22');
+INSERT INTO `learning_notification` VALUES (245, 111, 112, '1', '3', 201, NULL, NULL, '1', '2026-10-30 09:52:15', '2026-10-29 16:25:24');
+INSERT INTO `learning_notification` VALUES (246, 111, 112, '1', '3', 201, NULL, NULL, '1', '2026-10-30 09:52:15', '2026-10-29 16:25:40');
+INSERT INTO `learning_notification` VALUES (247, 111, 112, '1', '3', 201, NULL, NULL, '1', '2026-10-30 09:52:15', '2026-10-29 16:25:43');
+INSERT INTO `learning_notification` VALUES (248, 111, 112, '2', '3', 202, NULL, NULL, '1', '2026-10-30 09:52:15', '2026-10-29 16:25:44');
+INSERT INTO `learning_notification` VALUES (249, 111, 112, '1', '3', 203, NULL, NULL, '1', '2026-10-30 09:52:15', '2026-10-29 16:29:56');
+INSERT INTO `learning_notification` VALUES (250, 111, 112, '1', '3', 203, NULL, NULL, '1', '2026-10-30 09:52:15', '2026-10-29 16:30:05');
+INSERT INTO `learning_notification` VALUES (251, 111, 112, '2', '3', 203, NULL, NULL, '1', '2026-10-30 09:52:15', '2026-10-29 16:30:05');
+INSERT INTO `learning_notification` VALUES (252, 111, 112, '1', '3', 203, NULL, NULL, '1', '2026-10-30 09:52:15', '2026-10-29 16:30:28');
+INSERT INTO `learning_notification` VALUES (253, 111, 115, '2', '3', 201, NULL, NULL, '1', '2026-10-30 09:52:15', '2026-10-29 17:08:29');
+INSERT INTO `learning_notification` VALUES (254, 111, 118, '4', NULL, NULL, NULL, NULL, '1', '2026-10-30 09:52:15', '2026-10-30 09:51:30');
+INSERT INTO `learning_notification` VALUES (255, 112, 111, '1', '1', 214, NULL, NULL, '1', '2026-11-06 16:42:56', '2026-10-30 10:06:29');
+INSERT INTO `learning_notification` VALUES (256, 112, 106, '1', '1', 214, NULL, NULL, '1', '2026-11-06 17:12:46', '2026-10-30 10:06:29');
+INSERT INTO `learning_notification` VALUES (257, 118, 106, '1', '1', 211, NULL, NULL, '0', NULL, '2026-10-30 10:06:29');
+INSERT INTO `learning_notification` VALUES (258, 112, 109, '1', '1', 214, NULL, NULL, '1', '2026-11-06 16:37:23', '2026-10-30 10:06:29');
+INSERT INTO `learning_notification` VALUES (259, 118, 109, '1', '1', 211, NULL, NULL, '0', NULL, '2026-10-30 10:06:29');
+INSERT INTO `learning_notification` VALUES (260, 1, 109, '1', '1', 101, NULL, NULL, '0', NULL, '2026-10-30 10:06:29');
+INSERT INTO `learning_notification` VALUES (261, 118, 111, '4', NULL, NULL, NULL, NULL, '0', NULL, '2026-10-30 15:24:24');
+INSERT INTO `learning_notification` VALUES (262, 111, 112, '1', '3', 203, NULL, NULL, '1', '2026-11-04 09:40:24', '2026-11-02 09:23:11');
+INSERT INTO `learning_notification` VALUES (263, 111, 112, '3', '3', 203, NULL, '1¹1', '1', '2026-11-04 09:40:24', '2026-11-02 09:23:20');
+INSERT INTO `learning_notification` VALUES (264, 111, 112, '1', '3', 202, NULL, NULL, '1', '2026-11-04 09:40:24', '2026-11-02 09:23:46');
+INSERT INTO `learning_notification` VALUES (265, 111, 112, '2', '3', 202, NULL, NULL, '1', '2026-11-04 09:40:24', '2026-11-02 09:23:46');
+INSERT INTO `learning_notification` VALUES (266, 118, 115, '5', '2', 201, 140, '11111111', '0', NULL, '2026-11-02 09:31:26');
+INSERT INTO `learning_notification` VALUES (267, 111, 112, '1', '3', 201, NULL, NULL, '1', '2026-11-04 09:40:24', '2026-11-02 09:45:41');
+INSERT INTO `learning_notification` VALUES (268, 111, 112, '2', '3', 201, NULL, NULL, '1', '2026-11-04 09:40:24', '2026-11-02 09:45:43');
+INSERT INTO `learning_notification` VALUES (269, 111, 112, '3', '3', 201, 142, '8888', '1', '2026-11-04 09:40:24', '2026-11-02 09:45:55');
+INSERT INTO `learning_notification` VALUES (270, 111, 112, '3', '3', 201, NULL, '666', '1', '2026-11-04 09:39:58', '2026-11-02 09:46:08');
+INSERT INTO `learning_notification` VALUES (271, 115, 112, '4', NULL, NULL, NULL, NULL, '1', '2026-11-11 17:58:55', '2026-11-02 09:49:56');
+INSERT INTO `learning_notification` VALUES (273, 112, 115, '4', NULL, NULL, NULL, NULL, '1', '2026-11-06 16:37:39', '2026-11-02 14:04:36');
+INSERT INTO `learning_notification` VALUES (274, 112, 115, '1', '1', 214, NULL, NULL, '1', '2026-11-06 16:37:19', '2026-11-02 14:04:43');
+INSERT INTO `learning_notification` VALUES (275, 112, 115, '1', '1', 214, NULL, NULL, '1', '2026-11-06 16:37:10', '2026-11-02 14:04:53');
+INSERT INTO `learning_notification` VALUES (276, 112, 115, '2', '1', 214, NULL, NULL, '1', '2026-11-06 16:37:29', '2026-11-02 14:04:55');
+INSERT INTO `learning_notification` VALUES (277, 112, 115, '3', '1', 214, NULL, '00000', '1', '2026-11-06 16:37:32', '2026-11-02 14:05:04');
+INSERT INTO `learning_notification` VALUES (278, 112, 115, '3', '1', 214, NULL, '11111', '1', '2026-11-06 16:37:35', '2026-11-02 14:05:16');
+INSERT INTO `learning_notification` VALUES (279, 115, 111, '5', '2', 202, 150, '555', '1', '2026-11-11 17:58:42', '2026-11-04 14:13:53');
+INSERT INTO `learning_notification` VALUES (280, 111, 115, '1', '3', 203, NULL, NULL, '1', '2026-11-17 16:21:46', '2026-11-06 09:06:45');
+INSERT INTO `learning_notification` VALUES (281, 111, 112, '2', '1', 223, NULL, NULL, '1', '2026-11-17 16:21:46', '2026-11-06 09:39:46');
+INSERT INTO `learning_notification` VALUES (282, 111, 112, '2', '1', 223, NULL, NULL, '1', '2026-11-17 16:21:46', '2026-11-06 09:39:50');
+INSERT INTO `learning_notification` VALUES (283, 111, 112, '2', '1', 223, NULL, NULL, '1', '2026-11-17 16:21:46', '2026-11-06 09:40:02');
+INSERT INTO `learning_notification` VALUES (284, 111, 112, '2', '3', 202, NULL, NULL, '1', '2026-11-17 16:21:46', '2026-11-06 09:40:33');
+INSERT INTO `learning_notification` VALUES (285, 111, 112, '2', '3', 203, NULL, NULL, '1', '2026-11-17 16:21:46', '2026-11-06 09:51:38');
+INSERT INTO `learning_notification` VALUES (286, 111, 112, '2', '3', 202, NULL, NULL, '1', '2026-11-17 16:21:46', '2026-11-06 09:51:43');
+INSERT INTO `learning_notification` VALUES (287, 111, 112, '2', '3', 201, NULL, NULL, '1', '2026-11-17 16:21:46', '2026-11-06 09:51:48');
+INSERT INTO `learning_notification` VALUES (288, 111, 112, '1', '3', 202, NULL, NULL, '1', '2026-11-17 16:21:46', '2026-11-06 09:54:29');
+INSERT INTO `learning_notification` VALUES (289, 111, 115, '1', '3', 202, NULL, NULL, '1', '2026-11-17 16:21:46', '2026-11-06 10:49:29');
+INSERT INTO `learning_notification` VALUES (290, 111, 112, '1', '3', 201, NULL, NULL, '1', '2026-11-17 16:21:46', '2026-11-06 11:43:02');
+INSERT INTO `learning_notification` VALUES (291, 111, 112, '1', '3', 202, NULL, NULL, '1', '2026-11-17 16:21:46', '2026-11-06 11:43:37');
+INSERT INTO `learning_notification` VALUES (292, 118, 112, '2', '1', 211, NULL, NULL, '0', NULL, '2026-11-06 14:29:08');
+INSERT INTO `learning_notification` VALUES (293, 118, 112, '1', '1', 211, NULL, NULL, '0', NULL, '2026-11-06 14:29:09');
+INSERT INTO `learning_notification` VALUES (294, 111, 112, '1', '1', 223, NULL, NULL, '1', '2026-11-17 16:21:46', '2026-11-06 14:29:35');
+INSERT INTO `learning_notification` VALUES (295, 118, 112, '3', '1', 211, 152, 'zdjd', '0', NULL, '2026-11-06 14:34:35');
+INSERT INTO `learning_notification` VALUES (296, 1, 112, '3', '1', 101, 153, '1111', '0', NULL, '2026-11-06 14:56:35');
+INSERT INTO `learning_notification` VALUES (297, 111, 112, '1', '3', 202, NULL, NULL, '1', '2026-11-17 16:21:46', '2026-11-06 15:13:52');
+INSERT INTO `learning_notification` VALUES (298, 111, 112, '2', '3', 202, NULL, NULL, '1', '2026-11-17 16:21:46', '2026-11-06 15:13:54');
+INSERT INTO `learning_notification` VALUES (299, 111, 112, '1', '3', 202, NULL, NULL, '1', '2026-11-17 16:21:46', '2026-11-06 15:16:11');
+INSERT INTO `learning_notification` VALUES (300, 111, 112, '2', '3', 202, NULL, NULL, '1', '2026-11-17 16:21:46', '2026-11-06 15:16:12');
+INSERT INTO `learning_notification` VALUES (301, 111, 112, '1', '3', 202, NULL, NULL, '1', '2026-11-17 16:21:46', '2026-11-06 15:16:14');
+INSERT INTO `learning_notification` VALUES (302, 111, 112, '2', '3', 202, NULL, NULL, '1', '2026-11-17 16:21:46', '2026-11-06 15:16:15');
+INSERT INTO `learning_notification` VALUES (303, 111, 112, '3', '1', 201, 154, '666', '1', '2026-11-17 16:21:46', '2026-11-06 15:19:44');
+INSERT INTO `learning_notification` VALUES (304, 111, 112, '3', '3', 203, NULL, '666', '1', '2026-11-17 16:21:46', '2026-11-06 15:20:50');
+INSERT INTO `learning_notification` VALUES (305, 111, 112, '3', '1', 223, NULL, '1', '1', '2026-11-17 16:21:46', '2026-11-06 15:41:09');
+INSERT INTO `learning_notification` VALUES (306, 111, 112, '3', '3', 203, NULL, 'haoma', '1', '2026-11-17 16:21:46', '2026-11-06 16:08:39');
+INSERT INTO `learning_notification` VALUES (307, 111, 112, '3', '3', 203, NULL, 'hiazai', '1', '2026-11-17 16:21:46', '2026-11-06 16:08:49');
+INSERT INTO `learning_notification` VALUES (308, 118, 112, '5', '3', 201, 160, '1111111111 1111111111111111111111', '0', NULL, '2026-11-06 16:21:40');
+INSERT INTO `learning_notification` VALUES (309, 111, 112, '3', '3', 201, 160, '1111111111 1111111111111111111111', '1', '2026-11-17 16:21:46', '2026-11-06 16:21:40');
+INSERT INTO `learning_notification` VALUES (310, 111, 112, '3', '1', 205, NULL, '111111111111111111111111', '1', '2026-11-17 16:21:46', '2026-11-06 16:23:00');
+INSERT INTO `learning_notification` VALUES (311, 111, 112, '1', '3', 201, NULL, NULL, '1', '2026-11-17 16:21:46', '2026-11-09 10:25:50');
+INSERT INTO `learning_notification` VALUES (312, 111, 112, '2', '3', 201, NULL, NULL, '1', '2026-11-17 16:21:46', '2026-11-09 10:31:14');
+INSERT INTO `learning_notification` VALUES (313, 111, 112, '1', '3', 201, NULL, NULL, '1', '2026-11-17 16:21:46', '2026-11-09 10:36:46');
+INSERT INTO `learning_notification` VALUES (314, 111, 112, '3', '3', 201, NULL, '12345', '1', '2026-11-17 16:21:46', '2026-11-09 10:49:40');
+INSERT INTO `learning_notification` VALUES (315, 111, 115, '1', '3', 203, NULL, NULL, '1', '2026-11-17 16:21:46', '2026-11-11 16:41:27');
+INSERT INTO `learning_notification` VALUES (316, 111, 115, '1', '3', 203, NULL, NULL, '1', '2026-11-17 16:21:46', '2026-11-11 17:29:17');
+INSERT INTO `learning_notification` VALUES (317, 1, 121, '3', '1', 101, NULL, '线上测试评论', '0', NULL, '2026-11-12 14:43:50');
+INSERT INTO `learning_notification` VALUES (318, 1, 121, '3', '1', 101, NULL, '线上测试回复', '0', NULL, '2026-11-12 14:44:05');
+INSERT INTO `learning_notification` VALUES (319, 111, 112, '2', '1', 201, NULL, NULL, '1', '2026-11-17 16:21:46', '2026-11-13 18:22:07');
+INSERT INTO `learning_notification` VALUES (320, 111, 112, '1', '1', 201, NULL, NULL, '1', '2026-11-17 16:21:46', '2026-11-13 18:22:11');
+INSERT INTO `learning_notification` VALUES (321, 111, 112, '3', '1', 223, NULL, '棒棒棒棒', '1', '2026-11-17 16:21:46', '2026-11-17 15:43:08');
+INSERT INTO `learning_notification` VALUES (322, 112, 111, '1', '1', 214, NULL, NULL, '1', '2026-11-17 16:15:06', '2026-11-17 16:12:59');
+INSERT INTO `learning_notification` VALUES (323, 112, 111, '2', '1', 214, NULL, NULL, '1', '2026-11-17 16:15:17', '2026-11-17 16:13:05');
+INSERT INTO `learning_notification` VALUES (324, 111, 112, '2', '3', 201, NULL, NULL, '0', NULL, '2026-11-17 17:17:58');
+INSERT INTO `learning_notification` VALUES (325, 106, 112, '4', NULL, NULL, NULL, NULL, '0', NULL, '2026-11-18 10:46:31');
+INSERT INTO `learning_notification` VALUES (332, 118, 112, '5', '3', 201, 175, '111111', '0', NULL, '2026-11-18 13:48:46');
+INSERT INTO `learning_notification` VALUES (333, 111, 112, '3', '3', 201, 175, '111111', '0', NULL, '2026-11-18 13:48:46');
+INSERT INTO `learning_notification` VALUES (338, 111, 112, '3', '1', 205, NULL, '我是大帅比', '0', NULL, '2026-11-18 16:04:40');
+INSERT INTO `learning_notification` VALUES (339, 118, 112, '5', '1', 205, NULL, '你是不是ly', '0', NULL, '2026-11-18 16:04:53');
+INSERT INTO `learning_notification` VALUES (340, 111, 112, '3', '1', 205, NULL, '你是不是ly', '0', NULL, '2026-11-18 16:04:53');
+INSERT INTO `learning_notification` VALUES (341, 111, 112, '1', '1', 205, NULL, NULL, '0', NULL, '2026-11-18 16:05:07');
+INSERT INTO `learning_notification` VALUES (342, 111, 112, '2', '1', 205, NULL, NULL, '0', NULL, '2026-11-18 16:05:10');
 
 -- ----------------------------
 -- Table structure for learning_points_account
@@ -1333,11 +1504,15 @@ CREATE TABLE `learning_points_account`  (
 -- ----------------------------
 -- Records of learning_points_account
 -- ----------------------------
-INSERT INTO `learning_points_account` VALUES (111, 25, 25, NULL, '2026-10-27 10:00:39', '2026-11-09 11:13:11');
-INSERT INTO `learning_points_account` VALUES (112, 23, 43, '2026-11-02 09:56:09', '2026-10-20 14:27:05', '2026-11-09 11:11:11');
-INSERT INTO `learning_points_account` VALUES (115, 5, 15, '2026-11-02 14:36:11', '2026-10-28 11:45:16', '2026-11-06 23:06:27');
+INSERT INTO `learning_points_account` VALUES (111, 56, 56, '2026-11-10 16:55:58', '2026-10-27 10:00:39', '2026-11-18 14:35:13');
+INSERT INTO `learning_points_account` VALUES (112, 127, 137, '2026-11-18 22:46:52', '2026-10-20 14:27:05', '2026-11-18 22:16:52');
+INSERT INTO `learning_points_account` VALUES (115, 9, 19, '2026-11-02 14:36:11', '2026-10-28 11:45:16', '2026-11-18 14:29:12');
 INSERT INTO `learning_points_account` VALUES (116, 0, 0, NULL, '2026-10-23 10:49:03', '2026-10-23 10:49:03');
-INSERT INTO `learning_points_account` VALUES (118, 13, 13, NULL, '2026-10-27 17:57:19', '2026-10-28 11:31:43');
+INSERT INTO `learning_points_account` VALUES (118, 3, 3, NULL, '2026-10-27 17:57:19', '2026-11-11 10:32:28');
+INSERT INTO `learning_points_account` VALUES (121, 16, 16, NULL, '2026-11-12 14:42:30', '2026-11-12 14:43:50');
+INSERT INTO `learning_points_account` VALUES (122, 0, 0, NULL, '2026-11-18 11:38:07', '2026-11-18 11:38:07');
+INSERT INTO `learning_points_account` VALUES (126, 6, 6, NULL, '2026-11-17 15:52:38', '2026-11-18 11:47:54');
+INSERT INTO `learning_points_account` VALUES (128, 1, 1, NULL, '2026-11-18 16:11:22', '2026-11-18 16:11:23');
 
 -- ----------------------------
 -- Table structure for learning_points_log
@@ -1354,31 +1529,107 @@ CREATE TABLE `learning_points_log`  (
   `create_time` datetime NULL DEFAULT NULL COMMENT '创建时间',
   PRIMARY KEY (`log_id`) USING BTREE,
   INDEX `idx_points_log_user`(`user_id` ASC, `log_id` ASC) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 42 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '积分流水' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 126 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '积分流水' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Records of learning_points_log
 -- ----------------------------
-INSERT INTO `learning_points_log` VALUES (22, 112, 5, 5, 'checkin', 17, '每日签到（连续第1天）', '2026-10-20 15:01:03');
-INSERT INTO `learning_points_log` VALUES (23, 112, 5, 10, 'checkin', 18, '每日签到（连续第1天）', '2026-10-27 09:35:00');
-INSERT INTO `learning_points_log` VALUES (24, 111, 5, 5, 'checkin', 19, '每日签到（连续第1天）', '2026-10-27 11:06:16');
-INSERT INTO `learning_points_log` VALUES (25, 112, -10, 0, 'exchange', NULL, '兑换免广告30 分钟', '2026-10-27 14:58:40');
-INSERT INTO `learning_points_log` VALUES (26, 118, 5, 5, 'checkin', 20, '每日签到（连续第1天）', '2026-10-27 17:57:35');
-INSERT INTO `learning_points_log` VALUES (27, 112, 8, 8, 'checkin', 21, '每日签到（连续第2天）', '2026-10-28 11:11:34');
-INSERT INTO `learning_points_log` VALUES (28, 118, 8, 13, 'checkin', 22, '每日签到（连续第2天）', '2026-10-28 11:31:43');
-INSERT INTO `learning_points_log` VALUES (29, 115, 5, 5, 'checkin', 23, '每日签到（连续第1天）', '2026-10-28 19:58:03');
-INSERT INTO `learning_points_log` VALUES (30, 112, 10, 18, 'checkin', 24, '每日签到（连续第3天）', '2026-10-29 14:33:26');
-INSERT INTO `learning_points_log` VALUES (31, 111, 5, 10, 'checkin', 25, '每日签到（连续第1天）', '2026-10-30 15:38:54');
-INSERT INTO `learning_points_log` VALUES (32, 112, 5, 23, 'checkin', 26, '每日签到（连续第1天）', '2026-11-02 09:25:49');
-INSERT INTO `learning_points_log` VALUES (33, 112, -10, 13, 'exchange', NULL, '兑换免广告30 分钟', '2026-11-02 09:26:09');
-INSERT INTO `learning_points_log` VALUES (34, 111, 5, 15, 'checkin', 27, '每日签到（连续第1天）', '2026-11-02 09:43:42');
-INSERT INTO `learning_points_log` VALUES (35, 115, 5, 10, 'checkin', 28, '每日签到（连续第1天）', '2026-11-02 14:05:51');
-INSERT INTO `learning_points_log` VALUES (36, 115, -10, 0, 'exchange', NULL, '兑换免广告30 分钟', '2026-11-02 14:06:11');
-INSERT INTO `learning_points_log` VALUES (37, 111, 5, 20, 'checkin', 29, '每日签到（连续第1天）', '2026-11-04 14:15:29');
-INSERT INTO `learning_points_log` VALUES (38, 112, 5, 18, 'checkin', 30, '每日签到（连续第1天）', '2026-11-06 11:07:52');
-INSERT INTO `learning_points_log` VALUES (39, 115, 5, 5, 'checkin', 31, '每日签到（连续第1天）', '2026-11-06 23:06:27');
-INSERT INTO `learning_points_log` VALUES (40, 112, 5, 23, 'checkin', 32, '每日签到（连续第1天）', '2026-11-09 11:11:11');
-INSERT INTO `learning_points_log` VALUES (41, 111, 5, 25, 'checkin', 33, '每日签到（连续第1天）', '2026-11-09 11:13:11');
+INSERT INTO `learning_points_log` VALUES (67, 111, 5, 5, 'watchCourse', 201, '观看课程小节满 30 秒', '2026-11-03 20:00:00');
+INSERT INTO `learning_points_log` VALUES (68, 111, 5, 10, 'watchPost', 205, '观看帖子满 30 秒', '2026-11-04 19:30:00');
+INSERT INTO `learning_points_log` VALUES (69, 111, 1, 11, 'checkin', NULL, '每日签到（连续第1天）', '2026-11-05 10:00:00');
+INSERT INTO `learning_points_log` VALUES (70, 111, 2, 13, 'checkin', NULL, '每日签到（连续第2天）', '2026-11-06 10:00:00');
+INSERT INTO `learning_points_log` VALUES (71, 111, 3, 16, 'checkin', NULL, '每日签到（连续第3天）', '2026-11-07 10:00:00');
+INSERT INTO `learning_points_log` VALUES (72, 111, 4, 20, 'checkin', NULL, '每日签到（连续第4天）', '2026-11-08 10:00:00');
+INSERT INTO `learning_points_log` VALUES (73, 111, 5, 25, 'checkin', NULL, '每日签到（连续第5天）', '2026-11-09 10:00:00');
+INSERT INTO `learning_points_log` VALUES (74, 111, 6, 31, 'checkin', NULL, '每日签到（连续第6天）', '2026-11-10 10:00:00');
+INSERT INTO `learning_points_log` VALUES (76, 111, 10, 41, 'watchAd', NULL, '观看广告奖励', '2026-11-11 08:03:22');
+INSERT INTO `learning_points_log` VALUES (77, 112, 5, 5, 'watchCourse', 202, '观看课程小节满 30 秒', '2026-11-04 20:10:00');
+INSERT INTO `learning_points_log` VALUES (78, 112, 1, 6, 'checkin', NULL, '每日签到（连续第1天）', '2026-11-08 09:10:00');
+INSERT INTO `learning_points_log` VALUES (79, 112, 2, 8, 'checkin', NULL, '每日签到（连续第2天）', '2026-11-09 09:10:00');
+INSERT INTO `learning_points_log` VALUES (80, 112, 3, 11, 'checkin', NULL, '每日签到（连续第3天）', '2026-11-10 09:10:00');
+INSERT INTO `learning_points_log` VALUES (81, 112, 10, 21, 'watchAd', NULL, '观看广告奖励', '2026-11-11 06:03:22');
+INSERT INTO `learning_points_log` VALUES (82, 115, 1, 1, 'checkin', NULL, '每日签到（连续第1天）', '2026-11-07 21:05:00');
+INSERT INTO `learning_points_log` VALUES (83, 115, 2, 3, 'checkin', NULL, '每日签到（连续第2天）', '2026-11-08 21:05:00');
+INSERT INTO `learning_points_log` VALUES (85, 115, 10, 13, 'watchAd', NULL, '观看广告奖励', '2026-11-10 11:03:23');
+INSERT INTO `learning_points_log` VALUES (86, 118, 1, 1, 'checkin', NULL, '每日签到（连续第1天）', '2026-11-07 20:00:00');
+INSERT INTO `learning_points_log` VALUES (87, 118, 2, 3, 'checkin', NULL, '每日签到（连续第2天）', '2026-11-08 20:00:00');
+INSERT INTO `learning_points_log` VALUES (90, 111, 7, 48, 'checkin', NULL, '每日签到（连续第7天）', '2026-11-11 11:07:30');
+INSERT INTO `learning_points_log` VALUES (91, 115, 5, 18, 'checkin', 50, '每日签到（连续第1天）', '2026-11-11 14:22:47');
+INSERT INTO `learning_points_log` VALUES (92, 112, 12, 33, 'checkin', 51, '每日签到（连续第4天）', '2026-11-11 14:35:35');
+INSERT INTO `learning_points_log` VALUES (93, 112, 5, 38, 'checkin', 52, '每日签到（连续第5天）', '2026-11-12 10:26:07');
+INSERT INTO `learning_points_log` VALUES (94, 121, 1, 1, 'checkin', 53, '每日签到（连续第1天）', '2026-11-12 14:43:50');
+INSERT INTO `learning_points_log` VALUES (95, 121, 5, 6, 'watchCourse', 201, '观看课程小节满 30 秒', '2026-11-12 14:43:50');
+INSERT INTO `learning_points_log` VALUES (96, 121, 10, 16, 'watchAd', NULL, '观看广告奖励', '2026-11-12 14:43:50');
+INSERT INTO `learning_points_log` VALUES (97, 112, 6, 44, 'checkin', 55, '每日签到（连续第6天）', '2026-11-13 09:03:21');
+INSERT INTO `learning_points_log` VALUES (98, 112, 5, 49, 'watchPost', 203, '观看帖子满 30 秒', '2026-11-13 11:06:31');
+INSERT INTO `learning_points_log` VALUES (99, 112, 5, 54, 'watchCourse', 201, '观看课程小节满 30 秒', '2026-11-13 11:12:08');
+INSERT INTO `learning_points_log` VALUES (100, 112, 5, 59, 'watchPost', 223, '观看帖子满 30 秒', '2026-11-13 18:16:30');
+INSERT INTO `learning_points_log` VALUES (101, 112, 5, 64, 'watchPost', 201, '观看帖子满 30 秒', '2026-11-13 18:20:42');
+INSERT INTO `learning_points_log` VALUES (102, 111, 5, 53, 'watchCourse', 203, '观看课程小节满 30 秒', '2026-11-17 10:56:02');
+INSERT INTO `learning_points_log` VALUES (104, 112, 1, 65, 'checkin', 56, '每日签到（连续第1天）', '2026-11-17 15:41:42');
+INSERT INTO `learning_points_log` VALUES (105, 112, 5, 70, 'watchPost', 223, '观看帖子满 30 秒', '2026-11-17 15:42:42');
+INSERT INTO `learning_points_log` VALUES (106, 126, 1, 1, 'checkin', 57, '每日签到（连续第1天）', '2026-11-17 15:52:40');
+INSERT INTO `learning_points_log` VALUES (107, 112, 5, 75, 'watchCourse', 203, '观看课程小节满 30 秒', '2026-11-17 16:00:02');
+INSERT INTO `learning_points_log` VALUES (108, 112, 5, 80, 'watchCourse', 204, '观看课程小节满 30 秒', '2026-11-17 16:02:42');
+INSERT INTO `learning_points_log` VALUES (109, 111, 1, 54, 'checkin', 58, '每日签到（连续第1天）', '2026-11-17 16:18:18');
+INSERT INTO `learning_points_log` VALUES (110, 112, 5, 85, 'watchPost', 214, '观看帖子满 30 秒', '2026-11-17 17:48:37');
+INSERT INTO `learning_points_log` VALUES (111, 112, 5, 90, 'watchPost', 214, '观看帖子满 30 秒', '2026-11-18 10:30:58');
+INSERT INTO `learning_points_log` VALUES (112, 115, -5, 13, 'shopExchange', 1, '兑换商品：平台限定贴纸包', '2026-11-18 11:36:09');
+INSERT INTO `learning_points_log` VALUES (113, 112, 2, 92, 'checkin', 59, '每日签到（连续第2天）', '2026-11-18 11:36:53');
+INSERT INTO `learning_points_log` VALUES (114, 112, 5, 97, 'watchPost', 223, '观看帖子满 30 秒', '2026-11-18 11:47:43');
+INSERT INTO `learning_points_log` VALUES (115, 126, 5, 6, 'watchPost', 223, '观看帖子满 30 秒', '2026-11-18 11:47:54');
+INSERT INTO `learning_points_log` VALUES (116, 112, 5, 102, 'watchPost', 211, '观看帖子满 30 秒', '2026-11-18 11:52:47');
+INSERT INTO `learning_points_log` VALUES (117, 115, 1, 14, 'checkin', 60, '每日签到（连续第1天）', '2026-11-18 13:59:38');
+INSERT INTO `learning_points_log` VALUES (118, 115, -5, 9, 'shopExchange', 2, '兑换商品：平台限定贴纸包', '2026-11-18 14:29:12');
+INSERT INTO `learning_points_log` VALUES (119, 111, 2, 56, 'checkin', 61, '每日签到（连续第2天）', '2026-11-18 14:35:13');
+INSERT INTO `learning_points_log` VALUES (120, 112, 5, 107, 'watchPost', 205, '观看帖子满 30 秒', '2026-11-18 14:37:52');
+INSERT INTO `learning_points_log` VALUES (121, 128, 1, 1, 'checkin', 62, '每日签到（连续第1天）', '2026-11-18 16:11:23');
+INSERT INTO `learning_points_log` VALUES (122, 112, 10, 117, 'watchAd', NULL, '观看广告奖励', '2026-11-18 18:17:32');
+INSERT INTO `learning_points_log` VALUES (123, 112, 10, 127, 'watchAd', NULL, '观看广告奖励', '2026-11-18 21:54:51');
+INSERT INTO `learning_points_log` VALUES (124, 112, 10, 137, 'watchAd', NULL, '观看广告奖励', '2026-11-18 21:55:58');
+INSERT INTO `learning_points_log` VALUES (125, 112, -10, 127, 'exchange', NULL, '兑换免广告30 分钟', '2026-11-18 22:16:52');
+
+-- ----------------------------
+-- Table structure for learning_points_watch
+-- ----------------------------
+DROP TABLE IF EXISTS `learning_points_watch`;
+CREATE TABLE `learning_points_watch`  (
+  `id` bigint NOT NULL AUTO_INCREMENT COMMENT '主键',
+  `user_id` bigint NOT NULL COMMENT '用户ID',
+  `target_type` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '内容类型：post / courseVideo',
+  `target_id` bigint NOT NULL COMMENT '内容ID：帖子ID / 课程小节ID',
+  `award_date` date NOT NULL COMMENT '归属日期（东八区）',
+  `watched_seconds` int NOT NULL DEFAULT 0 COMMENT '当天累计观看秒数',
+  `awarded` tinyint NOT NULL DEFAULT 0 COMMENT '是否已发分：0否 1是',
+  `points` int NOT NULL DEFAULT 0 COMMENT '已发积分',
+  `create_time` datetime NULL DEFAULT NULL COMMENT '创建时间',
+  `update_time` datetime NULL DEFAULT NULL COMMENT '更新时间',
+  PRIMARY KEY (`id`) USING BTREE,
+  UNIQUE INDEX `uk_user_target_date`(`user_id` ASC, `target_type` ASC, `target_id` ASC, `award_date` ASC) USING BTREE
+) ENGINE = InnoDB AUTO_INCREMENT = 571 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '积分-内容观看累计与去重' ROW_FORMAT = Dynamic;
+
+-- ----------------------------
+-- Records of learning_points_watch
+-- ----------------------------
+INSERT INTO `learning_points_watch` VALUES (10, 121, 'courseVideo', 201, '2026-11-12', 60, 1, 5, '2026-11-12 14:43:50', '2026-11-12 14:43:50');
+INSERT INTO `learning_points_watch` VALUES (12, 112, 'post', 203, '2026-11-13', 100, 1, 5, '2026-11-13 11:06:09', '2026-11-13 18:15:40');
+INSERT INTO `learning_points_watch` VALUES (16, 112, 'courseVideo', 201, '2026-11-13', 124, 1, 5, '2026-11-13 11:10:20', '2026-11-13 11:25:11');
+INSERT INTO `learning_points_watch` VALUES (26, 112, 'post', 223, '2026-11-13', 30, 1, 5, '2026-11-13 18:16:30', '2026-11-13 18:16:30');
+INSERT INTO `learning_points_watch` VALUES (27, 112, 'post', 201, '2026-11-13', 30, 1, 5, '2026-11-13 18:20:41', '2026-11-13 18:20:42');
+INSERT INTO `learning_points_watch` VALUES (28, 111, 'courseVideo', 203, '2026-11-17', 31, 1, 5, '2026-11-17 09:13:52', '2026-11-17 10:56:02');
+INSERT INTO `learning_points_watch` VALUES (32, 112, 'post', 223, '2026-11-17', 30, 1, 5, '2026-11-17 15:42:41', '2026-11-17 15:42:42');
+INSERT INTO `learning_points_watch` VALUES (33, 112, 'courseVideo', 203, '2026-11-17', 244, 1, 5, '2026-11-17 15:50:26', '2026-11-17 16:13:13');
+INSERT INTO `learning_points_watch` VALUES (34, 112, 'courseVideo', 202, '2026-11-17', 15, 0, 0, '2026-11-17 15:52:10', '2026-11-17 15:56:11');
+INSERT INTO `learning_points_watch` VALUES (36, 112, 'courseVideo', 201, '2026-11-17', 9, 0, 0, '2026-11-17 15:55:09', '2026-11-17 17:26:39');
+INSERT INTO `learning_points_watch` VALUES (40, 112, 'courseVideo', 204, '2026-11-17', 55, 1, 5, '2026-11-17 15:59:29', '2026-11-17 16:03:03');
+INSERT INTO `learning_points_watch` VALUES (47, 112, 'post', 214, '2026-11-17', 45, 1, 5, '2026-11-17 16:01:35', '2026-11-17 17:48:41');
+INSERT INTO `learning_points_watch` VALUES (50, 112, 'post', 205, '2026-11-17', 1, 0, 0, '2026-11-17 16:01:48', '2026-11-17 16:01:48');
+INSERT INTO `learning_points_watch` VALUES (82, 112, 'post', 214, '2026-11-18', 2805, 1, 5, '2026-11-18 10:20:27', '2026-11-18 17:44:52');
+INSERT INTO `learning_points_watch` VALUES (88, 112, 'post', 223, '2026-11-18', 4571, 1, 5, '2026-11-18 10:32:38', '2026-11-18 18:01:11');
+INSERT INTO `learning_points_watch` VALUES (115, 112, 'post', 205, '2026-11-18', 915, 1, 5, '2026-11-18 10:53:06', '2026-11-18 17:46:57');
+INSERT INTO `learning_points_watch` VALUES (117, 126, 'post', 223, '2026-11-18', 821, 1, 5, '2026-11-18 11:47:34', '2026-11-18 12:00:58');
+INSERT INTO `learning_points_watch` VALUES (144, 112, 'post', 211, '2026-11-18', 64, 1, 5, '2026-11-18 11:52:11', '2026-11-18 16:04:19');
+INSERT INTO `learning_points_watch` VALUES (322, 112, 'post', 204, '2026-11-18', 2, 0, 0, '2026-11-18 14:40:14', '2026-11-18 14:40:14');
 
 -- ----------------------------
 -- Table structure for learning_post
@@ -1409,7 +1660,7 @@ CREATE TABLE `learning_post`  (
   INDEX `idx_post_status`(`status` ASC, `del_flag` ASC) USING BTREE,
   CONSTRAINT `chk_post_favorite_count` CHECK (`favorite_count` >= 0),
   CONSTRAINT `chk_post_like_count` CHECK (`like_count` >= 0)
-) ENGINE = InnoDB AUTO_INCREMENT = 228 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '学习平台社区帖子表' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 231 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '学习平台社区帖子表' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Records of learning_post
@@ -1429,15 +1680,15 @@ INSERT INTO `learning_post` VALUES (201, 'Java 8 Stream 流式编程实践', 100
 INSERT INTO `learning_post` VALUES (202, 'MySQL 索引失效的常见场景', 102, 111, '函数运算、隐式类型转换、前导模糊查询、OR 连接等导致索引失效的典型场景，以及对应的规避写法。', 0, 1, 0, '0', '0', '0', '111', '2026-10-20 14:21:20', '', NULL, NULL, NULL, 1);
 INSERT INTO `learning_post` VALUES (203, 'Redis 缓存穿透、击穿与雪崩', 104, 111, '三种缓存异常的成因图解：空值缓存、布隆过滤器、互斥锁与逻辑过期等经典解决方案。', 1, 0, 3, '0', '0', '0', '111', '2026-10-20 14:21:20', '', NULL, NULL, NULL, 2);
 INSERT INTO `learning_post` VALUES (204, 'Kafka 消息可靠性保障机制', 106, 111, '生产端 ACK 机制、消费端手动提交、幂等生产者与事务消息，保障消息不丢不重的实践总结。', 1, 1, 0, '0', '0', '0', '111', '2026-10-20 14:21:20', '', NULL, NULL, NULL, 1);
-INSERT INTO `learning_post` VALUES (205, '从单体到微服务的架构演进', 108, 111, '服务拆分原则、注册中心选型、网关与配置中心，以及微服务化过程中的常见踩坑记录。', 1, 1, 5, '0', '0', '0', '111', '2026-10-20 14:21:20', 'admin', '2026-11-02 09:35:58', '', NULL, 3);
+INSERT INTO `learning_post` VALUES (205, '从单体到微服务的架构演进', 108, 111, '服务拆分原则、注册中心选型、网关与配置中心，以及微服务化过程中的常见踩坑记录。', 2, 2, 6, '0', '0', '0', '111', '2026-10-20 14:21:20', 'admin', '2026-11-02 09:35:58', '', NULL, 3);
 INSERT INTO `learning_post` VALUES (207, '测试文章-可删除', NULL, 111, '这是给测试练删除用的文章，删除不影响其他数据。', 0, 0, 0, '0', '0', '2', '', '2026-10-23 10:48:23', '', '2026-10-23 11:16:27', NULL, NULL, 0);
 INSERT INTO `learning_post` VALUES (208, '回归测试文章G1', 100, 111, '测试内容', 0, 0, 0, '3', '0', '2', '13900000001', '2026-10-28 10:46:13', '', '2026-10-28 10:46:15', NULL, NULL, 0);
 INSERT INTO `learning_post` VALUES (209, '回归测试文章G2', 100, 111, '测试内容', 0, 0, 0, '3', '0', '2', '13900000001', '2026-10-28 10:46:13', '', '2026-10-28 10:46:15', NULL, NULL, 0);
 INSERT INTO `learning_post` VALUES (210, 'integration test post', 100, 115, 'this is a test content', 0, 0, 0, '4', '0', '2', '13911112222', '2026-10-28 10:46:33', 'admin', '2026-11-02 13:59:34', NULL, NULL, 0);
-INSERT INTO `learning_post` VALUES (211, '计算机网络3天速成', 108, 118, 'B站搜索计算机网络鱼哥', 2, 1, 2, '0', '1', '0', '13900000009', '2026-10-28 10:54:58', 'admin', '2026-10-28 10:57:37', '', NULL, 5);
+INSERT INTO `learning_post` VALUES (211, '计算机网络3天速成', 108, 118, 'B站搜索计算机网络鱼哥', 2, 1, 1, '0', '1', '0', '13900000009', '2026-10-28 10:54:58', 'admin', '2026-10-28 10:57:37', '', NULL, 5);
 INSERT INTO `learning_post` VALUES (212, 'DSH对接验证-可删除', 100, 111, '<p>这是客户端对接 post/add 的验证文章</p>', 0, 0, 0, '3', '0', '2', '13900000001', '2026-10-28 17:11:35', '', '2026-10-28 17:15:30', NULL, NULL, 0);
 INSERT INTO `learning_post` VALUES (213, 'o_from_android_clientdroid_client', 104, 112, '<p>hello_from_android_client</p>', 0, 0, 0, '3', '0', '2', '13900139001', '2026-10-28 17:15:05', '', '2026-10-28 17:15:28', NULL, NULL, 0);
-INSERT INTO `learning_post` VALUES (214, 'test', 100, 112, '<p>test</p>', 2, 2, 1, '0', '0', '0', '13900139001', '2026-10-28 17:16:03', 'admin', '2026-10-29 09:28:28', '', NULL, 5);
+INSERT INTO `learning_post` VALUES (214, 'test', 100, 112, '<p>test</p>', 3, 3, 0, '0', '0', '0', '13900139001', '2026-10-28 17:16:03', 'admin', '2026-10-29 09:28:28', '', NULL, 7);
 INSERT INTO `learning_post` VALUES (215, 'test', 100, 112, '<p>test</p>', 0, 0, 0, '4', '0', '2', '13900139001', '2026-10-28 17:33:17', 'admin', '2026-11-02 09:50:54', NULL, NULL, 0);
 INSERT INTO `learning_post` VALUES (216, '6666', 100, 111, '##11\nDaddy’s dad sad.\n\n##555\nGsgsgsdf./\n\n![](https://zhinengguanggaopingtai.oss-cn-shanghai.aliyuncs.com/upload/2026/10/30/post-1793343193-0_20261030145355A012.jpg)', 0, 0, 0, '0', '1', '2', '13900000001', '2026-10-30 14:54:12', 'admin', '2026-10-30 15:38:07', NULL, NULL, 0);
 INSERT INTO `learning_post` VALUES (217, '2222', 100, 111, '22222', 0, 0, 0, '0', '0', '2', '13900000001', '2026-10-30 17:51:29', 'admin', '2026-11-02 09:43:37', NULL, NULL, 0);
@@ -1446,11 +1697,14 @@ INSERT INTO `learning_post` VALUES (219, 'fbfb', 102, 112, 'bujbujbvhb', 0, 0, 0
 INSERT INTO `learning_post` VALUES (220, '11111', 100, 115, '111', 0, 0, 0, '3', '0', '2', '13911112222', '2026-11-02 14:02:46', '', '2026-11-02 14:03:05', NULL, NULL, 0);
 INSERT INTO `learning_post` VALUES (221, '话题测试文章-可删', 100, 111, '这是正文第一段，用来测摘要。\n\n![封面](https://zhinengguanggaopingtai.oss-cn-shanghai.aliyuncs.com/upload/2026/10/27/small_20261027155044A001.png)\n\n更多内容……', 0, 0, 0, '0', '0', '2', '13900000001', '2026-11-02 15:49:33', '', NULL, NULL, NULL, 0);
 INSERT INTO `learning_post` VALUES (222, '级联测试-可删', 100, 111, '正文', 0, 0, 0, '3', '0', '2', '13900000001', '2026-11-02 15:50:54', '', '2026-11-02 15:50:55', NULL, NULL, 0);
-INSERT INTO `learning_post` VALUES (223, 'java后端开发', 100, 111, '##非常\n美妙\n##棒\n\n![](https://zhinengguanggaopingtai.oss-cn-shanghai.aliyuncs.com/upload/2026/11/04/post-1793775180-0_20261104145335A004.jpg)\n\n![](https://zhinengguanggaopingtai.oss-cn-shanghai.aliyuncs.com/upload/2026/11/04/post-1793775214-1_20261104145351A005.jpg)\n\n![](https://zhinengguanggaopingtai.oss-cn-shanghai.aliyuncs.com/upload/2026/11/04/post-1793775230-2_20261104145413A006.jpg)', 2, 1, 1, '0', '0', '0', '13900000001', '2026-11-04 14:54:18', 'admin', '2026-11-04 14:54:45', NULL, NULL, 6);
+INSERT INTO `learning_post` VALUES (223, 'java后端开发', 100, 111, '##非常\n美妙\n##棒\n\n![](https://zhinengguanggaopingtai.oss-cn-shanghai.aliyuncs.com/upload/2026/11/04/post-1793775180-0_20261104145335A004.jpg)\n\n![](https://zhinengguanggaopingtai.oss-cn-shanghai.aliyuncs.com/upload/2026/11/04/post-1793775214-1_20261104145351A005.jpg)\n\n![](https://zhinengguanggaopingtai.oss-cn-shanghai.aliyuncs.com/upload/2026/11/04/post-1793775230-2_20261104145413A006.jpg)', 2, 1, 0, '0', '0', '0', '13900000001', '2026-11-04 14:54:18', 'admin', '2026-11-04 14:54:45', NULL, NULL, 8);
 INSERT INTO `learning_post` VALUES (224, 'iOS paging test 1', 100, 115, 'paging verify body 1', 0, 0, 0, '3', '0', '2', '13911112222', '2026-11-06 15:19:57', '', '2026-11-06 16:58:44', NULL, NULL, 0);
 INSERT INTO `learning_post` VALUES (225, 'iOS paging test 2', 100, 115, 'paging verify body 2', 0, 0, 0, '3', '0', '2', '13911112222', '2026-11-06 15:19:57', '', '2026-11-06 15:35:20', NULL, NULL, 0);
 INSERT INTO `learning_post` VALUES (226, 'iOS paging test 3', 100, 115, 'paging verify body 3', 0, 0, 0, '3', '0', '2', '13911112222', '2026-11-06 15:19:58', '', '2026-11-06 15:23:03', NULL, NULL, 0);
 INSERT INTO `learning_post` VALUES (227, '测试', 102, 112, 'vdfgbhfvdb', 0, 0, 0, '3', '0', '0', '13900139001', '2026-11-09 11:16:57', '', NULL, NULL, NULL, 0);
+INSERT INTO `learning_post` VALUES (228, '线上测试-话题挂载', 100, 121, '线上部署后功能验证用帖', 0, 0, 0, '3', '0', '0', '13900009999', '2026-11-12 14:43:49', '', NULL, NULL, NULL, 0);
+INSERT INTO `learning_post` VALUES (229, '正常测试标题', 100, 118, '正常内容，没有违禁词', 0, 0, 0, '3', '0', '2', '13900000009', '2026-11-18 11:48:18', '', '2026-11-18 11:48:30', NULL, NULL, 0);
+INSERT INTO `learning_post` VALUES (230, '测试违禁词标题', 100, 118, '测试 违禁 词', 0, 0, 0, '3', '0', '2', '13900000009', '2026-11-18 11:48:30', '', '2026-11-18 11:48:30', NULL, NULL, 0);
 
 -- ----------------------------
 -- Table structure for learning_post_topic
@@ -1464,12 +1718,186 @@ CREATE TABLE `learning_post_topic`  (
   PRIMARY KEY (`id`) USING BTREE,
   UNIQUE INDEX `uk_post_topic`(`post_id` ASC, `topic_id` ASC) USING BTREE,
   INDEX `idx_topic`(`topic_id` ASC) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 7 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '文章-话题关联表' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 9 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '文章-话题关联表' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Records of learning_post_topic
 -- ----------------------------
 INSERT INTO `learning_post_topic` VALUES (6, 223, 4, '2026-11-04 14:54:18');
+INSERT INTO `learning_post_topic` VALUES (7, 228, 1, '2026-11-12 14:43:49');
+INSERT INTO `learning_post_topic` VALUES (8, 228, 2, '2026-11-12 14:43:49');
+
+-- ----------------------------
+-- Table structure for learning_sensitive_word
+-- ----------------------------
+DROP TABLE IF EXISTS `learning_sensitive_word`;
+CREATE TABLE `learning_sensitive_word`  (
+  `word_id` bigint NOT NULL AUTO_INCREMENT COMMENT '主键',
+  `word` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '违禁词',
+  `status` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL DEFAULT '0' COMMENT '状态（0正常 1停用）',
+  `remark` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '备注',
+  `create_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '创建者',
+  `create_time` datetime NULL DEFAULT NULL COMMENT '创建时间',
+  `update_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '更新者',
+  `update_time` datetime NULL DEFAULT NULL COMMENT '更新时间',
+  PRIMARY KEY (`word_id`) USING BTREE,
+  UNIQUE INDEX `uk_sensitive_word`(`word` ASC) USING BTREE
+) ENGINE = InnoDB AUTO_INCREMENT = 42 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '违禁词库' ROW_FORMAT = Dynamic;
+
+-- ----------------------------
+-- Records of learning_sensitive_word
+-- ----------------------------
+INSERT INTO `learning_sensitive_word` VALUES (1, '赌博', '0', '基础词', 'admin', '2026-11-18 11:43:40', NULL, NULL);
+INSERT INTO `learning_sensitive_word` VALUES (2, '诈骗', '0', '基础词', 'admin', '2026-11-18 11:43:40', NULL, NULL);
+INSERT INTO `learning_sensitive_word` VALUES (3, '代考', '0', '基础词', 'admin', '2026-11-18 11:43:40', NULL, NULL);
+INSERT INTO `learning_sensitive_word` VALUES (4, '刷单', '0', '基础词', 'admin', '2026-11-18 11:43:40', NULL, NULL);
+INSERT INTO `learning_sensitive_word` VALUES (5, '外挂', '0', '基础词', 'admin', '2026-11-18 11:43:40', NULL, NULL);
+INSERT INTO `learning_sensitive_word` VALUES (7, '加微信', '0', '基础词库', 'admin', '2026-11-19 09:18:48', NULL, NULL);
+INSERT INTO `learning_sensitive_word` VALUES (8, '加QQ', '0', '基础词库', 'admin', '2026-11-19 09:18:48', NULL, NULL);
+INSERT INTO `learning_sensitive_word` VALUES (9, '扫码加群', '0', '基础词库', 'admin', '2026-11-19 09:18:48', NULL, NULL);
+INSERT INTO `learning_sensitive_word` VALUES (10, '兼职日结', '0', '基础词库', 'admin', '2026-11-19 09:18:48', NULL, NULL);
+INSERT INTO `learning_sensitive_word` VALUES (11, '高薪兼职', '0', '基础词库', 'admin', '2026-11-19 09:18:48', NULL, NULL);
+INSERT INTO `learning_sensitive_word` VALUES (12, '刷单返利', '0', '基础词库', 'admin', '2026-11-19 09:18:48', NULL, NULL);
+INSERT INTO `learning_sensitive_word` VALUES (13, '点击链接领取', '0', '基础词库', 'admin', '2026-11-19 09:18:49', NULL, NULL);
+INSERT INTO `learning_sensitive_word` VALUES (14, '推广返利', '0', '基础词库', 'admin', '2026-11-19 09:18:49', NULL, NULL);
+INSERT INTO `learning_sensitive_word` VALUES (16, '博彩', '0', '基础词库', 'admin', '2026-11-19 09:18:49', NULL, NULL);
+INSERT INTO `learning_sensitive_word` VALUES (18, '洗钱', '0', '基础词库', 'admin', '2026-11-19 09:18:49', NULL, NULL);
+INSERT INTO `learning_sensitive_word` VALUES (19, '套现', '0', '基础词库', 'admin', '2026-11-19 09:18:49', NULL, NULL);
+INSERT INTO `learning_sensitive_word` VALUES (21, '代写论文', '0', '基础词库', 'admin', '2026-11-19 09:18:49', NULL, NULL);
+INSERT INTO `learning_sensitive_word` VALUES (23, '破解版', '0', '基础词库', 'admin', '2026-11-19 09:18:49', NULL, NULL);
+INSERT INTO `learning_sensitive_word` VALUES (24, '枪支', '0', '基础词库', 'admin', '2026-11-19 09:18:49', NULL, NULL);
+INSERT INTO `learning_sensitive_word` VALUES (25, '毒品', '0', '基础词库', 'admin', '2026-11-19 09:18:49', NULL, NULL);
+INSERT INTO `learning_sensitive_word` VALUES (26, '迷药', '0', '基础词库', 'admin', '2026-11-19 09:18:49', NULL, NULL);
+INSERT INTO `learning_sensitive_word` VALUES (27, '傻逼', '0', '基础词库', 'admin', '2026-11-19 09:18:49', NULL, NULL);
+INSERT INTO `learning_sensitive_word` VALUES (28, '脑残', '0', '基础词库', 'admin', '2026-11-19 09:18:49', NULL, NULL);
+INSERT INTO `learning_sensitive_word` VALUES (29, '智障', '0', '基础词库', 'admin', '2026-11-19 09:18:49', NULL, NULL);
+INSERT INTO `learning_sensitive_word` VALUES (30, '废物', '0', '基础词库', 'admin', '2026-11-19 09:18:49', NULL, NULL);
+INSERT INTO `learning_sensitive_word` VALUES (31, '滚蛋', '0', '基础词库', 'admin', '2026-11-19 09:18:50', NULL, NULL);
+INSERT INTO `learning_sensitive_word` VALUES (32, '裸聊', '0', '基础词库', 'admin', '2026-11-19 09:18:50', NULL, NULL);
+INSERT INTO `learning_sensitive_word` VALUES (33, '约炮', '0', '基础词库', 'admin', '2026-11-19 09:18:50', NULL, NULL);
+INSERT INTO `learning_sensitive_word` VALUES (34, '招嫖', '0', '基础词库', 'admin', '2026-11-19 09:18:50', NULL, NULL);
+INSERT INTO `learning_sensitive_word` VALUES (35, '传销', '0', '基础词库', 'admin', '2026-11-19 09:18:50', NULL, NULL);
+INSERT INTO `learning_sensitive_word` VALUES (36, '发票代开', '0', '基础词库', 'admin', '2026-11-19 09:18:50', NULL, NULL);
+
+-- ----------------------------
+-- Table structure for learning_shop_address
+-- ----------------------------
+DROP TABLE IF EXISTS `learning_shop_address`;
+CREATE TABLE `learning_shop_address`  (
+  `address_id` bigint NOT NULL AUTO_INCREMENT COMMENT '地址ID',
+  `user_id` bigint NOT NULL COMMENT '用户ID（sys_user.user_id）',
+  `receiver_name` varchar(30) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '收货人',
+  `receiver_phone` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '收货人手机号',
+  `detail_address` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '详细地址',
+  `is_default` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '默认地址（1默认；NULL非默认）',
+  `del_flag` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT '0' COMMENT '删除标志（0存在 2删除）',
+  `create_time` datetime NULL DEFAULT NULL COMMENT '创建时间',
+  `update_time` datetime NULL DEFAULT NULL COMMENT '更新时间',
+  PRIMARY KEY (`address_id`) USING BTREE,
+  UNIQUE INDEX `uk_shop_address_default`(`user_id` ASC, `is_default` ASC) USING BTREE,
+  INDEX `idx_shop_address_user`(`user_id` ASC, `del_flag` ASC) USING BTREE
+) ENGINE = InnoDB AUTO_INCREMENT = 2 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '积分商城-收货地址' ROW_FORMAT = Dynamic;
+
+-- ----------------------------
+-- Records of learning_shop_address
+-- ----------------------------
+INSERT INTO `learning_shop_address` VALUES (1, 115, 'Zheng San', '13911112222', 'Zhenjiang Hangzhou Xueyuan Road 8', '1', '0', '2026-11-18 11:27:26', '2026-11-18 16:16:18');
+
+-- ----------------------------
+-- Table structure for learning_shop_category
+-- ----------------------------
+DROP TABLE IF EXISTS `learning_shop_category`;
+CREATE TABLE `learning_shop_category`  (
+  `category_id` bigint NOT NULL AUTO_INCREMENT COMMENT '分类ID',
+  `category_name` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '分类名称',
+  `order_num` int NULL DEFAULT 0 COMMENT '显示顺序',
+  `status` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT '0' COMMENT '状态（0正常 1停用）',
+  `del_flag` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT '0' COMMENT '删除标志（0存在 2删除）',
+  `create_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT '' COMMENT '创建者',
+  `create_time` datetime NULL DEFAULT NULL COMMENT '创建时间',
+  `update_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT '' COMMENT '更新者',
+  `update_time` datetime NULL DEFAULT NULL COMMENT '更新时间',
+  `remark` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '备注',
+  PRIMARY KEY (`category_id`) USING BTREE,
+  INDEX `idx_shop_category_status`(`status` ASC, `del_flag` ASC, `order_num` ASC) USING BTREE
+) ENGINE = InnoDB AUTO_INCREMENT = 6 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '积分商城-商品分类' ROW_FORMAT = Dynamic;
+
+-- ----------------------------
+-- Records of learning_shop_category
+-- ----------------------------
+INSERT INTO `learning_shop_category` VALUES (1, '数码周边', 1, '0', '0', 'admin', '2026-11-18 10:48:58', '', NULL, NULL);
+INSERT INTO `learning_shop_category` VALUES (2, '学习文具', 2, '0', '0', 'admin', '2026-11-18 10:48:58', '', NULL, NULL);
+INSERT INTO `learning_shop_category` VALUES (3, '生活好物', 3, '0', '0', 'admin', '2026-11-18 10:48:58', '', NULL, NULL);
+INSERT INTO `learning_shop_category` VALUES (4, '图书饮品', 4, '0', '0', 'admin', '2026-11-18 10:48:58', '', NULL, NULL);
+INSERT INTO `learning_shop_category` VALUES (5, '测试分类A改', 10, '0', '2', 'admin', '2026-11-18 14:24:51', 'admin', '2026-11-18 14:25:16', '自动化测试-已修改');
+
+-- ----------------------------
+-- Table structure for learning_shop_order
+-- ----------------------------
+DROP TABLE IF EXISTS `learning_shop_order`;
+CREATE TABLE `learning_shop_order`  (
+  `order_id` bigint NOT NULL AUTO_INCREMENT COMMENT '兑换记录ID',
+  `redemption_code` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '兑换码（全局唯一）',
+  `user_id` bigint NOT NULL COMMENT '用户ID（sys_user.user_id）',
+  `product_id` bigint NOT NULL COMMENT '商品ID',
+  `product_name` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '商品名称快照',
+  `cover_url` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '商品封面快照',
+  `points_cost` int NOT NULL COMMENT '消耗积分快照',
+  `create_time` datetime NULL DEFAULT NULL COMMENT '兑换时间',
+  PRIMARY KEY (`order_id`) USING BTREE,
+  UNIQUE INDEX `uk_shop_order_code`(`redemption_code` ASC) USING BTREE,
+  INDEX `idx_shop_order_user`(`user_id` ASC, `order_id` ASC) USING BTREE,
+  INDEX `idx_shop_order_product`(`product_id` ASC) USING BTREE
+) ENGINE = InnoDB AUTO_INCREMENT = 3 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '积分商城-兑换记录' ROW_FORMAT = Dynamic;
+
+-- ----------------------------
+-- Records of learning_shop_order
+-- ----------------------------
+INSERT INTO `learning_shop_order` VALUES (1, 'SHOPMELGKD2X8Q7M', 115, 12, '平台限定贴纸包', NULL, 5, '2026-11-18 11:36:09');
+INSERT INTO `learning_shop_order` VALUES (2, 'SHOPN82K4R7P6SC3', 115, 12, '平台限定贴纸包', NULL, 5, '2026-11-18 14:29:12');
+
+-- ----------------------------
+-- Table structure for learning_shop_product
+-- ----------------------------
+DROP TABLE IF EXISTS `learning_shop_product`;
+CREATE TABLE `learning_shop_product`  (
+  `product_id` bigint NOT NULL AUTO_INCREMENT COMMENT '商品ID',
+  `category_id` bigint NOT NULL COMMENT '分类ID（learning_shop_category.category_id）',
+  `product_name` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '商品名称',
+  `cover_url` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '商品封面（相对路径或完整 OSS 地址）',
+  `points_price` int NOT NULL DEFAULT 0 COMMENT '兑换所需积分',
+  `stock` int NOT NULL DEFAULT 0 COMMENT '库存',
+  `sold_count` int NOT NULL DEFAULT 0 COMMENT '已兑换数量',
+  `description` varchar(2000) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '商品描述',
+  `order_num` int NULL DEFAULT 0 COMMENT '显示顺序',
+  `status` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT '0' COMMENT '状态（0上架 1下架）',
+  `del_flag` char(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT '0' COMMENT '删除标志（0存在 2删除）',
+  `create_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT '' COMMENT '创建者',
+  `create_time` datetime NULL DEFAULT NULL COMMENT '创建时间',
+  `update_by` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT '' COMMENT '更新者',
+  `update_time` datetime NULL DEFAULT NULL COMMENT '更新时间',
+  `remark` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '备注',
+  PRIMARY KEY (`product_id`) USING BTREE,
+  INDEX `idx_shop_product_category`(`category_id` ASC) USING BTREE,
+  INDEX `idx_shop_product_status`(`status` ASC, `del_flag` ASC, `order_num` ASC) USING BTREE
+) ENGINE = InnoDB AUTO_INCREMENT = 14 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '积分商城-商品' ROW_FORMAT = Dynamic;
+
+-- ----------------------------
+-- Records of learning_shop_product
+-- ----------------------------
+INSERT INTO `learning_shop_product` VALUES (1, 1, '无线蓝牙耳机', 'http://43.142.9.214/oss-preview/upload/2026/11/18/OIP_20261118113941A002.jpg', 2600, 20, 128, '轻量化半入耳设计，续航 20 小时，学习通勤两不误。', 1, '0', '0', 'admin', '2026-11-18 10:49:22', 'admin', '2026-11-18 11:39:44', '');
+INSERT INTO `learning_shop_product` VALUES (2, 1, '桌面学习台灯', NULL, 2200, 15, 86, '三档色温，无频闪，深夜自习的护眼搭档。', 2, '0', '0', 'admin', '2026-11-18 10:49:22', '', NULL, NULL);
+INSERT INTO `learning_shop_product` VALUES (3, 3, '保温随行杯', NULL, 1200, 40, 210, '316 不锈钢内胆，一杯热水陪你一整节早八。', 3, '0', '0', 'admin', '2026-11-18 10:49:22', '', NULL, NULL);
+INSERT INTO `learning_shop_product` VALUES (4, 3, '定制帆布托特包', NULL, 800, 60, 45, '加厚帆布，装得下教材和电脑，也装得下周末。', 4, '0', '0', 'admin', '2026-11-18 10:49:22', '', NULL, NULL);
+INSERT INTO `learning_shop_product` VALUES (5, 2, '中性笔书写礼盒', NULL, 600, 100, 320, '0.5mm 顺滑速干，四色套装，考前刷题不断墨。', 5, '0', '0', 'admin', '2026-11-18 10:49:22', '', NULL, NULL);
+INSERT INTO `learning_shop_product` VALUES (6, 2, '皮面笔记本套装', NULL, 980, 50, 180, 'A5 皮面本 + 书签，记录课程重点与灵感。', 6, '0', '0', 'admin', '2026-11-18 10:49:22', '', NULL, NULL);
+INSERT INTO `learning_shop_product` VALUES (7, 4, '经典书单盲盒', NULL, 1500, 30, 60, '从平台推荐书单里随机发一本，拆开才知道的惊喜。', 7, '0', '0', 'admin', '2026-11-18 10:49:22', '', NULL, NULL);
+INSERT INTO `learning_shop_product` VALUES (8, 1, '蓝牙迷你音箱', NULL, 3000, 10, 25, '掌心大小，宿舍听歌与网课外放都合适。', 8, '0', '0', 'admin', '2026-11-18 10:49:22', '', NULL, NULL);
+INSERT INTO `learning_shop_product` VALUES (9, 3, '桌面收纳盒', NULL, 700, 80, 96, '分层收纳数据线与文具，桌面瞬间清爽。', 9, '0', '0', 'admin', '2026-11-18 10:49:22', '', NULL, NULL);
+INSERT INTO `learning_shop_product` VALUES (10, 1, '电子阅读器保护套', NULL, 1800, 25, 33, '磁吸休眠，轻薄防摔，通勤路上安心看。', 10, '0', '0', 'admin', '2026-11-18 10:49:22', '', NULL, NULL);
+INSERT INTO `learning_shop_product` VALUES (11, 4, '精品咖啡兑换券', NULL, 1000, 200, 260, '校内合作咖啡店中杯任选，提神不将就。', 11, '0', '0', 'admin', '2026-11-18 10:49:22', '', NULL, NULL);
+INSERT INTO `learning_shop_product` VALUES (12, 2, '平台限定贴纸包', NULL, 5, 498, 1001, '课程梗贴纸 6 枚装，积分即可带走。', 12, '0', '0', 'admin', '2026-11-18 10:49:22', '', '2026-11-18 14:29:12', NULL);
+INSERT INTO `learning_shop_product` VALUES (13, 1, '测试商品A改', '', 120, 8, 0, NULL, 99, '0', '2', 'admin', '2026-11-18 14:25:24', 'admin', '2026-11-18 14:25:44', '自动化测试-已修改');
 
 -- ----------------------------
 -- Table structure for learning_short_video
@@ -1499,7 +1927,7 @@ CREATE TABLE `learning_short_video`  (
   INDEX `idx_video_status`(`status` ASC, `del_flag` ASC) USING BTREE,
   CONSTRAINT `chk_video_favorite_count` CHECK (`favorite_count` >= 0),
   CONSTRAINT `chk_video_like_count` CHECK (`like_count` >= 0)
-) ENGINE = InnoDB AUTO_INCREMENT = 204 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '学习平台短视频表' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 219 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '学习平台短视频表' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Records of learning_short_video
@@ -1509,9 +1937,24 @@ INSERT INTO `learning_short_video` VALUES (103, '测试短视频A改', 1, '/prof
 INSERT INTO `learning_short_video` VALUES (104, '搜索测试A', 1, '/profile/upload/2026/10/15/sa.mp4', '', '', 0, 0, 0, 0, 0, '0', '2', 'admin', '2026-10-15 16:09:05', '', '2026-10-15 16:12:30', NULL);
 INSERT INTO `learning_short_video` VALUES (105, '搜索测试B', 1, '/profile/upload/2026/10/15/sb.mp4', '', '', 0, 0, 0, 0, 0, '1', '2', 'admin', '2026-10-15 16:09:11', 'admin', '2026-10-15 16:12:30', NULL);
 INSERT INTO `learning_short_video` VALUES (106, '孤儿回归', 1, '/profile/upload/2026/10/15/reg.mp4', '', '', 0, 0, 0, 0, 0, '0', '2', 'admin', '2026-10-15 17:26:06', '', '2026-10-15 17:26:34', NULL);
-INSERT INTO `learning_short_video` VALUES (201, 'Sintel 开源短片 · 片段一', 111, 'https://zhinengguanggaopingtai.oss-cn-shanghai.aliyuncs.com/edu/short/short-1.mp4', 'https://zhinengguanggaopingtai.oss-cn-shanghai.aliyuncs.com/upload/2026/11/04/sintel_20261104145028A001.jpg', '开源动画短片 Sintel 精彩片段', 52, 9, 3, 2, 12, '0', '0', '111', '2026-10-20 14:21:29', 'admin', '2026-11-04 14:50:31', '');
-INSERT INTO `learning_short_video` VALUES (202, 'Sintel 开源短片 · 片段二', 111, 'https://zhinengguanggaopingtai.oss-cn-shanghai.aliyuncs.com/edu/short/short-2.mp4', 'https://zhinengguanggaopingtai.oss-cn-shanghai.aliyuncs.com/upload/2026/11/04/sintel_20261104145108A002.jpg', '开源动画短片 Sintel 精彩片段', 52, 12, 2, 2, 1, '0', '0', '111', '2026-10-20 14:21:29', 'admin', '2026-11-04 14:51:08', '');
-INSERT INTO `learning_short_video` VALUES (203, 'Sintel 开源短片 · 片段三', 111, 'https://zhinengguanggaopingtai.oss-cn-shanghai.aliyuncs.com/edu/short/short-3.mp4', 'https://zhinengguanggaopingtai.oss-cn-shanghai.aliyuncs.com/upload/2026/11/04/sintel_20261104145126A003.jpg', '开源动画短片 Sintel 精彩片段', 52, 10, 2, 2, 2, '0', '0', '111', '2026-10-20 14:21:29', 'admin', '2026-11-04 14:51:26', '');
+INSERT INTO `learning_short_video` VALUES (201, 'Sintel 开源短片 · 片段一', 111, 'https://zhinengguanggaopingtai.oss-cn-shanghai.aliyuncs.com/edu/short/short-1.mp4', 'https://zhinengguanggaopingtai.oss-cn-shanghai.aliyuncs.com/upload/2026/11/04/sintel_20261104145028A001.jpg', '开源动画短片 Sintel 精彩片段', 52, 10, 3, 2, 11, '0', '0', '111', '2026-10-20 14:21:29', 'admin', '2026-11-04 14:50:31', '');
+INSERT INTO `learning_short_video` VALUES (202, 'Sintel 开源短片 · 片段二', 111, 'https://zhinengguanggaopingtai.oss-cn-shanghai.aliyuncs.com/edu/short/short-2.mp4', 'https://zhinengguanggaopingtai.oss-cn-shanghai.aliyuncs.com/upload/2026/11/04/sintel_20261104145108A002.jpg', '开源动画短片 Sintel 精彩片段', 52, 14, 2, 2, 1, '0', '0', '111', '2026-10-20 14:21:29', 'admin', '2026-11-04 14:51:08', '');
+INSERT INTO `learning_short_video` VALUES (203, 'Sintel 开源短片 · 片段三', 111, 'https://zhinengguanggaopingtai.oss-cn-shanghai.aliyuncs.com/edu/short/short-3.mp4', 'https://zhinengguanggaopingtai.oss-cn-shanghai.aliyuncs.com/upload/2026/11/04/sintel_20261104145126A003.jpg', '开源动画短片 Sintel 精彩片段', 52, 11, 3, 2, 0, '0', '0', '111', '2026-10-20 14:21:29', 'admin', '2026-11-04 14:51:26', '');
+INSERT INTO `learning_short_video` VALUES (204, '测试短视频01-功能验证', 1, 'http://43.142.9.214/oss-preview/upload/2026/11/13/test-video-01_20261113140421A001.mp4', 'http://43.142.9.214/oss-preview/upload/2026/11/13/cover-01_20261113140506A002.jpg', '自动化测试数据，本地生成素材', 5, 2, 0, 0, 0, '0', '0', 'admin', '2026-11-13 14:05:08', '', NULL, NULL);
+INSERT INTO `learning_short_video` VALUES (205, '测试短视频02-功能验证', 1, 'http://43.142.9.214/oss-preview/upload/2026/11/13/test-video-02_20261113140748A003.mp4', 'http://43.142.9.214/oss-preview/upload/2026/11/13/cover-02_20261113140802A004.jpg', '自动化测试数据，本地生成素材', 6, 3, 0, 0, 0, '0', '0', 'admin', '2026-11-13 14:08:04', '', NULL, NULL);
+INSERT INTO `learning_short_video` VALUES (206, '测试短视频03-功能验证', 1, 'http://43.142.9.214/oss-preview/upload/2026/11/13/test-video-03_20261113140819A005.mp4', 'http://43.142.9.214/oss-preview/upload/2026/11/13/cover-03_20261113140820A006.jpg', '自动化测试数据，本地生成素材', 4, 3, 0, 0, 0, '0', '0', 'admin', '2026-11-13 14:08:22', '', NULL, NULL);
+INSERT INTO `learning_short_video` VALUES (207, '测试短视频04-功能验证', 1, 'http://43.142.9.214/oss-preview/upload/2026/11/13/test-video-04_20261113140826A007.mp4', 'http://43.142.9.214/oss-preview/upload/2026/11/13/cover-04_20261113140828A008.jpg', '自动化测试数据，本地生成素材', 5, 4, 0, 0, 0, '0', '0', 'admin', '2026-11-13 14:08:31', '', NULL, NULL);
+INSERT INTO `learning_short_video` VALUES (208, '测试短视频05-功能验证', 1, 'http://43.142.9.214/oss-preview/upload/2026/11/13/test-video-05_20261113140842A009.mp4', 'http://43.142.9.214/oss-preview/upload/2026/11/13/cover-05_20261113140844A010.jpg', '自动化测试数据，本地生成素材', 6, 4, 0, 0, 0, '0', '0', 'admin', '2026-11-13 14:08:47', '', NULL, NULL);
+INSERT INTO `learning_short_video` VALUES (209, '测试短视频06-功能验证', 1, 'http://43.142.9.214/oss-preview/upload/2026/11/13/test-video-06_20261113140851A011.mp4', 'http://43.142.9.214/oss-preview/upload/2026/11/13/cover-06_20261113140852A012.jpg', '自动化测试数据，本地生成素材', 4, 4, 0, 0, 0, '0', '0', 'admin', '2026-11-13 14:08:54', '', NULL, NULL);
+INSERT INTO `learning_short_video` VALUES (210, '测试短视频07-功能验证', 1, 'http://43.142.9.214/oss-preview/upload/2026/11/13/test-video-07_20261113140904A013.mp4', 'http://43.142.9.214/oss-preview/upload/2026/11/13/cover-07_20261113140906A014.jpg', '自动化测试数据，本地生成素材', 5, 3, 0, 0, 0, '0', '0', 'admin', '2026-11-13 14:09:08', '', NULL, NULL);
+INSERT INTO `learning_short_video` VALUES (211, '测试短视频08-功能验证', 1, 'http://43.142.9.214/oss-preview/upload/2026/11/13/test-video-08_20261113140913A015.mp4', 'http://43.142.9.214/oss-preview/upload/2026/11/13/cover-08_20261113140915A016.jpg', '自动化测试数据，本地生成素材', 6, 3, 0, 0, 0, '0', '0', 'admin', '2026-11-13 14:09:18', '', NULL, NULL);
+INSERT INTO `learning_short_video` VALUES (212, '测试短视频09-功能验证', 1, 'http://43.142.9.214/oss-preview/upload/2026/11/13/test-video-09_20261113141111A017.mp4', 'http://43.142.9.214/oss-preview/upload/2026/11/13/cover-09_20261113141118A018.jpg', '自动化测试数据，本地生成素材', 4, 4, 0, 0, 0, '0', '0', 'admin', '2026-11-13 14:11:21', '', NULL, NULL);
+INSERT INTO `learning_short_video` VALUES (213, '测试短视频10-功能验证', 1, 'http://43.142.9.214/oss-preview/upload/2026/11/13/test-video-10_20261113141134A019.mp4', 'http://43.142.9.214/oss-preview/upload/2026/11/13/cover-10_20261113141135A020.jpg', '自动化测试数据，本地生成素材', 5, 4, 0, 0, 0, '0', '0', 'admin', '2026-11-13 14:11:38', '', NULL, NULL);
+INSERT INTO `learning_short_video` VALUES (214, '测试短视频11-功能验证', 1, 'http://43.142.9.214/oss-preview/upload/2026/11/13/test-video-11_20261113141207A022.mp4', 'http://43.142.9.214/oss-preview/upload/2026/11/13/cover-11_20261113141152A021.jpg', '自动化测试数据，本地生成素材', 6, 5, 0, 0, 0, '0', '0', 'admin', '2026-11-13 14:12:16', '', NULL, NULL);
+INSERT INTO `learning_short_video` VALUES (215, '测试短视频12-功能验证', 1, 'http://43.142.9.214/oss-preview/upload/2026/11/13/test-video-12_20261113141231A023.mp4', 'http://43.142.9.214/oss-preview/upload/2026/11/13/cover-12_20261113141232A024.jpg', '自动化测试数据，本地生成素材', 4, 5, 0, 0, 0, '0', '0', 'admin', '2026-11-13 14:12:34', '', NULL, NULL);
+INSERT INTO `learning_short_video` VALUES (216, '测试短视频13-功能验证', 1, 'http://43.142.9.214/oss-preview/upload/2026/11/13/test-video-13_20261113141239A025.mp4', 'http://43.142.9.214/oss-preview/upload/2026/11/13/cover-13_20261113141241A026.jpg', '自动化测试数据，本地生成素材', 5, 5, 0, 0, 0, '0', '0', 'admin', '2026-11-13 14:12:43', '', NULL, NULL);
+INSERT INTO `learning_short_video` VALUES (217, '测试短视频14-功能验证', 1, 'http://43.142.9.214/oss-preview/upload/2026/11/13/test-video-14_20261113141257A027.mp4', 'http://43.142.9.214/oss-preview/upload/2026/11/13/cover-14_20261113141259A028.jpg', '自动化测试数据，本地生成素材', 6, 5, 0, 0, 0, '0', '0', 'admin', '2026-11-13 14:13:02', '', NULL, NULL);
+INSERT INTO `learning_short_video` VALUES (218, '测试短视频15-功能验证', 1, 'http://43.142.9.214/oss-preview/upload/2026/11/13/test-video-15_20261113141306A029.mp4', 'http://43.142.9.214/oss-preview/upload/2026/11/13/cover-15_20261113141307A030.jpg', '自动化测试数据，本地生成素材', 4, 7, 0, 0, 0, '0', '0', 'admin', '2026-11-13 14:13:09', '', NULL, NULL);
 
 -- ----------------------------
 -- Table structure for learning_study_record
@@ -1529,7 +1972,7 @@ CREATE TABLE `learning_study_record`  (
   PRIMARY KEY (`record_id`) USING BTREE,
   UNIQUE INDEX `uk_study_user_date`(`user_id` ASC, `study_date` ASC) USING BTREE,
   INDEX `idx_study_date`(`study_date` ASC) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 671 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '学习时长按天汇总' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 10887 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '学习时长按天汇总' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Records of learning_study_record
@@ -1541,6 +1984,12 @@ INSERT INTO `learning_study_record` VALUES (8, 111, '2026-10-30', 3600, '2026-11
 INSERT INTO `learning_study_record` VALUES (17, 111, '2026-11-04', 121, '2026-11-04 12:19:22', '2026-11-04 14:54:53', 121, 0);
 INSERT INTO `learning_study_record` VALUES (35, 115, '2026-11-05', 5827, '2026-11-05 14:32:46', '2026-11-05 20:56:43', 5827, 0);
 INSERT INTO `learning_study_record` VALUES (422, 115, '2026-11-06', 3574, '2026-11-06 09:06:37', '2026-11-06 21:51:04', 3426, 0);
+INSERT INTO `learning_study_record` VALUES (675, 115, '2026-11-11', 2025, '2026-11-11 14:10:40', '2026-11-11 22:10:06', 0, 0);
+INSERT INTO `learning_study_record` VALUES (847, 112, '2026-11-13', 124, '2026-11-13 11:10:18', '2026-11-13 11:25:11', 0, 0);
+INSERT INTO `learning_study_record` VALUES (856, 111, '2026-11-17', 134, '2026-11-17 09:12:29', '2026-11-17 16:18:08', 0, 0);
+INSERT INTO `learning_study_record` VALUES (888, 112, '2026-11-17', 323, '2026-11-17 15:50:25', '2026-11-17 17:26:39', 0, 0);
+INSERT INTO `learning_study_record` VALUES (929, 115, '2026-11-18', 7104, '2026-11-18 14:50:36', '2026-11-18 23:59:52', 0, 0);
+INSERT INTO `learning_study_record` VALUES (2683, 115, '2026-11-19', 32852, '2026-11-18 23:59:56', '2026-11-19 09:10:47', 0, 0);
 
 -- ----------------------------
 -- Table structure for learning_topic
@@ -1558,7 +2007,7 @@ CREATE TABLE `learning_topic`  (
   `update_time` datetime NULL DEFAULT NULL COMMENT '更新时间',
   PRIMARY KEY (`topic_id`) USING BTREE,
   INDEX `idx_topic_name`(`topic_name` ASC) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 10 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '话题表' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 11 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '话题表' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Records of learning_topic
@@ -1572,6 +2021,7 @@ INSERT INTO `learning_topic` VALUES (6, 'Redis', 'Redis 原理与实战', '0', '
 INSERT INTO `learning_topic` VALUES (7, '并发编程', '多线程与并发', '0', '0', 'admin', '2026-11-02 15:48:25', '', NULL);
 INSERT INTO `learning_topic` VALUES (8, '后台测试话题2', '改过', '1', '2', 'admin', '2026-11-02 16:18:45', 'admin', '2026-11-02 16:18:47');
 INSERT INTO `learning_topic` VALUES (9, '后台测试话题', '重建', '0', '2', 'admin', '2026-11-02 16:18:48', '', '2026-11-02 16:18:49');
+INSERT INTO `learning_topic` VALUES (10, 'Jenkens', '自动化部署相关', '0', '2', 'admin', '2026-11-11 14:23:44', 'admin', '2026-11-11 14:24:02');
 
 -- ----------------------------
 -- Table structure for learning_user_profile
@@ -1589,10 +2039,11 @@ CREATE TABLE `learning_user_profile`  (
 -- Records of learning_user_profile
 -- ----------------------------
 INSERT INTO `learning_user_profile` VALUES (111, NULL, '2026-10-21 10:29:31', '2026-10-30 15:37:55');
-INSERT INTO `learning_user_profile` VALUES (112, NULL, '2026-10-29 11:41:50', '2026-10-29 16:38:09');
-INSERT INTO `learning_user_profile` VALUES (115, NULL, '2026-10-29 00:41:30', '2026-10-30 15:32:10');
+INSERT INTO `learning_user_profile` VALUES (112, 'the first user', '2026-10-29 11:41:50', '2026-11-18 17:35:48');
+INSERT INTO `learning_user_profile` VALUES (115, 'Ly', '2026-10-29 00:41:30', '2026-11-11 17:55:46');
 INSERT INTO `learning_user_profile` VALUES (118, '超级无敌大帅哥', '2026-10-27 18:44:52', '2026-10-29 09:42:41');
 INSERT INTO `learning_user_profile` VALUES (119, NULL, '2026-10-29 00:41:19', '2026-10-29 00:43:00');
+INSERT INTO `learning_user_profile` VALUES (128, NULL, '2026-11-18 16:13:30', '2026-11-18 16:13:30');
 
 -- ----------------------------
 -- Table structure for learning_watch_history
@@ -1611,42 +2062,115 @@ CREATE TABLE `learning_watch_history`  (
   PRIMARY KEY (`history_id`) USING BTREE,
   UNIQUE INDEX `uk_history_user_target`(`user_id` ASC, `target_type` ASC, `target_id` ASC) USING BTREE,
   INDEX `idx_history_user_time`(`user_id` ASC, `last_view_time` ASC) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 2079 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '观看历史（短视频/课程/文章）' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 22939 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '观看历史（短视频/课程/文章）' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Records of learning_watch_history
 -- ----------------------------
-INSERT INTO `learning_watch_history` VALUES (26, 115, 'shortVideo', 201, NULL, 13, 52, '2026-11-05 16:14:59', '2026-10-28 16:50:22');
-INSERT INTO `learning_watch_history` VALUES (57, 115, 'course', 201, 201, 52, 615, '2026-11-05 16:16:04', '2026-10-28 17:11:27');
-INSERT INTO `learning_watch_history` VALUES (404, 115, 'shortVideo', 203, NULL, 16, 52, '2026-11-06 22:49:32', '2026-10-29 16:05:24');
-INSERT INTO `learning_watch_history` VALUES (712, 115, 'course', 202, 203, 32, 52, '2026-11-06 21:20:21', '2026-10-29 20:43:42');
-INSERT INTO `learning_watch_history` VALUES (840, 111, 'course', 202, 203, 52, 52, '2026-11-04 14:16:21', '2026-10-30 17:52:59');
-INSERT INTO `learning_watch_history` VALUES (855, 111, 'course', 205, NULL, NULL, NULL, '2026-11-04 14:04:18', '2026-11-04 14:04:18');
-INSERT INTO `learning_watch_history` VALUES (856, 111, 'course', 201, NULL, NULL, NULL, '2026-11-04 14:06:07', '2026-11-04 14:06:07');
-INSERT INTO `learning_watch_history` VALUES (887, 111, 'shortVideo', 201, NULL, 10, 52, '2026-11-04 14:50:46', '2026-11-04 14:32:26');
-INSERT INTO `learning_watch_history` VALUES (893, 111, 'shortVideo', 203, NULL, 1, 52, '2026-11-04 14:54:53', '2026-11-04 14:54:53');
-INSERT INTO `learning_watch_history` VALUES (1246, 115, 'shortVideo', 202, NULL, 4, 52, '2026-11-05 16:15:16', '2026-11-05 16:15:16');
+INSERT INTO `learning_watch_history` VALUES (26, 115, 'shortVideo', 201, NULL, 20, 52, '2026-11-18 15:29:06', '2026-10-28 16:50:22');
+INSERT INTO `learning_watch_history` VALUES (57, 115, 'course', 201, 201, 52, 615, '2026-11-11 17:28:47', '2026-10-28 17:11:27');
+INSERT INTO `learning_watch_history` VALUES (404, 115, 'shortVideo', 203, NULL, 33, 52, '2026-11-11 22:10:06', '2026-10-29 16:05:24');
+INSERT INTO `learning_watch_history` VALUES (712, 115, 'course', 202, 203, 9, 52, '2026-11-11 17:35:46', '2026-10-29 20:43:42');
+INSERT INTO `learning_watch_history` VALUES (840, 111, 'course', 202, 203, 30, 52, '2026-11-17 10:56:11', '2026-10-30 17:52:59');
+INSERT INTO `learning_watch_history` VALUES (855, 111, 'course', 205, NULL, NULL, NULL, '2026-11-10 17:18:10', '2026-11-04 14:04:18');
+INSERT INTO `learning_watch_history` VALUES (856, 111, 'course', 201, NULL, NULL, NULL, '2026-11-10 17:19:08', '2026-11-04 14:06:07');
+INSERT INTO `learning_watch_history` VALUES (887, 111, 'shortVideo', 201, NULL, NULL, 52, '2026-11-13 11:07:06', '2026-11-04 14:32:26');
+INSERT INTO `learning_watch_history` VALUES (893, 111, 'shortVideo', 203, NULL, 2, 52, '2026-11-17 16:18:08', '2026-11-04 14:54:53');
+INSERT INTO `learning_watch_history` VALUES (1246, 115, 'shortVideo', 202, NULL, 47, 52, '2026-11-11 17:36:09', '2026-11-05 16:15:16');
 INSERT INTO `learning_watch_history` VALUES (1247, 115, 'course', 205, NULL, NULL, NULL, '2026-11-05 16:15:44', '2026-11-05 16:15:44');
-INSERT INTO `learning_watch_history` VALUES (1268, 115, 'post', 223, NULL, NULL, NULL, '2026-11-06 22:49:49', '2026-11-05 17:20:55');
-INSERT INTO `learning_watch_history` VALUES (1961, 112, 'course', 204, NULL, NULL, NULL, '2026-11-06 15:38:54', '2026-11-06 14:56:14');
+INSERT INTO `learning_watch_history` VALUES (1268, 115, 'post', 223, NULL, NULL, NULL, '2026-11-11 16:06:37', '2026-11-05 17:20:55');
+INSERT INTO `learning_watch_history` VALUES (1961, 112, 'course', 204, NULL, NULL, NULL, '2026-11-13 14:10:04', '2026-11-06 14:56:14');
 INSERT INTO `learning_watch_history` VALUES (1962, 112, 'post', 101, NULL, NULL, NULL, '2026-11-06 15:20:31', '2026-11-06 14:56:27');
-INSERT INTO `learning_watch_history` VALUES (1965, 112, 'course', 202, NULL, NULL, NULL, '2026-11-09 09:18:07', '2026-11-06 15:06:51');
-INSERT INTO `learning_watch_history` VALUES (1967, 112, 'course', 203, NULL, NULL, NULL, '2026-11-09 11:00:50', '2026-11-06 15:12:31');
-INSERT INTO `learning_watch_history` VALUES (1969, 112, 'course', 205, NULL, NULL, NULL, '2026-11-06 15:31:29', '2026-11-06 15:12:54');
-INSERT INTO `learning_watch_history` VALUES (1970, 112, 'shortVideo', 203, NULL, NULL, 52, '2026-11-09 11:01:23', '2026-11-06 15:19:03');
+INSERT INTO `learning_watch_history` VALUES (1965, 112, 'course', 202, NULL, NULL, NULL, '2026-11-18 16:06:22', '2026-11-06 15:06:51');
+INSERT INTO `learning_watch_history` VALUES (1967, 112, 'course', 203, NULL, NULL, NULL, '2026-11-18 16:01:22', '2026-11-06 15:12:31');
+INSERT INTO `learning_watch_history` VALUES (1969, 112, 'course', 205, NULL, NULL, NULL, '2026-11-13 11:08:31', '2026-11-06 15:12:54');
+INSERT INTO `learning_watch_history` VALUES (1970, 112, 'shortVideo', 203, NULL, NULL, 52, '2026-11-18 16:16:15', '2026-11-06 15:19:03');
 INSERT INTO `learning_watch_history` VALUES (1972, 112, 'post', 201, NULL, NULL, NULL, '2026-11-06 15:19:36', '2026-11-06 15:19:36');
-INSERT INTO `learning_watch_history` VALUES (1976, 112, 'post', 211, NULL, NULL, NULL, '2026-11-09 09:10:34', '2026-11-06 15:30:01');
-INSERT INTO `learning_watch_history` VALUES (1982, 112, 'shortVideo', 202, NULL, NULL, 52, '2026-11-09 11:01:27', '2026-11-06 15:39:54');
-INSERT INTO `learning_watch_history` VALUES (1983, 112, 'shortVideo', 201, NULL, NULL, 52, '2026-11-09 11:01:33', '2026-11-06 15:40:10');
-INSERT INTO `learning_watch_history` VALUES (1984, 112, 'post', 223, NULL, NULL, NULL, '2026-11-09 11:01:59', '2026-11-06 15:40:59');
-INSERT INTO `learning_watch_history` VALUES (1985, 112, 'post', 214, NULL, NULL, NULL, '2026-11-06 17:12:50', '2026-11-06 15:41:20');
-INSERT INTO `learning_watch_history` VALUES (1989, 115, 'post', 205, NULL, NULL, NULL, '2026-11-06 17:05:46', '2026-11-06 15:58:52');
-INSERT INTO `learning_watch_history` VALUES (1995, 112, 'post', 204, NULL, NULL, NULL, '2026-11-06 16:11:40', '2026-11-06 16:11:40');
-INSERT INTO `learning_watch_history` VALUES (1998, 112, 'post', 203, NULL, NULL, NULL, '2026-11-06 16:17:41', '2026-11-06 16:17:41');
-INSERT INTO `learning_watch_history` VALUES (2001, 112, 'post', 205, NULL, NULL, NULL, '2026-11-06 16:29:52', '2026-11-06 16:20:12');
+INSERT INTO `learning_watch_history` VALUES (1976, 112, 'post', 211, NULL, NULL, NULL, '2026-11-18 16:04:17', '2026-11-06 15:30:01');
+INSERT INTO `learning_watch_history` VALUES (1982, 112, 'shortVideo', 202, NULL, NULL, 52, '2026-11-18 16:15:24', '2026-11-06 15:39:54');
+INSERT INTO `learning_watch_history` VALUES (1983, 112, 'shortVideo', 201, NULL, NULL, 52, '2026-11-18 15:00:25', '2026-11-06 15:40:10');
+INSERT INTO `learning_watch_history` VALUES (1984, 112, 'post', 223, NULL, NULL, NULL, '2026-11-18 17:50:07', '2026-11-06 15:40:59');
+INSERT INTO `learning_watch_history` VALUES (1985, 112, 'post', 214, NULL, NULL, NULL, '2026-11-18 17:41:53', '2026-11-06 15:41:20');
+INSERT INTO `learning_watch_history` VALUES (1989, 115, 'post', 205, NULL, NULL, NULL, '2026-11-11 16:06:46', '2026-11-06 15:58:52');
+INSERT INTO `learning_watch_history` VALUES (1995, 112, 'post', 204, NULL, NULL, NULL, '2026-11-18 14:40:11', '2026-11-06 16:11:40');
+INSERT INTO `learning_watch_history` VALUES (1998, 112, 'post', 203, NULL, NULL, NULL, '2026-11-13 11:05:48', '2026-11-06 16:17:41');
+INSERT INTO `learning_watch_history` VALUES (2001, 112, 'post', 205, NULL, NULL, NULL, '2026-11-18 17:46:53', '2026-11-06 16:20:12');
 INSERT INTO `learning_watch_history` VALUES (2050, 115, 'post', 211, NULL, NULL, NULL, '2026-11-06 22:32:41', '2026-11-06 22:32:41');
-INSERT INTO `learning_watch_history` VALUES (2059, 112, 'course', 201, NULL, NULL, NULL, '2026-11-09 10:02:57', '2026-11-09 09:08:33');
+INSERT INTO `learning_watch_history` VALUES (2059, 112, 'course', 201, NULL, NULL, NULL, '2026-11-18 16:07:45', '2026-11-09 09:08:33');
 INSERT INTO `learning_watch_history` VALUES (2077, 115, 'course', 204, NULL, NULL, NULL, '2026-11-09 11:06:24', '2026-11-09 11:06:24');
+INSERT INTO `learning_watch_history` VALUES (2080, 111, 'shortVideo', 202, NULL, NULL, 52, '2026-11-13 11:07:05', '2026-11-10 15:55:33');
+INSERT INTO `learning_watch_history` VALUES (2081, 111, 'post', 223, NULL, NULL, NULL, '2026-11-17 09:08:51', '2026-11-10 16:01:57');
+INSERT INTO `learning_watch_history` VALUES (2096, 115, 'course', 203, NULL, NULL, NULL, '2026-11-11 14:48:17', '2026-11-11 14:48:17');
+INSERT INTO `learning_watch_history` VALUES (2099, 115, 'post', 214, NULL, NULL, NULL, '2026-11-11 16:06:31', '2026-11-11 16:06:31');
+INSERT INTO `learning_watch_history` VALUES (2479, 112, 'shortVideo', 210, NULL, NULL, 5, '2026-11-18 16:23:44', '2026-11-13 14:09:35');
+INSERT INTO `learning_watch_history` VALUES (2480, 112, 'shortVideo', 209, NULL, NULL, 4, '2026-11-18 16:23:44', '2026-11-13 14:09:36');
+INSERT INTO `learning_watch_history` VALUES (2481, 112, 'shortVideo', 208, NULL, NULL, 6, '2026-11-18 16:23:45', '2026-11-13 14:09:37');
+INSERT INTO `learning_watch_history` VALUES (2482, 112, 'shortVideo', 207, NULL, NULL, 5, '2026-11-18 16:16:12', '2026-11-13 14:09:38');
+INSERT INTO `learning_watch_history` VALUES (2483, 112, 'shortVideo', 206, NULL, NULL, 4, '2026-11-18 16:16:13', '2026-11-13 14:09:38');
+INSERT INTO `learning_watch_history` VALUES (2484, 112, 'shortVideo', 205, NULL, NULL, 6, '2026-11-18 16:16:13', '2026-11-13 14:09:39');
+INSERT INTO `learning_watch_history` VALUES (2485, 112, 'shortVideo', 204, NULL, NULL, 5, '2026-11-18 16:16:28', '2026-11-13 14:09:39');
+INSERT INTO `learning_watch_history` VALUES (2509, 112, 'shortVideo', 211, NULL, NULL, 6, '2026-11-18 16:23:43', '2026-11-13 14:10:22');
+INSERT INTO `learning_watch_history` VALUES (2510, 112, 'shortVideo', 218, NULL, NULL, 4, '2026-11-18 17:36:08', '2026-11-13 14:14:55');
+INSERT INTO `learning_watch_history` VALUES (2511, 112, 'shortVideo', 217, NULL, NULL, 6, '2026-11-18 16:23:54', '2026-11-13 14:15:03');
+INSERT INTO `learning_watch_history` VALUES (2512, 112, 'shortVideo', 216, NULL, NULL, 5, '2026-11-18 16:23:55', '2026-11-13 14:15:04');
+INSERT INTO `learning_watch_history` VALUES (2517, 112, 'shortVideo', 215, NULL, NULL, 4, '2026-11-18 16:23:56', '2026-11-13 14:15:10');
+INSERT INTO `learning_watch_history` VALUES (2518, 112, 'shortVideo', 214, NULL, NULL, 6, '2026-11-18 16:23:57', '2026-11-13 14:23:28');
+INSERT INTO `learning_watch_history` VALUES (2521, 111, 'shortVideo', 218, NULL, NULL, 4, '2026-11-18 16:22:24', '2026-11-17 09:12:25');
+INSERT INTO `learning_watch_history` VALUES (2526, 111, 'shortVideo', 215, NULL, 0, 4, '2026-11-17 09:12:43', '2026-11-17 09:12:43');
+INSERT INTO `learning_watch_history` VALUES (2527, 111, 'shortVideo', 212, NULL, 0, 4, '2026-11-17 09:12:47', '2026-11-17 09:12:46');
+INSERT INTO `learning_watch_history` VALUES (2529, 111, 'shortVideo', 210, NULL, 3, 5, '2026-11-17 09:12:53', '2026-11-17 09:12:50');
+INSERT INTO `learning_watch_history` VALUES (2531, 111, 'shortVideo', 209, NULL, 0, 4, '2026-11-17 09:12:54', '2026-11-17 09:12:53');
+INSERT INTO `learning_watch_history` VALUES (2533, 111, 'shortVideo', 208, NULL, 0, 6, '2026-11-17 14:16:19', '2026-11-17 09:12:55');
+INSERT INTO `learning_watch_history` VALUES (2535, 111, 'shortVideo', 207, NULL, 1, 5, '2026-11-17 14:16:26', '2026-11-17 09:13:00');
+INSERT INTO `learning_watch_history` VALUES (2537, 111, 'shortVideo', 206, NULL, 0, 4, '2026-11-17 14:16:23', '2026-11-17 09:13:03');
+INSERT INTO `learning_watch_history` VALUES (2539, 111, 'shortVideo', 205, NULL, 2, 6, '2026-11-17 09:13:11', '2026-11-17 09:13:07');
+INSERT INTO `learning_watch_history` VALUES (2563, 111, 'shortVideo', 217, NULL, NULL, 6, '2026-11-18 16:22:41', '2026-11-17 11:02:35');
+INSERT INTO `learning_watch_history` VALUES (2565, 111, 'shortVideo', 216, NULL, NULL, 5, '2026-11-18 16:22:43', '2026-11-17 11:02:36');
+INSERT INTO `learning_watch_history` VALUES (2567, 111, 'shortVideo', 214, NULL, 4, 6, '2026-11-17 11:03:39', '2026-11-17 11:02:40');
+INSERT INTO `learning_watch_history` VALUES (2606, 123, 'shortVideo', 218, NULL, NULL, 4, '2026-11-17 14:44:20', '2026-11-17 14:44:20');
+INSERT INTO `learning_watch_history` VALUES (2610, 126, 'shortVideo', 218, NULL, NULL, 4, '2026-11-18 13:56:49', '2026-11-17 15:09:53');
+INSERT INTO `learning_watch_history` VALUES (2611, 125, 'shortVideo', 218, NULL, NULL, 4, '2026-11-17 15:22:38', '2026-11-17 15:14:33');
+INSERT INTO `learning_watch_history` VALUES (2614, 126, 'shortVideo', 217, NULL, NULL, 6, '2026-11-18 13:56:52', '2026-11-17 15:55:18');
+INSERT INTO `learning_watch_history` VALUES (2615, 126, 'shortVideo', 216, NULL, NULL, 5, '2026-11-18 13:56:53', '2026-11-17 15:55:20');
+INSERT INTO `learning_watch_history` VALUES (2616, 126, 'shortVideo', 215, NULL, NULL, 4, '2026-11-18 13:56:53', '2026-11-17 15:55:21');
+INSERT INTO `learning_watch_history` VALUES (2617, 126, 'shortVideo', 214, NULL, NULL, 6, '2026-11-18 13:56:54', '2026-11-17 15:55:22');
+INSERT INTO `learning_watch_history` VALUES (2636, 126, 'shortVideo', 213, NULL, NULL, 5, '2026-11-18 11:11:14', '2026-11-17 16:06:01');
+INSERT INTO `learning_watch_history` VALUES (2643, 126, 'shortVideo', 212, NULL, NULL, 4, '2026-11-18 11:11:14', '2026-11-17 16:09:14');
+INSERT INTO `learning_watch_history` VALUES (2644, 126, 'shortVideo', 211, NULL, NULL, 6, '2026-11-18 11:11:15', '2026-11-17 16:09:16');
+INSERT INTO `learning_watch_history` VALUES (2645, 126, 'shortVideo', 210, NULL, NULL, 5, '2026-11-18 11:11:16', '2026-11-17 16:09:19');
+INSERT INTO `learning_watch_history` VALUES (2646, 126, 'shortVideo', 209, NULL, NULL, 4, '2026-11-18 11:11:16', '2026-11-17 16:09:21');
+INSERT INTO `learning_watch_history` VALUES (2647, 126, 'shortVideo', 208, NULL, NULL, 6, '2026-11-18 11:11:19', '2026-11-17 16:09:37');
+INSERT INTO `learning_watch_history` VALUES (2648, 126, 'shortVideo', 207, NULL, NULL, 5, '2026-11-18 11:14:49', '2026-11-17 16:09:39');
+INSERT INTO `learning_watch_history` VALUES (2649, 126, 'shortVideo', 206, NULL, NULL, 4, '2026-11-18 11:14:49', '2026-11-17 16:09:40');
+INSERT INTO `learning_watch_history` VALUES (2650, 126, 'shortVideo', 205, NULL, NULL, 6, '2026-11-18 11:14:50', '2026-11-17 16:09:42');
+INSERT INTO `learning_watch_history` VALUES (2651, 126, 'shortVideo', 204, NULL, NULL, 5, '2026-11-18 11:14:57', '2026-11-17 16:09:44');
+INSERT INTO `learning_watch_history` VALUES (2652, 126, 'shortVideo', 203, NULL, NULL, 52, '2026-11-18 11:14:58', '2026-11-17 16:09:48');
+INSERT INTO `learning_watch_history` VALUES (2653, 126, 'shortVideo', 202, NULL, NULL, 52, '2026-11-18 11:14:56', '2026-11-17 16:09:50');
+INSERT INTO `learning_watch_history` VALUES (2660, 111, 'post', 214, NULL, NULL, NULL, '2026-11-17 16:12:57', '2026-11-17 16:12:57');
+INSERT INTO `learning_watch_history` VALUES (2678, 126, 'shortVideo', 201, NULL, NULL, 52, '2026-11-18 11:14:52', '2026-11-17 16:16:23');
+INSERT INTO `learning_watch_history` VALUES (2722, 126, 'course', 204, NULL, NULL, NULL, '2026-11-18 11:43:55', '2026-11-18 11:10:32');
+INSERT INTO `learning_watch_history` VALUES (2750, 112, 'shortVideo', 213, NULL, NULL, 5, '2026-11-18 16:23:59', '2026-11-18 11:18:09');
+INSERT INTO `learning_watch_history` VALUES (2751, 112, 'shortVideo', 212, NULL, NULL, 4, '2026-11-18 16:23:43', '2026-11-18 11:18:10');
+INSERT INTO `learning_watch_history` VALUES (2763, 126, 'course', 202, NULL, NULL, NULL, '2026-11-18 11:43:16', '2026-11-18 11:43:16');
+INSERT INTO `learning_watch_history` VALUES (2766, 126, 'post', 223, NULL, NULL, NULL, '2026-11-18 11:47:13', '2026-11-18 11:47:13');
+INSERT INTO `learning_watch_history` VALUES (2847, 115, 'shortVideo', 216, NULL, 2, 5, '2026-11-18 15:16:58', '2026-11-18 14:50:31');
+INSERT INTO `learning_watch_history` VALUES (2870, 115, 'shortVideo', 218, NULL, 1, 4, '2026-11-19 09:10:05', '2026-11-18 14:51:36');
+INSERT INTO `learning_watch_history` VALUES (2980, 115, 'shortVideo', 215, NULL, 0, 4, '2026-11-19 09:05:31', '2026-11-18 15:16:59');
+INSERT INTO `learning_watch_history` VALUES (2982, 115, 'shortVideo', 212, NULL, 1, 4, '2026-11-19 09:10:20', '2026-11-18 15:17:05');
+INSERT INTO `learning_watch_history` VALUES (2988, 115, 'shortVideo', 209, NULL, 1, 4, '2026-11-19 09:10:28', '2026-11-18 15:20:11');
+INSERT INTO `learning_watch_history` VALUES (3043, 115, 'shortVideo', 208, NULL, 2, 6, '2026-11-19 09:10:47', '2026-11-18 15:22:15');
+INSERT INTO `learning_watch_history` VALUES (3067, 115, 'shortVideo', 214, NULL, 0, 6, '2026-11-18 15:26:07', '2026-11-18 15:23:29');
+INSERT INTO `learning_watch_history` VALUES (3250, 115, 'shortVideo', 217, NULL, 0, 6, '2026-11-18 15:33:04', '2026-11-18 15:32:56');
+INSERT INTO `learning_watch_history` VALUES (3263, 126, 'course', 205, NULL, NULL, NULL, '2026-11-18 15:36:09', '2026-11-18 15:36:09');
+INSERT INTO `learning_watch_history` VALUES (4113, 128, 'shortVideo', 218, NULL, NULL, 4, '2026-11-18 16:09:58', '2026-11-18 16:09:58');
+INSERT INTO `learning_watch_history` VALUES (4116, 128, 'shortVideo', 217, NULL, NULL, 6, '2026-11-18 16:10:01', '2026-11-18 16:10:01');
+INSERT INTO `learning_watch_history` VALUES (4117, 128, 'shortVideo', 216, NULL, NULL, 5, '2026-11-18 16:10:01', '2026-11-18 16:10:01');
+INSERT INTO `learning_watch_history` VALUES (4118, 128, 'shortVideo', 215, NULL, NULL, 4, '2026-11-18 16:10:02', '2026-11-18 16:10:02');
+INSERT INTO `learning_watch_history` VALUES (4121, 128, 'shortVideo', 214, NULL, NULL, 6, '2026-11-18 16:10:04', '2026-11-18 16:10:04');
+INSERT INTO `learning_watch_history` VALUES (4122, 128, 'shortVideo', 213, NULL, NULL, 5, '2026-11-18 16:10:04', '2026-11-18 16:10:04');
+INSERT INTO `learning_watch_history` VALUES (22668, 115, 'shortVideo', 213, NULL, 1, 5, '2026-11-19 08:59:57', '2026-11-19 08:59:55');
+INSERT INTO `learning_watch_history` VALUES (22670, 115, 'shortVideo', 207, NULL, 5, 5, '2026-11-19 09:04:06', '2026-11-19 09:00:04');
+INSERT INTO `learning_watch_history` VALUES (22929, 115, 'shortVideo', 211, NULL, 0, 6, '2026-11-19 09:10:24', '2026-11-19 09:10:23');
 
 -- ----------------------------
 -- Table structure for sys_config
@@ -1664,7 +2188,7 @@ CREATE TABLE `sys_config`  (
   `update_time` datetime NULL DEFAULT NULL COMMENT '更新时间',
   `remark` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '备注',
   PRIMARY KEY (`config_id`) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 101 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '参数配置表' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 102 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '参数配置表' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Records of sys_config
@@ -1891,7 +2415,7 @@ CREATE TABLE `sys_logininfor`  (
   PRIMARY KEY (`info_id`) USING BTREE,
   INDEX `idx_sys_logininfor_s`(`status` ASC) USING BTREE,
   INDEX `idx_sys_logininfor_lt`(`login_time` ASC) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 726 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '系统访问记录' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 892 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '系统访问记录' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Records of sys_logininfor
@@ -2522,6 +3046,172 @@ INSERT INTO `sys_logininfor` VALUES (722, '13900000001', '127.0.0.1', '内网IP'
 INSERT INTO `sys_logininfor` VALUES (723, '13900000001', '127.0.0.1', '内网IP', 'Curl 8.21.0', '', '0', '登录成功', '2026-11-10 09:40:06');
 INSERT INTO `sys_logininfor` VALUES (724, 'admin', '58.16.41.98', 'XX XX', 'Edge 157', 'Windows >=10', '0', '登录成功', '2026-11-10 09:47:46');
 INSERT INTO `sys_logininfor` VALUES (725, 'admin', '58.16.41.98', 'XX XX', 'Edge 157', 'Windows >=10', '0', '登录成功', '2026-11-10 09:51:06');
+INSERT INTO `sys_logininfor` VALUES (726, 'admin', '127.0.0.1', '内网IP', 'Curl 8.21.0', '', '0', '登录成功', '2026-11-10 10:08:00');
+INSERT INTO `sys_logininfor` VALUES (727, 'admin', '127.0.0.1', '内网IP', 'Curl 8.21.0', '', '0', '登录成功', '2026-11-10 10:14:37');
+INSERT INTO `sys_logininfor` VALUES (728, 'admin', '127.0.0.1', '内网IP', 'Curl 8.21.0', '', '0', '登录成功', '2026-11-10 11:19:08');
+INSERT INTO `sys_logininfor` VALUES (729, 'admin', '127.0.0.1', '内网IP', 'Curl 8.21.0', '', '0', '登录成功', '2026-11-10 11:21:34');
+INSERT INTO `sys_logininfor` VALUES (730, 'admin', '127.0.0.1', '内网IP', 'Curl 8.21.0', '', '0', '登录成功', '2026-11-10 11:40:30');
+INSERT INTO `sys_logininfor` VALUES (731, 'eduadmin', '127.0.0.1', '内网IP', 'Edge 157', 'Windows >=10', '0', '登录成功', '2026-11-10 11:58:41');
+INSERT INTO `sys_logininfor` VALUES (732, 'admin', '127.0.0.1', '内网IP', 'Edge 157', 'Windows >=10', '0', '登录成功', '2026-11-10 14:00:24');
+INSERT INTO `sys_logininfor` VALUES (733, 'admin', '127.0.0.1', '内网IP', 'Curl 8.21.0', '', '0', '登录成功', '2026-11-10 14:25:14');
+INSERT INTO `sys_logininfor` VALUES (734, 'admin', '58.16.41.98', 'XX XX', 'Edge 157', 'Windows >=10', '0', '登录成功', '2026-11-10 14:27:25');
+INSERT INTO `sys_logininfor` VALUES (735, 'admin', '127.0.0.1', '内网IP', 'Edge 157', 'Windows >=10', '1', '验证码错误', '2026-11-10 15:25:14');
+INSERT INTO `sys_logininfor` VALUES (736, 'admin', '127.0.0.1', '内网IP', 'Edge 157', 'Windows >=10', '1', '密码输入错误1次', '2026-11-10 15:25:18');
+INSERT INTO `sys_logininfor` VALUES (737, 'admin123', '127.0.0.1', '内网IP', 'Edge 157', 'Windows >=10', '1', '用户不存在/密码错误', '2026-11-10 15:25:24');
+INSERT INTO `sys_logininfor` VALUES (738, 'admin', '127.0.0.1', '内网IP', 'Edge 157', 'Windows >=10', '0', '登录成功', '2026-11-10 15:25:32');
+INSERT INTO `sys_logininfor` VALUES (739, '13900000001', '127.0.0.1', '内网IP', 'Okhttp 4.12.0', '', '1', '密码输入错误1次', '2026-11-10 15:50:41');
+INSERT INTO `sys_logininfor` VALUES (740, '13900000001', '127.0.0.1', '内网IP', 'Curl 8.21.0', '', '0', '登录成功', '2026-11-10 15:51:00');
+INSERT INTO `sys_logininfor` VALUES (741, '13900000001', '127.0.0.1', '内网IP', 'Okhttp 4.12.0', '', '0', '登录成功', '2026-11-10 15:54:48');
+INSERT INTO `sys_logininfor` VALUES (742, 'eduadmin', '127.0.0.1', '内网IP', 'Okhttp 4.12.0', '', '1', '密码输入错误1次', '2026-11-11 09:34:01');
+INSERT INTO `sys_logininfor` VALUES (743, 'admin', '127.0.0.1', '内网IP', 'Edge 157', 'Windows >=10', '1', '验证码错误', '2026-11-11 09:38:51');
+INSERT INTO `sys_logininfor` VALUES (744, 'admin', '127.0.0.1', '内网IP', 'Edge 157', 'Windows >=10', '1', '密码输入错误1次', '2026-11-11 09:38:53');
+INSERT INTO `sys_logininfor` VALUES (745, 'admin', '127.0.0.1', '内网IP', 'Edge 157', 'Windows >=10', '1', '密码输入错误2次', '2026-11-11 09:38:59');
+INSERT INTO `sys_logininfor` VALUES (746, 'admin', '127.0.0.1', '内网IP', 'Edge 157', 'Windows >=10', '1', '密码输入错误3次', '2026-11-11 09:39:06');
+INSERT INTO `sys_logininfor` VALUES (747, 'admin', '127.0.0.1', '内网IP', 'Edge 157', 'Windows >=10', '0', '登录成功', '2026-11-11 09:39:18');
+INSERT INTO `sys_logininfor` VALUES (748, '13900139001', '127.0.0.1', '内网IP', 'Okhttp 4.12.0', '', '0', '登录成功', '2026-11-11 09:39:44');
+INSERT INTO `sys_logininfor` VALUES (749, 'admin', '127.0.0.1', '内网IP', 'Curl 8.21.0', '', '0', '登录成功', '2026-11-11 09:57:14');
+INSERT INTO `sys_logininfor` VALUES (750, 'admin', '127.0.0.1', '内网IP', 'Curl 8.21.0', '', '0', '登录成功', '2026-11-11 09:58:18');
+INSERT INTO `sys_logininfor` VALUES (751, 'admin', '127.0.0.1', '内网IP', 'Curl 8.21.0', '', '0', '登录成功', '2026-11-11 10:09:23');
+INSERT INTO `sys_logininfor` VALUES (752, '13900000009', '127.0.0.1', '内网IP', 'Curl 8.21.0', '', '0', '登录成功', '2026-11-11 10:30:55');
+INSERT INTO `sys_logininfor` VALUES (753, '13900000009', '127.0.0.1', '内网IP', 'Curl 8.21.0', '', '0', '登录成功', '2026-11-11 10:32:26');
+INSERT INTO `sys_logininfor` VALUES (754, '13900000009', '127.0.0.1', '内网IP', 'Curl 8.21.0', '', '0', '登录成功', '2026-11-11 10:32:40');
+INSERT INTO `sys_logininfor` VALUES (755, 'admin', '127.0.0.1', '内网IP', 'Edge 157', 'Windows >=10', '0', '登录成功', '2026-11-11 10:48:53');
+INSERT INTO `sys_logininfor` VALUES (756, 'admin', '127.0.0.1', '内网IP', 'Curl 8.21.0', '', '0', '登录成功', '2026-11-11 10:59:52');
+INSERT INTO `sys_logininfor` VALUES (757, 'admin', '127.0.0.1', '内网IP', 'Curl 8.21.0', '', '0', '登录成功', '2026-11-11 11:04:04');
+INSERT INTO `sys_logininfor` VALUES (758, '13900000001', '127.0.0.1', '内网IP', 'Curl 8.21.0', '', '0', '登录成功', '2026-11-11 11:04:05');
+INSERT INTO `sys_logininfor` VALUES (759, 'admin', '127.0.0.1', '内网IP', 'Curl 8.21.0', '', '0', '登录成功', '2026-11-11 11:07:59');
+INSERT INTO `sys_logininfor` VALUES (760, '13911112222', '127.0.0.1', '内网IP', 'Curl 8.7.1', '', '0', '登录成功', '2026-11-11 14:04:39');
+INSERT INTO `sys_logininfor` VALUES (761, '13911112222', '127.0.0.1', '内网IP', 'Curl 8.7.1', '', '0', '登录成功', '2026-11-11 14:04:43');
+INSERT INTO `sys_logininfor` VALUES (762, '13911112222', '127.0.0.1', '内网IP', 'Curl 8.7.1', '', '0', '登录成功', '2026-11-11 14:07:13');
+INSERT INTO `sys_logininfor` VALUES (763, '13911112222', '127.0.0.1', '内网IP', 'Curl 8.7.1', '', '0', '登录成功', '2026-11-11 14:07:54');
+INSERT INTO `sys_logininfor` VALUES (764, 'admin', '58.16.41.98', 'XX XX', 'Edge 142', 'Windows >=10', '0', '登录成功', '2026-11-11 14:22:12');
+INSERT INTO `sys_logininfor` VALUES (765, 'admin', '127.0.0.1', '内网IP', 'Edge 157', 'Windows >=10', '1', '验证码错误', '2026-11-11 14:29:34');
+INSERT INTO `sys_logininfor` VALUES (766, 'admin', '127.0.0.1', '内网IP', 'Edge 157', 'Windows >=10', '0', '登录成功', '2026-11-11 14:29:45');
+INSERT INTO `sys_logininfor` VALUES (767, '13911112222', '127.0.0.1', '内网IP', 'Curl 8.7.1', '', '0', '登录成功', '2026-11-11 15:31:34');
+INSERT INTO `sys_logininfor` VALUES (768, '13911112222', '127.0.0.1', '内网IP', 'Curl 8.7.1', '', '0', '登录成功', '2026-11-11 15:33:04');
+INSERT INTO `sys_logininfor` VALUES (769, '13911112222', '127.0.0.1', '内网IP', 'Curl 8.7.1', '', '0', '登录成功', '2026-11-11 15:39:32');
+INSERT INTO `sys_logininfor` VALUES (770, '13911112222', '127.0.0.1', '内网IP', 'Curl 8.7.1', '', '0', '登录成功', '2026-11-11 15:44:26');
+INSERT INTO `sys_logininfor` VALUES (771, '13911112222', '127.0.0.1', '内网IP', 'Curl 8.7.1', '', '0', '登录成功', '2026-11-11 15:53:45');
+INSERT INTO `sys_logininfor` VALUES (772, '13911112222', '127.0.0.1', '内网IP', 'Curl 8.7.1', '', '0', '登录成功', '2026-11-11 15:57:27');
+INSERT INTO `sys_logininfor` VALUES (773, '13911112222', '192.168.101.194', '内网IP', 'Curl 8.7.1', '', '1', '密码输入错误1次', '2026-11-11 15:58:41');
+INSERT INTO `sys_logininfor` VALUES (774, '13911112222', '192.168.101.194', '内网IP', 'Curl 8.7.1', '', '0', '登录成功', '2026-11-11 17:17:58');
+INSERT INTO `sys_logininfor` VALUES (775, '13900009999', '58.16.41.98', 'XX XX', 'PowerShell 7.6.4', 'Windows 10.0', '0', '注册成功', '2026-11-12 14:42:16');
+INSERT INTO `sys_logininfor` VALUES (776, '13900009999', '58.16.41.98', 'XX XX', 'PowerShell 7.6.4', 'Windows 10.0', '0', '登录成功', '2026-11-12 14:42:29');
+INSERT INTO `sys_logininfor` VALUES (777, '13900009999', '58.16.41.98', 'XX XX', 'PowerShell 7.6.4', 'Windows 10.0', '0', '登录成功', '2026-11-12 14:43:16');
+INSERT INTO `sys_logininfor` VALUES (778, '13900009999', '58.16.41.98', 'XX XX', 'PowerShell 7.6.4', 'Windows 10.0', '0', '登录成功', '2026-11-12 14:43:49');
+INSERT INTO `sys_logininfor` VALUES (779, '13900009999', '58.16.41.98', 'XX XX', 'PowerShell 7.6.4', 'Windows 10.0', '0', '登录成功', '2026-11-12 14:44:04');
+INSERT INTO `sys_logininfor` VALUES (780, '13900000001', '127.0.0.1', '内网IP', 'Okhttp 4.12.0', '', '0', '登录成功', '2026-11-13 10:59:38');
+INSERT INTO `sys_logininfor` VALUES (781, 'admin', '220.197.73.196', 'XX XX', 'Chrome 156', 'Windows10', '0', '登录成功', '2026-11-13 11:06:30');
+INSERT INTO `sys_logininfor` VALUES (782, 'admin', '58.16.41.98', 'XX XX', 'Chrome 156', 'Windows10', '1', '验证码错误', '2026-11-13 13:56:44');
+INSERT INTO `sys_logininfor` VALUES (783, 'admin', '58.16.41.98', 'XX XX', 'Chrome 156', 'Windows10', '0', '登录成功', '2026-11-13 13:57:15');
+INSERT INTO `sys_logininfor` VALUES (784, 'admin', '58.16.41.98', 'XX XX', 'Edge 142', 'Windows >=10', '0', '登录成功', '2026-11-13 14:19:18');
+INSERT INTO `sys_logininfor` VALUES (785, '13900139001', '127.0.0.1', '内网IP', 'WeChat 8.0.5', 'iOS 15.0', '0', '登录成功', '2026-11-13 18:12:09');
+INSERT INTO `sys_logininfor` VALUES (786, '13900139001', '127.0.0.1', '内网IP', 'WeChat 8.0.5', 'iOS 15.0', '0', '登录成功', '2026-11-13 18:33:10');
+INSERT INTO `sys_logininfor` VALUES (787, '13900001234', '127.0.0.1', '内网IP', 'Curl 8.16.0', '', '1', '密码输入错误1次', '2026-11-16 09:06:28');
+INSERT INTO `sys_logininfor` VALUES (788, '18800001111', '127.0.0.1', '内网IP', 'Curl 8.16.0', '', '0', '注册成功', '2026-11-16 09:06:36');
+INSERT INTO `sys_logininfor` VALUES (789, '18800001111', '127.0.0.1', '内网IP', 'Curl 8.16.0', '', '0', '登录成功', '2026-11-16 09:06:37');
+INSERT INTO `sys_logininfor` VALUES (790, '18800001111', '127.0.0.1', '内网IP', 'Okhttp 4.12.0', '', '0', '登录成功', '2026-11-16 09:06:51');
+INSERT INTO `sys_logininfor` VALUES (791, '18800001111', '127.0.0.1', '内网IP', 'Curl 8.16.0', '', '0', '登录成功', '2026-11-16 09:10:20');
+INSERT INTO `sys_logininfor` VALUES (792, 'admin', '58.16.41.98', 'XX XX', 'Edge 142', 'Windows >=10', '0', '登录成功', '2026-11-16 14:35:28');
+INSERT INTO `sys_logininfor` VALUES (793, 'admin', '127.0.0.1', '内网IP', 'Curl 8.22.0', '', '1', '验证码错误', '2026-11-16 14:45:36');
+INSERT INTO `sys_logininfor` VALUES (794, 'test', '192.168.101.121', '内网IP', 'Curl 8.1.2', '', '1', '验证码错误', '2026-11-16 14:59:57');
+INSERT INTO `sys_logininfor` VALUES (795, 'admin', '58.16.41.98', 'XX XX', 'Edge 142', 'Windows >=10', '0', '登录成功', '2026-11-16 15:47:38');
+INSERT INTO `sys_logininfor` VALUES (796, 'admin', '59.51.114.212', 'XX XX', 'Chrome 124', 'Windows10', '1', '验证码错误', '2026-11-16 16:59:59');
+INSERT INTO `sys_logininfor` VALUES (797, 'a', '127.0.0.1', '内网IP', 'Curl 8.22.0', '', '1', '验证码错误', '2026-11-17 09:05:17');
+INSERT INTO `sys_logininfor` VALUES (798, 't', '192.168.101.121', '内网IP', 'Curl 8.1.2', '', '1', '验证码错误', '2026-11-17 09:05:26');
+INSERT INTO `sys_logininfor` VALUES (799, '13900000001', '192.168.101.121', '内网IP', 'Curl 8.1.2', '', '0', '登录成功', '2026-11-17 09:06:59');
+INSERT INTO `sys_logininfor` VALUES (800, '13900000001', '192.168.101.121', '内网IP', 'Projectapp2 1', 'iOS 14.7 beta 2', '0', '登录成功', '2026-11-17 09:08:17');
+INSERT INTO `sys_logininfor` VALUES (801, '13900000001', '127.0.0.1', '内网IP', 'Curl 8.22.0', '', '0', '登录成功', '2026-11-17 09:16:23');
+INSERT INTO `sys_logininfor` VALUES (802, '13900000001', '192.168.101.121', '内网IP', 'Curl 8.1.2', '', '1', '密码输入错误1次', '2026-11-17 10:51:59');
+INSERT INTO `sys_logininfor` VALUES (803, 'admin', '58.16.41.98', 'XX XX', 'Edge 142', 'Windows >=10', '0', '登录成功', '2026-11-17 10:53:04');
+INSERT INTO `sys_logininfor` VALUES (804, '13900000001', '127.0.0.1', '内网IP', 'Curl 8.22.0', '', '0', '登录成功', '2026-11-17 14:18:18');
+INSERT INTO `sys_logininfor` VALUES (805, '13900139001', '127.0.0.1', '内网IP', 'Okhttp 4.12.0', '', '0', '登录成功', '2026-11-17 14:21:58');
+INSERT INTO `sys_logininfor` VALUES (806, '18785365694', '127.0.0.1', '内网IP', 'Okhttp 4.12.0', '', '0', '注册成功', '2026-11-17 14:37:03');
+INSERT INTO `sys_logininfor` VALUES (807, '18785365695', '127.0.0.1', '内网IP', 'Okhttp 4.12.0', '', '0', '注册成功', '2026-11-17 14:43:50');
+INSERT INTO `sys_logininfor` VALUES (808, '18785365694', '127.0.0.1', '内网IP', 'Okhttp 4.12.0', '', '0', '登录成功', '2026-11-17 14:44:09');
+INSERT INTO `sys_logininfor` VALUES (809, '13900139001', '127.0.0.1', '内网IP', 'Okhttp 4.12.0', '', '0', '登录成功', '2026-11-17 14:51:36');
+INSERT INTO `sys_logininfor` VALUES (810, '13900139001', '127.0.0.1', '内网IP', 'Okhttp 4.12.0', '', '0', '登录成功', '2026-11-17 14:56:01');
+INSERT INTO `sys_logininfor` VALUES (811, '18785365696', '127.0.0.1', '内网IP', 'Okhttp 4.12.0', '', '0', '注册成功', '2026-11-17 15:07:01');
+INSERT INTO `sys_logininfor` VALUES (812, '18785365696', '127.0.0.1', '内网IP', 'Okhttp 4.12.0', '', '0', '登录成功', '2026-11-17 15:07:22');
+INSERT INTO `sys_logininfor` VALUES (813, '13900149001', '127.0.0.1', '内网IP', 'Okhttp 4.12.0', '', '0', '注册成功', '2026-11-17 15:09:15');
+INSERT INTO `sys_logininfor` VALUES (814, '13900149001', '127.0.0.1', '内网IP', 'Okhttp 4.12.0', '', '0', '登录成功', '2026-11-17 15:09:35');
+INSERT INTO `sys_logininfor` VALUES (815, '18785365696', '127.0.0.1', '内网IP', 'Okhttp 4.12.0', '', '0', '登录成功', '2026-11-17 15:10:14');
+INSERT INTO `sys_logininfor` VALUES (816, '18785365696', '127.0.0.1', '内网IP', 'Okhttp 4.12.0', '', '0', '登录成功', '2026-11-17 15:11:08');
+INSERT INTO `sys_logininfor` VALUES (817, '18785365696', '127.0.0.1', '内网IP', 'Okhttp 4.12.0', '', '0', '登录成功', '2026-11-17 15:14:29');
+INSERT INTO `sys_logininfor` VALUES (818, '18785365696', '127.0.0.1', '内网IP', 'Okhttp 4.12.0', '', '0', '登录成功', '2026-11-17 15:19:18');
+INSERT INTO `sys_logininfor` VALUES (819, '18785365696', '127.0.0.1', '内网IP', 'Okhttp 4.12.0', '', '0', '登录成功', '2026-11-17 15:21:41');
+INSERT INTO `sys_logininfor` VALUES (820, '18785365696', '127.0.0.1', '内网IP', 'Okhttp 4.12.0', '', '0', '登录成功', '2026-11-17 15:22:07');
+INSERT INTO `sys_logininfor` VALUES (821, '18785365696', '127.0.0.1', '内网IP', 'Okhttp 4.12.0', '', '0', '登录成功', '2026-11-17 15:22:24');
+INSERT INTO `sys_logininfor` VALUES (822, '18785365696', '127.0.0.1', '内网IP', 'Okhttp 4.12.0', '', '0', '登录成功', '2026-11-17 15:22:52');
+INSERT INTO `sys_logininfor` VALUES (823, '18785365696', '127.0.0.1', '内网IP', 'Okhttp 4.12.0', '', '0', '登录成功', '2026-11-17 15:24:23');
+INSERT INTO `sys_logininfor` VALUES (824, '18785365697', '127.0.0.1', '内网IP', 'Okhttp 4.12.0', '', '0', '注册成功', '2026-11-17 15:47:40');
+INSERT INTO `sys_logininfor` VALUES (825, '13900139001', '127.0.0.1', '内网IP', 'Okhttp 4.12.0', '', '0', '登录成功', '2026-11-17 15:51:10');
+INSERT INTO `sys_logininfor` VALUES (826, '13900000001', '192.168.101.121', '内网IP', 'Projectapp2 1', 'iOS 14.7 beta 2', '0', '登录成功', '2026-11-17 16:12:47');
+INSERT INTO `sys_logininfor` VALUES (827, 'admin', '58.16.41.98', 'XX XX', 'Edge 142', 'Windows >=10', '0', '登录成功', '2026-11-17 16:16:42');
+INSERT INTO `sys_logininfor` VALUES (828, '13900139001', '127.0.0.1', '内网IP', 'WeChat 8.0.5', 'iOS 15.0', '0', '登录成功', '2026-11-17 16:55:20');
+INSERT INTO `sys_logininfor` VALUES (829, '13900139001', '127.0.0.1', '内网IP', 'PowerShell 7.6.4', 'Windows 10.0', '0', '登录成功', '2026-11-17 16:58:41');
+INSERT INTO `sys_logininfor` VALUES (830, 'admin', '58.16.41.98', 'XX XX', 'Edge 142', 'Windows >=10', '0', '登录成功', '2026-11-17 17:37:04');
+INSERT INTO `sys_logininfor` VALUES (831, '13911112222', '127.0.0.1', '内网IP', 'Curl 8.22.0', '', '0', '登录成功', '2026-11-17 21:09:30');
+INSERT INTO `sys_logininfor` VALUES (832, '13911112222', '127.0.0.1', '内网IP', 'Curl 8.22.0', '', '0', '登录成功', '2026-11-17 21:09:35');
+INSERT INTO `sys_logininfor` VALUES (833, '13911112222', '127.0.0.1', '内网IP', 'Curl 8.22.0', '', '0', '登录成功', '2026-11-17 21:09:35');
+INSERT INTO `sys_logininfor` VALUES (834, '13911112222', '127.0.0.1', '内网IP', 'Curl 8.22.0', '', '0', '登录成功', '2026-11-17 21:09:43');
+INSERT INTO `sys_logininfor` VALUES (835, 'admin', '154.83.128.126', 'XX XX', 'Chrome 131', 'Windows >=10', '1', '验证码错误', '2026-11-18 01:37:42');
+INSERT INTO `sys_logininfor` VALUES (836, 'admin', '154.83.128.126', 'XX XX', 'Chrome 131', 'Windows >=10', '1', '验证码错误', '2026-11-18 01:37:43');
+INSERT INTO `sys_logininfor` VALUES (837, 'admin', '154.83.128.126', 'XX XX', 'Chrome 131', 'Windows >=10', '1', '验证码错误', '2026-11-18 01:43:38');
+INSERT INTO `sys_logininfor` VALUES (838, 'admin', '154.83.128.126', 'XX XX', 'Chrome 131', 'Windows >=10', '1', '验证码错误', '2026-11-18 01:43:39');
+INSERT INTO `sys_logininfor` VALUES (839, 'admin', '154.83.128.126', 'XX XX', 'Chrome 131', 'Windows >=10', '1', '验证码错误', '2026-11-18 01:43:40');
+INSERT INTO `sys_logininfor` VALUES (840, 'admin', '154.83.128.126', 'XX XX', 'Chrome 131', 'Windows >=10', '1', '验证码错误', '2026-11-18 01:43:41');
+INSERT INTO `sys_logininfor` VALUES (841, 'admin', '154.83.128.126', 'XX XX', 'Chrome 131.0', 'Windows >=10', '1', '验证码错误', '2026-11-18 05:45:20');
+INSERT INTO `sys_logininfor` VALUES (842, 'admin', '154.83.128.126', 'XX XX', 'Chrome 131.0', 'Windows >=10', '1', '验证码错误', '2026-11-18 05:45:21');
+INSERT INTO `sys_logininfor` VALUES (843, 'admin', '112.65.60.15', 'XX XX', 'Curl 8.7.1', '', '1', '验证码错误', '2026-11-18 10:07:58');
+INSERT INTO `sys_logininfor` VALUES (844, 'admin', '112.65.60.15', 'XX XX', 'Curl 8.7.1', '', '1', '验证码错误', '2026-11-18 10:07:58');
+INSERT INTO `sys_logininfor` VALUES (845, '13911112222', '127.0.0.1', '内网IP', 'Curl 8.7.1', '', '0', '登录成功', '2026-11-18 10:24:29');
+INSERT INTO `sys_logininfor` VALUES (846, '13911112222', '127.0.0.1', '内网IP', 'Curl 8.7.1', '', '0', '登录成功', '2026-11-18 10:24:42');
+INSERT INTO `sys_logininfor` VALUES (847, 'admin', '127.0.0.1', '内网IP', 'Edge 157', 'Windows >=10', '0', '登录成功', '2026-11-18 10:49:54');
+INSERT INTO `sys_logininfor` VALUES (848, 'admin', '127.0.0.1', '内网IP', 'Edge 157', 'Windows >=10', '0', '登录成功', '2026-11-18 10:52:54');
+INSERT INTO `sys_logininfor` VALUES (849, 'admin', '58.16.41.98', 'XX XX', 'Edge 142', 'Windows >=10', '0', '登录成功', '2026-11-18 10:54:47');
+INSERT INTO `sys_logininfor` VALUES (850, 'admin', '58.16.41.98', 'XX XX', 'Edge 142', 'Windows >=10', '1', '密码输入错误1次', '2026-11-18 11:10:21');
+INSERT INTO `sys_logininfor` VALUES (851, 'admin', '58.16.41.98', 'XX XX', 'Edge 142', 'Windows >=10', '0', '登录成功', '2026-11-18 11:10:30');
+INSERT INTO `sys_logininfor` VALUES (852, '13900000009', '127.0.0.1', '内网IP', 'Curl 8.22.0', '', '0', '登录成功', '2026-11-18 11:13:56');
+INSERT INTO `sys_logininfor` VALUES (853, '13900000001', '127.0.0.1', '内网IP', 'Curl 8.22.0', '', '0', '登录成功', '2026-11-18 11:13:58');
+INSERT INTO `sys_logininfor` VALUES (854, '13900000009', '127.0.0.1', '内网IP', 'Curl 8.22.0', '', '0', '登录成功', '2026-11-18 11:14:50');
+INSERT INTO `sys_logininfor` VALUES (855, '13900000001', '127.0.0.1', '内网IP', 'Curl 8.22.0', '', '0', '登录成功', '2026-11-18 11:14:51');
+INSERT INTO `sys_logininfor` VALUES (856, '13900000001', '127.0.0.1', '内网IP', 'Curl 8.22.0', '', '0', '登录成功', '2026-11-18 11:15:57');
+INSERT INTO `sys_logininfor` VALUES (857, '18800001111', '58.16.41.98', 'XX XX', 'Curl 8.16.0', '', '0', '登录成功', '2026-11-18 11:37:20');
+INSERT INTO `sys_logininfor` VALUES (858, 'admin', '54.169.49.130', 'XX XX', 'Chrome 157', 'Windows10', '1', '验证码错误', '2026-11-18 11:44:06');
+INSERT INTO `sys_logininfor` VALUES (859, 'admin', '127.0.0.1', '内网IP', 'Curl 8.22.0', '', '0', '登录成功', '2026-11-18 11:48:15');
+INSERT INTO `sys_logininfor` VALUES (860, '13900000009', '127.0.0.1', '内网IP', 'Curl 8.22.0', '', '0', '登录成功', '2026-11-18 11:48:17');
+INSERT INTO `sys_logininfor` VALUES (861, '13900000009', '127.0.0.1', '内网IP', 'Curl 8.22.0', '', '0', '登录成功', '2026-11-18 11:48:29');
+INSERT INTO `sys_logininfor` VALUES (862, 'admin', '54.169.49.130', 'XX XX', 'Chrome 157', 'Windows10', '0', '登录成功', '2026-11-18 11:50:33');
+INSERT INTO `sys_logininfor` VALUES (863, '13900000001', '127.0.0.1', '内网IP', 'Curl 8.22.0', '', '1', '密码输入错误1次', '2026-11-18 14:10:45');
+INSERT INTO `sys_logininfor` VALUES (864, '13911112222', '127.0.0.1', '内网IP', 'Curl 8.22.0', '', '0', '登录成功', '2026-11-18 14:11:04');
+INSERT INTO `sys_logininfor` VALUES (865, 'admin', '58.16.41.98', 'XX XX', 'Chrome 157', 'Windows10', '0', '登录成功', '2026-11-18 14:24:24');
+INSERT INTO `sys_logininfor` VALUES (866, '13911112222', '127.0.0.1', '内网IP', 'Curl 8.7.1', '', '1', '密码输入错误1次', '2026-11-18 14:49:54');
+INSERT INTO `sys_logininfor` VALUES (867, '13911112222', '127.0.0.1', '内网IP', 'Curl 8.7.1', '', '1', '密码输入错误2次', '2026-11-18 14:50:36');
+INSERT INTO `sys_logininfor` VALUES (868, '13900139001', '127.0.0.1', '内网IP', 'Python-urllib 3.13', '', '0', '登录成功', '2026-11-18 15:17:47');
+INSERT INTO `sys_logininfor` VALUES (869, '13900139001', '127.0.0.1', '内网IP', 'Python-urllib 3.13', '', '0', '登录成功', '2026-11-18 15:17:56');
+INSERT INTO `sys_logininfor` VALUES (870, '13900139001', '127.0.0.1', '内网IP', 'Python-urllib 3.13', '', '0', '登录成功', '2026-11-18 15:18:06');
+INSERT INTO `sys_logininfor` VALUES (871, '13900139001', '127.0.0.1', '内网IP', 'PowerShell 7.6.4', 'Windows 10.0', '0', '登录成功', '2026-11-18 15:35:55');
+INSERT INTO `sys_logininfor` VALUES (872, '13900139001', '127.0.0.1', '内网IP', 'PowerShell 7.6.4', 'Windows 10.0', '0', '登录成功', '2026-11-18 15:53:24');
+INSERT INTO `sys_logininfor` VALUES (873, '13900139001', '127.0.0.1', '内网IP', 'PowerShell 7.6.4', 'Windows 10.0', '0', '登录成功', '2026-11-18 15:53:42');
+INSERT INTO `sys_logininfor` VALUES (874, '13900139001', '127.0.0.1', '内网IP', 'PowerShell 7.6.4', 'Windows 10.0', '0', '登录成功', '2026-11-18 15:54:00');
+INSERT INTO `sys_logininfor` VALUES (875, '13900139001', '127.0.0.1', '内网IP', 'PowerShell 7.6.4', 'Windows 10.0', '0', '登录成功', '2026-11-18 15:54:16');
+INSERT INTO `sys_logininfor` VALUES (876, '13900139001', '127.0.0.1', '内网IP', 'PowerShell 7.6.4', 'Windows 10.0', '0', '登录成功', '2026-11-18 15:55:06');
+INSERT INTO `sys_logininfor` VALUES (877, '13900139001', '127.0.0.1', '内网IP', 'PowerShell 7.6.4', 'Windows 10.0', '0', '登录成功', '2026-11-18 15:55:20');
+INSERT INTO `sys_logininfor` VALUES (878, '13900139001', '127.0.0.1', '内网IP', 'PowerShell 7.6.4', 'Windows 10.0', '0', '登录成功', '2026-11-18 15:55:32');
+INSERT INTO `sys_logininfor` VALUES (879, '13900139001', '220.197.4.230', 'XX XX', 'Okhttp 4.12.0', '', '0', '登录成功', '2026-11-18 15:59:35');
+INSERT INTO `sys_logininfor` VALUES (880, '13638010667', '114.138.157.27', 'XX XX', 'Okhttp 4.12.0', '', '0', '注册成功', '2026-11-18 16:09:03');
+INSERT INTO `sys_logininfor` VALUES (881, '13638010667', '114.138.157.27', 'XX XX', 'Okhttp 4.12.0', '', '0', '登录成功', '2026-11-18 16:09:37');
+INSERT INTO `sys_logininfor` VALUES (882, '13900139001', '114.139.112.68', 'XX XX', 'Okhttp 4.12.0', '', '0', '登录成功', '2026-11-18 16:14:16');
+INSERT INTO `sys_logininfor` VALUES (883, '13900139001', '127.0.0.1', '内网IP', 'PowerShell 7.6.4', 'Windows 10.0', '0', '登录成功', '2026-11-18 16:19:18');
+INSERT INTO `sys_logininfor` VALUES (884, '13900139001', '114.139.112.68', 'XX XX', 'Okhttp 4.12.0', '', '0', '登录成功', '2026-11-18 16:21:00');
+INSERT INTO `sys_logininfor` VALUES (885, '13900000001', '39.144.231.36', 'XX XX', 'Okhttp 4.12.0', '', '0', '登录成功', '2026-11-18 16:22:18');
+INSERT INTO `sys_logininfor` VALUES (886, '13339620617', '39.144.231.76', 'XX XX', 'Okhttp 4.12.0', '', '0', '注册成功', '2026-11-18 16:22:34');
+INSERT INTO `sys_logininfor` VALUES (887, '15585102712', '220.197.21.177', 'XX XX', 'Okhttp 4.12.0', '', '0', '注册成功', '2026-11-18 16:24:49');
+INSERT INTO `sys_logininfor` VALUES (888, '13900000001', '39.144.231.36', 'XX XX', 'Okhttp 4.12.0', '', '0', '登录成功', '2026-11-18 16:27:17');
+INSERT INTO `sys_logininfor` VALUES (889, '13900139001', '127.0.0.1', '内网IP', 'Curl 8.21.0', '', '0', '登录成功', '2026-11-18 16:39:55');
+INSERT INTO `sys_logininfor` VALUES (890, 'admin', '127.0.0.1', '内网IP', 'Curl 8.22.0', '', '0', '登录成功', '2026-11-19 09:21:51');
+INSERT INTO `sys_logininfor` VALUES (891, 'admin', '127.0.0.1', '内网IP', 'Edge 157', 'Windows >=10', '0', '登录成功', '2026-11-19 09:23:28');
 
 -- ----------------------------
 -- Table structure for sys_menu
@@ -2545,7 +3235,7 @@ CREATE TABLE `sys_menu`  (
   `update_time` datetime NULL DEFAULT NULL COMMENT '更新时间',
   `remark` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '' COMMENT '备注',
   PRIMARY KEY (`menu_id`) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 2088 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '菜单权限表' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 2133 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '菜单权限表' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Records of sys_menu
@@ -2676,11 +3366,30 @@ INSERT INTO `sys_menu` VALUES (2070, '话题列表', 2069, 1, '#', 'menuItem', '
 INSERT INTO `sys_menu` VALUES (2071, '话题新增', 2069, 2, '#', 'menuItem', 'F', '0', '1', 'community:topic:add', '#', 'admin', '2026-11-02 16:16:41', '', NULL, '');
 INSERT INTO `sys_menu` VALUES (2072, '话题修改', 2069, 3, '#', 'menuItem', 'F', '0', '1', 'community:topic:edit', '#', 'admin', '2026-11-02 16:16:41', '', NULL, '');
 INSERT INTO `sys_menu` VALUES (2073, '话题删除', 2069, 4, '#', 'menuItem', 'F', '0', '1', 'community:topic:remove', '#', 'admin', '2026-11-02 16:16:41', '', NULL, '');
-INSERT INTO `sys_menu` VALUES (2081, '签到记录', 2026, 9, '/user/checkin', 'menuItem', 'C', '0', '1', 'user:checkin:view', 'fa fa-calendar-check-o', 'admin', '2026-11-02 16:27:24', '', NULL, '签到记录菜单');
-INSERT INTO `sys_menu` VALUES (2082, '签到列表', 2081, 1, '#', 'menuItem', 'F', '0', '1', 'user:checkin:list', '#', 'admin', '2026-11-02 16:27:24', '', NULL, '');
-INSERT INTO `sys_menu` VALUES (2083, '积分账户', 2026, 10, '/user/points/account', 'menuItem', 'C', '0', '1', 'user:points:view', 'fa fa-diamond', 'admin', '2026-11-02 16:27:24', '', NULL, '积分账户菜单');
-INSERT INTO `sys_menu` VALUES (2084, '积分列表', 2083, 1, '#', 'menuItem', 'F', '0', '1', 'user:points:list', '#', 'admin', '2026-11-02 16:27:24', '', NULL, '');
-INSERT INTO `sys_menu` VALUES (2087, '积分流水', 2083, 3, '/user/points/log', 'menuItem', 'C', '1', '1', 'user:points:log', 'fa fa-list-alt', 'admin', '2026-11-02 16:27:24', '', NULL, '积分流水页面（隐藏菜单，从积分账户页进入）');
+INSERT INTO `sys_menu` VALUES (2084, '积分列表', 2088, 1, '#', 'menuItem', 'F', '0', '1', 'user:points:list', '#', 'admin', '2026-11-02 16:27:24', '', NULL, '');
+INSERT INTO `sys_menu` VALUES (2088, '积分记录', 2026, 9, '/user/points/records', 'menuItem', 'C', '0', '1', 'user:points:view', 'fa fa-diamond', 'admin', '2026-11-10 10:07:16', '', NULL, '积分记录（按用户查看积分来源与明细）');
+INSERT INTO `sys_menu` VALUES (2100, '积分商城', 0, 6, '#', 'menuItem', 'M', '0', '1', '', 'fa fa-shopping-bag', 'admin', '2026-11-17 15:37:48', '', NULL, '积分商城管理目录');
+INSERT INTO `sys_menu` VALUES (2101, '商品分类', 2100, 1, '/shop/category', 'menuItem', 'C', '0', '1', 'shop:category:view', 'fa fa-tags', 'admin', '2026-11-17 15:37:50', '', NULL, '积分商城商品分类');
+INSERT INTO `sys_menu` VALUES (2102, '商品管理', 2100, 2, '/shop/product', 'menuItem', 'C', '0', '1', 'shop:product:view', 'fa fa-gift', 'admin', '2026-11-17 15:37:51', '', NULL, '积分商城商品管理');
+INSERT INTO `sys_menu` VALUES (2103, '兑换记录', 2100, 3, '/shop/order', 'menuItem', 'C', '0', '1', 'shop:order:view', 'fa fa-ticket', 'admin', '2026-11-17 15:37:51', '', NULL, '积分商城兑换记录（只读）');
+INSERT INTO `sys_menu` VALUES (2104, '兑换记录查询', 2103, 1, '#', 'menuItem', 'F', '0', '1', 'shop:order:list', '#', 'admin', '2026-11-17 15:37:54', '', NULL, '');
+INSERT INTO `sys_menu` VALUES (2105, '商品管理查询', 2102, 1, '#', 'menuItem', 'F', '0', '1', 'shop:product:list', '#', 'admin', '2026-11-17 15:37:54', '', NULL, '');
+INSERT INTO `sys_menu` VALUES (2106, '商品分类查询', 2101, 1, '#', 'menuItem', 'F', '0', '1', 'shop:category:list', '#', 'admin', '2026-11-17 15:37:54', '', NULL, '');
+INSERT INTO `sys_menu` VALUES (2107, '商品管理新增', 2102, 2, '#', 'menuItem', 'F', '0', '1', 'shop:product:add', '#', 'admin', '2026-11-17 15:37:54', '', NULL, '');
+INSERT INTO `sys_menu` VALUES (2108, '商品分类新增', 2101, 2, '#', 'menuItem', 'F', '0', '1', 'shop:category:add', '#', 'admin', '2026-11-17 15:37:54', '', NULL, '');
+INSERT INTO `sys_menu` VALUES (2109, '商品管理修改', 2102, 3, '#', 'menuItem', 'F', '0', '1', 'shop:product:edit', '#', 'admin', '2026-11-17 15:37:54', '', NULL, '');
+INSERT INTO `sys_menu` VALUES (2110, '商品分类修改', 2101, 3, '#', 'menuItem', 'F', '0', '1', 'shop:category:edit', '#', 'admin', '2026-11-17 15:37:54', '', NULL, '');
+INSERT INTO `sys_menu` VALUES (2111, '商品管理删除', 2102, 4, '#', 'menuItem', 'F', '0', '1', 'shop:product:remove', '#', 'admin', '2026-11-17 15:37:54', '', NULL, '');
+INSERT INTO `sys_menu` VALUES (2112, '商品分类删除', 2101, 4, '#', 'menuItem', 'F', '0', '1', 'shop:category:remove', '#', 'admin', '2026-11-17 15:37:54', '', NULL, '');
+INSERT INTO `sys_menu` VALUES (2119, '协议管理', 2026, 10, '/user/agreement', 'menuItem', 'C', '0', '1', 'user:agreement:view', 'fa fa-file-text-o', 'admin', '2026-11-17 16:14:33', '', NULL, '用户协议/隐私政策/关于我们');
+INSERT INTO `sys_menu` VALUES (2120, '协议新增', 2119, 1, '#', 'menuItem', 'F', '0', '1', 'user:agreement:add', '#', 'admin', '2026-11-17 16:14:34', '', NULL, '');
+INSERT INTO `sys_menu` VALUES (2121, '协议修改', 2119, 2, '#', 'menuItem', 'F', '0', '1', 'user:agreement:edit', '#', 'admin', '2026-11-17 16:14:34', '', NULL, '');
+INSERT INTO `sys_menu` VALUES (2122, '协议删除', 2119, 3, '#', 'menuItem', 'F', '0', '1', 'user:agreement:remove', '#', 'admin', '2026-11-17 16:14:34', '', NULL, '');
+INSERT INTO `sys_menu` VALUES (2128, '违禁词管理', 2026, 11, '/community/sensitive-word', 'menuItem', 'C', '0', '1', 'community:sensitive:view', 'fa fa-ban', 'admin', '2026-11-19 09:18:51', '', NULL, '帖子违禁词拦截词库');
+INSERT INTO `sys_menu` VALUES (2129, '违禁词查询', 2128, 1, '#', 'menuItem', 'F', '0', '1', 'community:sensitive:list', '#', 'admin', '2026-11-19 09:18:51', '', NULL, '');
+INSERT INTO `sys_menu` VALUES (2130, '违禁词新增', 2128, 2, '#', 'menuItem', 'F', '0', '1', 'community:sensitive:add', '#', 'admin', '2026-11-19 09:18:51', '', NULL, '');
+INSERT INTO `sys_menu` VALUES (2131, '违禁词修改', 2128, 3, '#', 'menuItem', 'F', '0', '1', 'community:sensitive:edit', '#', 'admin', '2026-11-19 09:18:51', '', NULL, '');
+INSERT INTO `sys_menu` VALUES (2132, '违禁词删除', 2128, 4, '#', 'menuItem', 'F', '0', '1', 'community:sensitive:remove', '#', 'admin', '2026-11-19 09:18:51', '', NULL, '');
 
 -- ----------------------------
 -- Table structure for sys_notice
@@ -2750,7 +3459,7 @@ CREATE TABLE `sys_oper_log`  (
   INDEX `idx_sys_oper_log_bt`(`business_type` ASC) USING BTREE,
   INDEX `idx_sys_oper_log_s`(`status` ASC) USING BTREE,
   INDEX `idx_sys_oper_log_ot`(`oper_time` ASC) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 334 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '操作日志记录' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 370 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '操作日志记录' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Records of sys_oper_log
@@ -2989,6 +3698,42 @@ INSERT INTO `sys_oper_log` VALUES (330, '课程', 2, 'com.ruoyi.course.controlle
 INSERT INTO `sys_oper_log` VALUES (331, '评论查看', 3, 'com.ruoyi.interaction.controller.CommentController.remove()', 'POST', 1, 'admin', '研发部门', '/community/comment/remove', '127.0.0.1', '内网IP', '{\"commentId\":[\"163\"]}', '{\"msg\":\"操作成功\",\"code\":0}', 0, NULL, '2026-11-10 09:39:45', 874);
 INSERT INTO `sys_oper_log` VALUES (332, '课程评价', 3, 'com.ruoyi.course.controller.CourseRatingController.remove()', 'POST', 1, 'admin', '研发部门', '/course/rating/remove', '127.0.0.1', '内网IP', '{\"ratingId\":[\"127\"]}', '{\"msg\":\"操作成功\",\"code\":0}', 0, NULL, '2026-11-10 09:39:52', 1431);
 INSERT INTO `sys_oper_log` VALUES (333, '评论查看', 3, 'com.ruoyi.interaction.controller.CommentController.remove()', 'POST', 1, 'admin', '研发部门', '/community/comment/remove', '127.0.0.1', '内网IP', '{\"commentId\":[\"164\"]}', '{\"msg\":\"操作成功\",\"code\":0}', 0, NULL, '2026-11-10 09:40:11', 1089);
+INSERT INTO `sys_oper_log` VALUES (334, '评论查看', 3, 'com.ruoyi.interaction.controller.CommentController.remove()', 'POST', 1, 'admin', '研发部门', '/community/comment/remove', '127.0.0.1', '内网IP', '{\"commentId\":[\"127\"]}', '{\"msg\":\"操作成功\",\"code\":0}', 0, NULL, '2026-11-10 14:34:36', 607);
+INSERT INTO `sys_oper_log` VALUES (335, '评论查看', 3, 'com.ruoyi.interaction.controller.CommentController.remove()', 'POST', 1, 'admin', '研发部门', '/community/comment/remove', '127.0.0.1', '内网IP', '{\"commentId\":[\"124\"]}', '{\"msg\":\"操作成功\",\"code\":0}', 0, NULL, '2026-11-10 14:47:30', 316);
+INSERT INTO `sys_oper_log` VALUES (336, '话题管理', 1, 'com.ruoyi.community.controller.TopicController.addSave()', 'POST', 1, 'admin', '研发部门', '/community/topic/add', '58.16.41.98', 'XX XX', '{\"topicName\":[\"#jenkens\"],\"topicDesc\":[\"自动化部署相关\"],\"status\":[\"0\"]}', '{\"msg\":\"操作成功\",\"code\":0}', 0, NULL, '2026-11-11 14:23:44', 38);
+INSERT INTO `sys_oper_log` VALUES (337, '话题管理', 2, 'com.ruoyi.community.controller.TopicController.editSave()', 'POST', 1, 'admin', '研发部门', '/community/topic/edit', '58.16.41.98', 'XX XX', '{\"topicId\":[\"10\"],\"topicName\":[\"Jenkens\"],\"topicDesc\":[\"自动化部署相关\"],\"status\":[\"0\"]}', '{\"msg\":\"操作成功\",\"code\":0}', 0, NULL, '2026-11-11 14:23:53', 18);
+INSERT INTO `sys_oper_log` VALUES (338, '话题管理', 3, 'com.ruoyi.community.controller.TopicController.remove()', 'POST', 1, 'admin', '研发部门', '/community/topic/remove', '58.16.41.98', 'XX XX', '{\"ids\":[\"10\"]}', '{\"msg\":\"操作成功\",\"code\":0}', 0, NULL, '2026-11-11 14:24:02', 22);
+INSERT INTO `sys_oper_log` VALUES (339, '短视频', 1, 'com.ruoyi.video.controller.ShortVideoController.addSave()', 'POST', 1, 'admin', '研发部门', '/video/shortvideo/add', '58.16.41.98', 'XX XX', '{\"videoTitle\":[\"测试短视频01-功能验证\"],\"videoUrl\":[\"http://43.142.9.214/oss-preview/upload/2026/11/13/test-video-01_20261113140421A001.mp4\"],\"coverUrl\":[\"http://43.142.9.214/oss-preview/upload/2026/11/13/cover-01_20261113140506A002.jpg\"],\"intro\":[\"自动化测试数据，本地生成素材\"],\"duration\":[\"5\"],\"viewCount\":[\"0\"],\"commentCount\":[\"0\"],\"status\":[\"0\"],\"remark\":[\"\"]}', '{\"msg\":\"操作成功\",\"code\":0}', 0, NULL, '2026-11-13 14:05:08', 21);
+INSERT INTO `sys_oper_log` VALUES (340, '短视频', 1, 'com.ruoyi.video.controller.ShortVideoController.addSave()', 'POST', 1, 'admin', '研发部门', '/video/shortvideo/add', '58.16.41.98', 'XX XX', '{\"videoTitle\":[\"测试短视频02-功能验证\"],\"videoUrl\":[\"http://43.142.9.214/oss-preview/upload/2026/11/13/test-video-02_20261113140748A003.mp4\"],\"coverUrl\":[\"http://43.142.9.214/oss-preview/upload/2026/11/13/cover-02_20261113140802A004.jpg\"],\"intro\":[\"自动化测试数据，本地生成素材\"],\"duration\":[\"6\"],\"viewCount\":[\"0\"],\"commentCount\":[\"0\"],\"status\":[\"0\"],\"remark\":[\"\"]}', '{\"msg\":\"操作成功\",\"code\":0}', 0, NULL, '2026-11-13 14:08:04', 18);
+INSERT INTO `sys_oper_log` VALUES (341, '短视频', 1, 'com.ruoyi.video.controller.ShortVideoController.addSave()', 'POST', 1, 'admin', '研发部门', '/video/shortvideo/add', '58.16.41.98', 'XX XX', '{\"videoTitle\":[\"测试短视频03-功能验证\"],\"videoUrl\":[\"http://43.142.9.214/oss-preview/upload/2026/11/13/test-video-03_20261113140819A005.mp4\"],\"coverUrl\":[\"http://43.142.9.214/oss-preview/upload/2026/11/13/cover-03_20261113140820A006.jpg\"],\"intro\":[\"自动化测试数据，本地生成素材\"],\"duration\":[\"4\"],\"viewCount\":[\"0\"],\"commentCount\":[\"0\"],\"status\":[\"0\"],\"remark\":[\"\"]}', '{\"msg\":\"操作成功\",\"code\":0}', 0, NULL, '2026-11-13 14:08:22', 11);
+INSERT INTO `sys_oper_log` VALUES (342, '短视频', 1, 'com.ruoyi.video.controller.ShortVideoController.addSave()', 'POST', 1, 'admin', '研发部门', '/video/shortvideo/add', '58.16.41.98', 'XX XX', '{\"videoTitle\":[\"测试短视频04-功能验证\"],\"videoUrl\":[\"http://43.142.9.214/oss-preview/upload/2026/11/13/test-video-04_20261113140826A007.mp4\"],\"coverUrl\":[\"http://43.142.9.214/oss-preview/upload/2026/11/13/cover-04_20261113140828A008.jpg\"],\"intro\":[\"自动化测试数据，本地生成素材\"],\"duration\":[\"5\"],\"viewCount\":[\"0\"],\"commentCount\":[\"0\"],\"status\":[\"0\"],\"remark\":[\"\"]}', '{\"msg\":\"操作成功\",\"code\":0}', 0, NULL, '2026-11-13 14:08:31', 15);
+INSERT INTO `sys_oper_log` VALUES (343, '短视频', 1, 'com.ruoyi.video.controller.ShortVideoController.addSave()', 'POST', 1, 'admin', '研发部门', '/video/shortvideo/add', '58.16.41.98', 'XX XX', '{\"videoTitle\":[\"测试短视频05-功能验证\"],\"videoUrl\":[\"http://43.142.9.214/oss-preview/upload/2026/11/13/test-video-05_20261113140842A009.mp4\"],\"coverUrl\":[\"http://43.142.9.214/oss-preview/upload/2026/11/13/cover-05_20261113140844A010.jpg\"],\"intro\":[\"自动化测试数据，本地生成素材\"],\"duration\":[\"6\"],\"viewCount\":[\"0\"],\"commentCount\":[\"0\"],\"status\":[\"0\"],\"remark\":[\"\"]}', '{\"msg\":\"操作成功\",\"code\":0}', 0, NULL, '2026-11-13 14:08:47', 11);
+INSERT INTO `sys_oper_log` VALUES (344, '短视频', 1, 'com.ruoyi.video.controller.ShortVideoController.addSave()', 'POST', 1, 'admin', '研发部门', '/video/shortvideo/add', '58.16.41.98', 'XX XX', '{\"videoTitle\":[\"测试短视频06-功能验证\"],\"videoUrl\":[\"http://43.142.9.214/oss-preview/upload/2026/11/13/test-video-06_20261113140851A011.mp4\"],\"coverUrl\":[\"http://43.142.9.214/oss-preview/upload/2026/11/13/cover-06_20261113140852A012.jpg\"],\"intro\":[\"自动化测试数据，本地生成素材\"],\"duration\":[\"4\"],\"viewCount\":[\"0\"],\"commentCount\":[\"0\"],\"status\":[\"0\"],\"remark\":[\"\"]}', '{\"msg\":\"操作成功\",\"code\":0}', 0, NULL, '2026-11-13 14:08:54', 14);
+INSERT INTO `sys_oper_log` VALUES (345, '短视频', 1, 'com.ruoyi.video.controller.ShortVideoController.addSave()', 'POST', 1, 'admin', '研发部门', '/video/shortvideo/add', '58.16.41.98', 'XX XX', '{\"videoTitle\":[\"测试短视频07-功能验证\"],\"videoUrl\":[\"http://43.142.9.214/oss-preview/upload/2026/11/13/test-video-07_20261113140904A013.mp4\"],\"coverUrl\":[\"http://43.142.9.214/oss-preview/upload/2026/11/13/cover-07_20261113140906A014.jpg\"],\"intro\":[\"自动化测试数据，本地生成素材\"],\"duration\":[\"5\"],\"viewCount\":[\"0\"],\"commentCount\":[\"0\"],\"status\":[\"0\"],\"remark\":[\"\"]}', '{\"msg\":\"操作成功\",\"code\":0}', 0, NULL, '2026-11-13 14:09:08', 11);
+INSERT INTO `sys_oper_log` VALUES (346, '短视频', 1, 'com.ruoyi.video.controller.ShortVideoController.addSave()', 'POST', 1, 'admin', '研发部门', '/video/shortvideo/add', '58.16.41.98', 'XX XX', '{\"videoTitle\":[\"测试短视频08-功能验证\"],\"videoUrl\":[\"http://43.142.9.214/oss-preview/upload/2026/11/13/test-video-08_20261113140913A015.mp4\"],\"coverUrl\":[\"http://43.142.9.214/oss-preview/upload/2026/11/13/cover-08_20261113140915A016.jpg\"],\"intro\":[\"自动化测试数据，本地生成素材\"],\"duration\":[\"6\"],\"viewCount\":[\"0\"],\"commentCount\":[\"0\"],\"status\":[\"0\"],\"remark\":[\"\"]}', '{\"msg\":\"操作成功\",\"code\":0}', 0, NULL, '2026-11-13 14:09:18', 17);
+INSERT INTO `sys_oper_log` VALUES (347, '短视频', 1, 'com.ruoyi.video.controller.ShortVideoController.addSave()', 'POST', 1, 'admin', '研发部门', '/video/shortvideo/add', '58.16.41.98', 'XX XX', '{\"videoTitle\":[\"测试短视频09-功能验证\"],\"videoUrl\":[\"http://43.142.9.214/oss-preview/upload/2026/11/13/test-video-09_20261113141111A017.mp4\"],\"coverUrl\":[\"http://43.142.9.214/oss-preview/upload/2026/11/13/cover-09_20261113141118A018.jpg\"],\"intro\":[\"自动化测试数据，本地生成素材\"],\"duration\":[\"4\"],\"viewCount\":[\"0\"],\"commentCount\":[\"0\"],\"status\":[\"0\"],\"remark\":[\"\"]}', '{\"msg\":\"操作成功\",\"code\":0}', 0, NULL, '2026-11-13 14:11:21', 11);
+INSERT INTO `sys_oper_log` VALUES (348, '短视频', 1, 'com.ruoyi.video.controller.ShortVideoController.addSave()', 'POST', 1, 'admin', '研发部门', '/video/shortvideo/add', '58.16.41.98', 'XX XX', '{\"videoTitle\":[\"测试短视频10-功能验证\"],\"videoUrl\":[\"http://43.142.9.214/oss-preview/upload/2026/11/13/test-video-10_20261113141134A019.mp4\"],\"coverUrl\":[\"http://43.142.9.214/oss-preview/upload/2026/11/13/cover-10_20261113141135A020.jpg\"],\"intro\":[\"自动化测试数据，本地生成素材\"],\"duration\":[\"5\"],\"viewCount\":[\"0\"],\"commentCount\":[\"0\"],\"status\":[\"0\"],\"remark\":[\"\"]}', '{\"msg\":\"操作成功\",\"code\":0}', 0, NULL, '2026-11-13 14:11:38', 10);
+INSERT INTO `sys_oper_log` VALUES (349, '短视频', 1, 'com.ruoyi.video.controller.ShortVideoController.addSave()', 'POST', 1, 'admin', '研发部门', '/video/shortvideo/add', '58.16.41.98', 'XX XX', '{\"videoTitle\":[\"测试短视频11-功能验证\"],\"videoUrl\":[\"http://43.142.9.214/oss-preview/upload/2026/11/13/test-video-11_20261113141207A022.mp4\"],\"coverUrl\":[\"http://43.142.9.214/oss-preview/upload/2026/11/13/cover-11_20261113141152A021.jpg\"],\"intro\":[\"自动化测试数据，本地生成素材\"],\"duration\":[\"6\"],\"viewCount\":[\"0\"],\"commentCount\":[\"0\"],\"status\":[\"0\"],\"remark\":[\"\"]}', '{\"msg\":\"操作成功\",\"code\":0}', 0, NULL, '2026-11-13 14:12:16', 10);
+INSERT INTO `sys_oper_log` VALUES (350, '短视频', 1, 'com.ruoyi.video.controller.ShortVideoController.addSave()', 'POST', 1, 'admin', '研发部门', '/video/shortvideo/add', '58.16.41.98', 'XX XX', '{\"videoTitle\":[\"测试短视频12-功能验证\"],\"videoUrl\":[\"http://43.142.9.214/oss-preview/upload/2026/11/13/test-video-12_20261113141231A023.mp4\"],\"coverUrl\":[\"http://43.142.9.214/oss-preview/upload/2026/11/13/cover-12_20261113141232A024.jpg\"],\"intro\":[\"自动化测试数据，本地生成素材\"],\"duration\":[\"4\"],\"viewCount\":[\"0\"],\"commentCount\":[\"0\"],\"status\":[\"0\"],\"remark\":[\"\"]}', '{\"msg\":\"操作成功\",\"code\":0}', 0, NULL, '2026-11-13 14:12:34', 10);
+INSERT INTO `sys_oper_log` VALUES (351, '短视频', 1, 'com.ruoyi.video.controller.ShortVideoController.addSave()', 'POST', 1, 'admin', '研发部门', '/video/shortvideo/add', '58.16.41.98', 'XX XX', '{\"videoTitle\":[\"测试短视频13-功能验证\"],\"videoUrl\":[\"http://43.142.9.214/oss-preview/upload/2026/11/13/test-video-13_20261113141239A025.mp4\"],\"coverUrl\":[\"http://43.142.9.214/oss-preview/upload/2026/11/13/cover-13_20261113141241A026.jpg\"],\"intro\":[\"自动化测试数据，本地生成素材\"],\"duration\":[\"5\"],\"viewCount\":[\"0\"],\"commentCount\":[\"0\"],\"status\":[\"0\"],\"remark\":[\"\"]}', '{\"msg\":\"操作成功\",\"code\":0}', 0, NULL, '2026-11-13 14:12:43', 9);
+INSERT INTO `sys_oper_log` VALUES (352, '短视频', 1, 'com.ruoyi.video.controller.ShortVideoController.addSave()', 'POST', 1, 'admin', '研发部门', '/video/shortvideo/add', '58.16.41.98', 'XX XX', '{\"videoTitle\":[\"测试短视频14-功能验证\"],\"videoUrl\":[\"http://43.142.9.214/oss-preview/upload/2026/11/13/test-video-14_20261113141257A027.mp4\"],\"coverUrl\":[\"http://43.142.9.214/oss-preview/upload/2026/11/13/cover-14_20261113141259A028.jpg\"],\"intro\":[\"自动化测试数据，本地生成素材\"],\"duration\":[\"6\"],\"viewCount\":[\"0\"],\"commentCount\":[\"0\"],\"status\":[\"0\"],\"remark\":[\"\"]}', '{\"msg\":\"操作成功\",\"code\":0}', 0, NULL, '2026-11-13 14:13:02', 14);
+INSERT INTO `sys_oper_log` VALUES (353, '短视频', 1, 'com.ruoyi.video.controller.ShortVideoController.addSave()', 'POST', 1, 'admin', '研发部门', '/video/shortvideo/add', '58.16.41.98', 'XX XX', '{\"videoTitle\":[\"测试短视频15-功能验证\"],\"videoUrl\":[\"http://43.142.9.214/oss-preview/upload/2026/11/13/test-video-15_20261113141306A029.mp4\"],\"coverUrl\":[\"http://43.142.9.214/oss-preview/upload/2026/11/13/cover-15_20261113141307A030.jpg\"],\"intro\":[\"自动化测试数据，本地生成素材\"],\"duration\":[\"4\"],\"viewCount\":[\"0\"],\"commentCount\":[\"0\"],\"status\":[\"0\"],\"remark\":[\"\"]}', '{\"msg\":\"操作成功\",\"code\":0}', 0, NULL, '2026-11-13 14:13:10', 11);
+INSERT INTO `sys_oper_log` VALUES (354, '商城商品', 2, 'com.ruoyi.shopping.controller.ShopProductController.editSave()', 'POST', 1, 'admin', '研发部门', '/shop/product/edit', '58.16.41.98', 'XX XX', '{\"productId\":[\"1\"],\"categoryId\":[\"1\"],\"productName\":[\"无线蓝牙耳机\"],\"coverUrl\":[\"http://43.142.9.214/oss-preview/upload/2026/11/18/OIP_20261118113941A002.jpg\"],\"pointsPrice\":[\"2600\"],\"stock\":[\"20\"],\"orderNum\":[\"1\"],\"status\":[\"0\"],\"description\":[\"轻量化半入耳设计，续航 20 小时，学习通勤两不误。\"],\"remark\":[\"\"]}', '{\"msg\":\"操作成功\",\"code\":0}', 0, NULL, '2026-11-18 11:39:44', 17);
+INSERT INTO `sys_oper_log` VALUES (355, '违禁词', 1, 'com.ruoyi.community.controller.SensitiveWordController.addSave()', 'POST', 1, 'admin', '研发部门', '/community/sensitive-word/add', '127.0.0.1', '内网IP', '{\"word\":[\"测试违禁词\"],\"status\":[\"0\"],\"remark\":[\"测试用\"]}', '{\"msg\":\"操作成功\",\"code\":0}', 0, NULL, '2026-11-18 11:48:17', 469);
+INSERT INTO `sys_oper_log` VALUES (356, '社区帖子', 1, 'com.ruoyi.community.controller.PostController.addSave()', 'POST', 1, 'admin', '研发部门', '/community/post/add', '127.0.0.1', '内网IP', '{\"postTitle\":[\"测试违禁词后台\"],\"categoryId\":[\"100\"],\"content\":[\"后台正常内容\"],\"status\":[\"0\"]}', NULL, 1, '内容包含违禁词，请修改', '2026-11-18 11:48:18', 3);
+INSERT INTO `sys_oper_log` VALUES (357, '社区帖子', 2, 'com.ruoyi.community.controller.PostController.editSave()', 'POST', 1, 'admin', '研发部门', '/community/post/edit', '127.0.0.1', '内网IP', '{\"postId\":[\"229\"],\"postTitle\":[\"测试违禁词标题\"],\"categoryId\":[\"100\"],\"content\":[\"正常内容\"],\"status\":[\"3\"]}', NULL, 1, '内容包含违禁词，请修改', '2026-11-18 11:48:29', 61);
+INSERT INTO `sys_oper_log` VALUES (358, '违禁词', 3, 'com.ruoyi.community.controller.SensitiveWordController.remove()', 'POST', 1, 'admin', '研发部门', '/community/sensitive-word/remove', '127.0.0.1', '内网IP', '{\"ids\":[\"6\"]}', '{\"msg\":\"操作成功\",\"code\":0}', 0, NULL, '2026-11-18 11:48:29', 291);
+INSERT INTO `sys_oper_log` VALUES (359, '社区帖子', 3, 'com.ruoyi.community.controller.PostController.remove()', 'POST', 1, 'admin', '研发部门', '/community/post/remove', '127.0.0.1', '内网IP', '{\"ids\":[\"229,230\"]}', '{\"msg\":\"操作成功\",\"code\":0}', 0, NULL, '2026-11-18 11:48:31', 680);
+INSERT INTO `sys_oper_log` VALUES (360, '商城商品分类', 1, 'com.ruoyi.shopping.controller.ShopCategoryController.addSave()', 'POST', 1, 'admin', '研发部门', '/shop/category/add', '58.16.41.98', 'XX XX', '{\"categoryName\":[\"测试分类A\"],\"orderNum\":[\"9\"],\"status\":[\"0\"],\"remark\":[\"自动化测试临时数据\"]}', '{\"msg\":\"操作成功\",\"code\":0}', 0, NULL, '2026-11-18 14:24:51', 63);
+INSERT INTO `sys_oper_log` VALUES (361, '商城商品分类', 2, 'com.ruoyi.shopping.controller.ShopCategoryController.editSave()', 'POST', 1, 'admin', '研发部门', '/shop/category/edit', '58.16.41.98', 'XX XX', '{\"categoryId\":[\"5\"],\"categoryName\":[\"测试分类A改\"],\"orderNum\":[\"10\"],\"status\":[\"0\"],\"remark\":[\"自动化测试-已修改\"]}', '{\"msg\":\"操作成功\",\"code\":0}', 0, NULL, '2026-11-18 14:25:04', 15);
+INSERT INTO `sys_oper_log` VALUES (362, '商城商品分类', 3, 'com.ruoyi.shopping.controller.ShopCategoryController.remove()', 'POST', 1, 'admin', '研发部门', '/shop/category/remove', '58.16.41.98', 'XX XX', '{\"ids\":[\"5\"]}', '{\"msg\":\"操作成功\",\"code\":0}', 0, NULL, '2026-11-18 14:25:16', 25);
+INSERT INTO `sys_oper_log` VALUES (363, '商城商品', 1, 'com.ruoyi.shopping.controller.ShopProductController.addSave()', 'POST', 1, 'admin', '研发部门', '/shop/product/add', '58.16.41.98', 'XX XX', '{\"categoryId\":[\"1\"],\"productName\":[\"测试商品A\"],\"pointsPrice\":[\"100\"],\"stock\":[\"5\"],\"orderNum\":[\"99\"],\"status\":[\"0\"],\"remark\":[\"自动化测试临时数据\"]}', '{\"msg\":\"操作成功\",\"code\":0}', 0, NULL, '2026-11-18 14:25:24', 9);
+INSERT INTO `sys_oper_log` VALUES (364, '商城商品', 2, 'com.ruoyi.shopping.controller.ShopProductController.editSave()', 'POST', 1, 'admin', '研发部门', '/shop/product/edit', '58.16.41.98', 'XX XX', '{\"productId\":[\"13\"],\"categoryId\":[\"1\"],\"productName\":[\"测试商品A改\"],\"pointsPrice\":[\"120\"],\"stock\":[\"8\"],\"orderNum\":[\"99\"],\"status\":[\"0\"],\"remark\":[\"自动化测试-已修改\"]}', '{\"msg\":\"操作成功\",\"code\":0}', 0, NULL, '2026-11-18 14:25:37', 12);
+INSERT INTO `sys_oper_log` VALUES (365, '商城商品', 3, 'com.ruoyi.shopping.controller.ShopProductController.remove()', 'POST', 1, 'admin', '研发部门', '/shop/product/remove', '58.16.41.98', 'XX XX', '{\"ids\":[\"13\"]}', '{\"msg\":\"操作成功\",\"code\":0}', 0, NULL, '2026-11-18 14:25:44', 8);
+INSERT INTO `sys_oper_log` VALUES (366, '平台协议', 2, 'com.ruoyi.user.controller.AgreementController.editSave()', 'POST', 1, 'admin', '研发部门', '/user/agreement/edit', '58.16.41.98', 'XX XX', '{\"agreementId\":[\"1\"],\"agreementType\":[\"user_agreement\"],\"title\":[\"用户协议\"],\"content\":[\"null\"],\"orderNum\":[\"1\"],\"status\":[\"0\"],\"remark\":[\"系统初始化\"]}', '{\"msg\":\"操作成功\",\"code\":0}', 0, NULL, '2026-11-18 14:25:59', 14);
+INSERT INTO `sys_oper_log` VALUES (367, '平台协议', 2, 'com.ruoyi.user.controller.AgreementController.editSave()', 'POST', 1, 'admin', '研发部门', '/user/agreement/edit', '58.16.41.98', 'XX XX', '{\"agreementId\":[\"1\"],\"agreementType\":[\"user_agreement\"],\"title\":[\"用户协议\"],\"content\":[\"<h2>用户协议</h2><p>欢迎使用本学习平台。本协议约定您与平台之间的权利与义务，请仔细阅读。</p><p>（内容由管理员在后台「协议管理」中完善）</p>\"],\"orderNum\":[\"1\"],\"status\":[\"0\"],\"remark\":[\"系统初始化\"]}', '{\"msg\":\"操作成功\",\"code\":0}', 0, NULL, '2026-11-18 14:43:39', 72);
+INSERT INTO `sys_oper_log` VALUES (368, '社区帖子', 1, 'com.ruoyi.community.controller.PostController.addSave()', 'POST', 1, 'admin', '研发部门', '/community/post/add', '127.0.0.1', '内网IP', '{\"postTitle\":[\"123123\"],\"categoryId\":[\"\"],\"content\":[\"约炮\"],\"likeCount\":[\"0\"],\"favoriteCount\":[\"0\"],\"commentCount\":[\"0\"],\"status\":[\"1\"],\"remark\":[\"\"]}', NULL, 1, '内容包含违禁词，请修改', '2026-11-19 09:24:16', 103);
+INSERT INTO `sys_oper_log` VALUES (369, '社区帖子', 1, 'com.ruoyi.community.controller.PostController.addSave()', 'POST', 1, 'admin', '研发部门', '/community/post/add', '127.0.0.1', '内网IP', '{\"postTitle\":[\"123123\"],\"categoryId\":[\"\"],\"content\":[\"约炮\"],\"likeCount\":[\"0\"],\"favoriteCount\":[\"0\"],\"commentCount\":[\"0\"],\"status\":[\"1\"],\"remark\":[\"\"]}', NULL, 1, '内容包含违禁词，请修改', '2026-11-19 09:24:20', 2);
 
 -- ----------------------------
 -- Table structure for sys_post
@@ -3198,11 +3943,30 @@ INSERT INTO `sys_role_menu` VALUES (1, 2070);
 INSERT INTO `sys_role_menu` VALUES (1, 2071);
 INSERT INTO `sys_role_menu` VALUES (1, 2072);
 INSERT INTO `sys_role_menu` VALUES (1, 2073);
-INSERT INTO `sys_role_menu` VALUES (1, 2081);
-INSERT INTO `sys_role_menu` VALUES (1, 2082);
-INSERT INTO `sys_role_menu` VALUES (1, 2083);
 INSERT INTO `sys_role_menu` VALUES (1, 2084);
-INSERT INTO `sys_role_menu` VALUES (1, 2087);
+INSERT INTO `sys_role_menu` VALUES (1, 2088);
+INSERT INTO `sys_role_menu` VALUES (1, 2100);
+INSERT INTO `sys_role_menu` VALUES (1, 2101);
+INSERT INTO `sys_role_menu` VALUES (1, 2102);
+INSERT INTO `sys_role_menu` VALUES (1, 2103);
+INSERT INTO `sys_role_menu` VALUES (1, 2104);
+INSERT INTO `sys_role_menu` VALUES (1, 2105);
+INSERT INTO `sys_role_menu` VALUES (1, 2106);
+INSERT INTO `sys_role_menu` VALUES (1, 2107);
+INSERT INTO `sys_role_menu` VALUES (1, 2108);
+INSERT INTO `sys_role_menu` VALUES (1, 2109);
+INSERT INTO `sys_role_menu` VALUES (1, 2110);
+INSERT INTO `sys_role_menu` VALUES (1, 2111);
+INSERT INTO `sys_role_menu` VALUES (1, 2112);
+INSERT INTO `sys_role_menu` VALUES (1, 2119);
+INSERT INTO `sys_role_menu` VALUES (1, 2120);
+INSERT INTO `sys_role_menu` VALUES (1, 2121);
+INSERT INTO `sys_role_menu` VALUES (1, 2122);
+INSERT INTO `sys_role_menu` VALUES (1, 2128);
+INSERT INTO `sys_role_menu` VALUES (1, 2129);
+INSERT INTO `sys_role_menu` VALUES (1, 2130);
+INSERT INTO `sys_role_menu` VALUES (1, 2131);
+INSERT INTO `sys_role_menu` VALUES (1, 2132);
 INSERT INTO `sys_role_menu` VALUES (2, 4);
 INSERT INTO `sys_role_menu` VALUES (2, 2026);
 INSERT INTO `sys_role_menu` VALUES (2, 2027);
@@ -3218,6 +3982,12 @@ INSERT INTO `sys_role_menu` VALUES (2, 2043);
 INSERT INTO `sys_role_menu` VALUES (2, 2048);
 INSERT INTO `sys_role_menu` VALUES (2, 2049);
 INSERT INTO `sys_role_menu` VALUES (2, 2057);
+INSERT INTO `sys_role_menu` VALUES (2, 2100);
+INSERT INTO `sys_role_menu` VALUES (2, 2101);
+INSERT INTO `sys_role_menu` VALUES (2, 2102);
+INSERT INTO `sys_role_menu` VALUES (2, 2105);
+INSERT INTO `sys_role_menu` VALUES (2, 2106);
+INSERT INTO `sys_role_menu` VALUES (2, 2119);
 
 -- ----------------------------
 -- Table structure for sys_user
@@ -3246,28 +4016,38 @@ CREATE TABLE `sys_user`  (
   `update_time` datetime NULL DEFAULT NULL COMMENT '更新时间',
   `remark` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '备注',
   PRIMARY KEY (`user_id`) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 121 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '用户信息表' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 131 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '用户信息表' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Records of sys_user
 -- ----------------------------
-INSERT INTO `sys_user` VALUES (1, 103, 'admin', '若依', '00', 'ry@163.com', '15888888888', '1', '', '29c67a30398638269fe600f73a054934', '111111', '0', '0', '58.16.41.98', '2026-11-10 09:51:07', NULL, 'admin', '2026-10-13 09:00:51', '', NULL, '管理员');
-INSERT INTO `sys_user` VALUES (104, 103, 'eduadmin', '平台管理员', '00', 'eduadmin@qq.com', '13800000000', '0', '', 'b7c399189dc25b1f4b61243c6c401997', '30c671', '0', '0', '127.0.0.1', '2026-10-14 16:27:21', '2026-10-14 14:16:39', 'admin', '2026-10-13 11:25:49', '', '2026-10-14 14:16:39', '平台管理员账号');
+INSERT INTO `sys_user` VALUES (1, 103, 'admin', '若依', '00', 'ry@163.com', '15888888888', '1', '', '29c67a30398638269fe600f73a054934', '111111', '0', '0', '127.0.0.1', '2026-11-19 09:23:28', NULL, 'admin', '2026-10-13 09:00:51', '', NULL, '管理员');
+INSERT INTO `sys_user` VALUES (104, 103, 'eduadmin', '平台管理员', '00', 'eduadmin@qq.com', '13800000000', '0', '', 'b7c399189dc25b1f4b61243c6c401997', '30c671', '0', '0', '127.0.0.1', '2026-11-10 11:58:41', '2026-10-14 14:16:39', 'admin', '2026-10-13 11:25:49', '', '2026-10-14 14:16:39', '平台管理员账号');
 INSERT INTO `sys_user` VALUES (106, NULL, '13900001111', '13900001111', '01', '', '13900001111', '0', '', '1c3a3325d5951de1ea6648c6854d67a0', 'af4b7a', '0', '0', '18.140.50.255', '2026-11-02 10:53:18', '2026-10-13 15:04:08', '', '2026-10-13 15:04:07', '', '2026-10-14 14:01:19', NULL);
 INSERT INTO `sys_user` VALUES (107, NULL, '18085885945', '18085885945', '01', '', '18085885945', '0', '', 'ad563769c7626e452287599a4de61ff3', '839e82', '0', '0', '', NULL, '2026-10-13 15:51:33', '', '2026-10-13 15:51:32', '', NULL, NULL);
 INSERT INTO `sys_user` VALUES (108, NULL, '19000000001', '19000000001', '01', '', '19000000001', '0', '', '81054861b6f7e8117d7c498993bd4619', '344e5a', '0', '0', '', NULL, '2026-10-13 16:30:27', '', '2026-10-13 16:30:27', '', NULL, NULL);
 INSERT INTO `sys_user` VALUES (109, NULL, '13900007777', '13900007777', '01', '', '13900007777', '0', '', '709d9e7ec87780d9e935ff2f7e9ff034', '47e27a', '0', '0', '56.10.179.194', '2026-10-30 10:06:29', '2026-10-13 17:04:42', '', '2026-10-13 17:04:42', '', NULL, NULL);
 INSERT INTO `sys_user` VALUES (110, 103, 'testuser02', '测试用户02改', '00', '', '', '0', '', 'ed65d632bc4600b7f4e273fa1f72a62f', '5fe557', '0', '2', '', NULL, '2026-10-14 11:57:57', 'admin', '2026-10-14 11:57:57', 'admin', '2026-10-14 13:57:29', NULL);
-INSERT INTO `sys_user` VALUES (111, NULL, '13900000001', '13900000001', '01', '', '13900000001', '0', 'https://zhinengguanggaopingtai.oss-cn-shanghai.aliyuncs.com/upload/2026/10/30/avatar_20261030153752A017.jpg', '9dc511c637ca92e582593e6aabda5f33', '97751c', '0', '0', '127.0.0.1', '2026-11-10 09:40:07', '2026-10-27 14:19:20', '', '2026-10-14 15:45:53', '', '2026-10-30 15:37:55', NULL);
-INSERT INTO `sys_user` VALUES (112, NULL, '13900139001', '13900139001', '01', '', '13900139001', '2', NULL, '349bb6d8622239a1438da865046f7b55', 'c283f6', '0', '0', '127.0.0.1', '2026-11-09 11:00:27', '2026-10-14 17:07:00', '', '2026-10-14 17:06:57', '', '2026-10-29 16:38:09', NULL);
+INSERT INTO `sys_user` VALUES (111, NULL, '13900000001', '13900000001', '01', '', '13900000001', '0', 'https://zhinengguanggaopingtai.oss-cn-shanghai.aliyuncs.com/upload/2026/10/30/avatar_20261030153752A017.jpg', '9dc511c637ca92e582593e6aabda5f33', '97751c', '0', '0', '39.144.231.36', '2026-11-18 16:27:18', '2026-10-27 14:19:20', '', '2026-10-14 15:45:53', '', '2026-10-30 15:37:55', NULL);
+INSERT INTO `sys_user` VALUES (112, NULL, '13900139001', 'First', '01', '', '13900139001', '0', 'https://zhinengguanggaopingtai.oss-cn-shanghai.aliyuncs.com/upload/2026/11/18/44a7a3e427204eefae8132160ba9e8f1_20261118164009A001.jpg', '349bb6d8622239a1438da865046f7b55', 'c283f6', '0', '0', '127.0.0.1', '2026-11-18 16:39:56', '2026-10-14 17:07:00', '', '2026-10-14 17:06:57', '', '2026-11-18 17:35:48', NULL);
 INSERT INTO `sys_user` VALUES (113, NULL, '13900139002', '13900139002', '01', '', '13900139002', '0', '', '3ac2f99d5f3a3477588218b207bed117', '9ebc90', '0', '0', '127.0.0.1', '2026-10-16 14:42:25', '2026-10-16 14:42:08', '', '2026-10-16 14:42:09', '', NULL, NULL);
 INSERT INTO `sys_user` VALUES (114, NULL, '19885323438', '19885323438', '01', '', '19885323438', '0', '', '3c74f47c609987fd2a4c818a57c42833', 'ff76b4', '0', '0', '127.0.0.1', '2026-10-16 15:52:07', '2026-10-16 15:51:48', '', '2026-10-16 15:51:49', '', NULL, NULL);
-INSERT INTO `sys_user` VALUES (115, NULL, '13911112222', '13911112222', '01', '', '13911112222', '0', NULL, '411e7ca295bd45b25eb9a718fb6488f5', 'adaa18', '0', '0', '127.0.0.1', '2026-11-09 11:10:55', '2026-10-23 10:14:38', '', '2026-10-23 10:14:33', '', '2026-10-30 15:32:10', NULL);
+INSERT INTO `sys_user` VALUES (115, NULL, '13911112222', 'Ly', '01', '', '13911112222', '1', 'http://192.168.101.194:8081/profile/upload/2026/11/11/avatar_20261111155212A007.jpg', '411e7ca295bd45b25eb9a718fb6488f5', 'adaa18', '0', '0', '127.0.0.1', '2026-11-18 14:11:04', '2026-10-23 10:14:38', '', '2026-10-23 10:14:33', '', '2026-11-11 17:55:46', NULL);
 INSERT INTO `sys_user` VALUES (116, NULL, '13888888888', '13888888888', '01', '', '13888888888', '0', NULL, 'dd4e030697fb73aac2a06b040550004b', 'e09f4a', '0', '0', '192.168.170.128', '2026-10-23 10:46:08', '2026-10-23 10:45:51', '', '2026-10-23 10:45:46', '', NULL, NULL);
 INSERT INTO `sys_user` VALUES (117, NULL, '13900001234', '13900001234', '01', '', '13900001234', '0', NULL, '3a1fdecff917b780186c67867bdad68c', '6bd387', '0', '0', '127.0.0.1', '2026-10-27 09:36:27', '2026-10-27 09:36:27', '', '2026-10-27 09:36:23', '', NULL, NULL);
-INSERT INTO `sys_user` VALUES (118, NULL, '13900000009', '13900000009', '01', '', '13900000009', '0', 'https://zhinengguanggaopingtai.oss-cn-shanghai.aliyuncs.com/upload/2026/10/27/avatar_20261027220549A002.jpg', '48476381e1821574ea2ea79e0340acfe', 'da7065', '0', '0', '192.168.170.129', '2026-10-30 09:49:35', '2026-10-29 10:21:33', '', '2026-10-27 17:56:45', '', '2026-10-29 10:21:33', NULL);
+INSERT INTO `sys_user` VALUES (118, NULL, '13900000009', '13900000009', '01', '', '13900000009', '0', 'https://zhinengguanggaopingtai.oss-cn-shanghai.aliyuncs.com/upload/2026/10/27/avatar_20261027220549A002.jpg', '48476381e1821574ea2ea79e0340acfe', 'da7065', '0', '0', '127.0.0.1', '2026-11-18 11:48:30', '2026-10-29 10:21:33', '', '2026-10-27 17:56:45', '', '2026-10-29 10:21:33', NULL);
 INSERT INTO `sys_user` VALUES (119, NULL, '13911113333', '13911113333', '01', '', '13911113333', '0', NULL, '77fcc163da7c8ba001e781ad69faddb6', '321080', '0', '0', '192.168.88.1', '2026-11-09 10:59:40', '2026-10-28 23:51:57', '', '2026-10-28 23:51:55', '', '2026-10-29 00:43:00', NULL);
 INSERT INTO `sys_user` VALUES (120, NULL, '13113131313', '13113131313', '01', '', '13113131313', '0', NULL, 'a8849d358a19facd7f804fbe0216937b', '0fc43b', '0', '0', '127.0.0.1', '2026-11-06 15:17:34', '2026-11-06 15:17:09', '', '2026-11-06 15:17:04', '', NULL, NULL);
+INSERT INTO `sys_user` VALUES (121, NULL, '13900009999', '13900009999', '01', '', '13900009999', '0', NULL, '31ad463b7386a3f09d1f7bcde1f13b9c', 'd3f137', '0', '0', '58.16.41.98', '2026-11-12 14:44:05', '2026-11-12 14:42:16', '', '2026-11-12 14:42:16', '', NULL, NULL);
+INSERT INTO `sys_user` VALUES (122, NULL, '18800001111', '18800001111', '01', '', '18800001111', '0', NULL, '54d592aa05c997234f0c48361ee13b87', 'd9ae8f', '0', '0', '58.16.41.98', '2026-11-18 11:37:21', '2026-11-16 09:06:38', '', '2026-11-16 09:06:34', '', NULL, NULL);
+INSERT INTO `sys_user` VALUES (123, NULL, '18785365694', '18785365694', '01', '', '18785365694', '0', NULL, 'e3d61fcac17e5e72667c3181871463a7', 'c55985', '0', '0', '127.0.0.1', '2026-11-17 14:44:09', '2026-11-17 14:37:02', '', '2026-11-17 14:37:03', '', NULL, NULL);
+INSERT INTO `sys_user` VALUES (124, NULL, '18785365695', '18785365695', '01', '', '18785365695', '0', NULL, 'aa1af076527065750c092029fe1cc1fc', 'f08f5f', '0', '0', '', NULL, '2026-11-17 14:43:50', '', '2026-11-17 14:43:50', '', NULL, NULL);
+INSERT INTO `sys_user` VALUES (125, NULL, '18785365696', '18785365696', '01', '', '18785365696', '0', NULL, 'fb7000deb8d02026fe0f79c45b47c6a4', '6f1c1d', '0', '0', '127.0.0.1', '2026-11-17 15:24:23', '2026-11-17 15:07:00', '', '2026-11-17 15:07:00', '', NULL, NULL);
+INSERT INTO `sys_user` VALUES (126, NULL, '13900149001', '13900149001', '01', '', '13900149001', '0', NULL, 'e1adf76abf6f031bfec3c5d55d0194b9', '1115f8', '0', '0', '127.0.0.1', '2026-11-17 15:09:41', '2026-11-17 15:09:16', '', '2026-11-17 15:09:10', '', NULL, NULL);
+INSERT INTO `sys_user` VALUES (127, NULL, '18785365697', '18785365697', '01', '', '18785365697', '0', NULL, 'b753178093b67b61badf67bdd0242123', '046e18', '0', '0', '', NULL, '2026-11-17 15:47:39', '', '2026-11-17 15:47:39', '', NULL, NULL);
+INSERT INTO `sys_user` VALUES (128, NULL, '13638010667', '13638010667', '01', '', '13638010667', '0', NULL, '1ac3fa685d9feca97446177f642f2c4e', 'f58ee0', '0', '0', '114.138.157.27', '2026-11-18 16:09:38', '2026-11-18 16:09:04', '', '2026-11-18 16:09:03', '', '2026-11-18 16:13:30', NULL);
+INSERT INTO `sys_user` VALUES (129, NULL, '13339620617', '13339620617', '01', '', '13339620617', '0', NULL, '13488fab2d26ddc46a7d67c4d495dc61', '1f3262', '0', '0', '', NULL, '2026-11-18 16:22:34', '', '2026-11-18 16:22:34', '', NULL, NULL);
+INSERT INTO `sys_user` VALUES (130, NULL, '15585102712', '15585102712', '01', '', '15585102712', '0', NULL, 'bbd3b749ea8cc8cea8cb87c6d353dc31', 'ba88de', '0', '0', '', NULL, '2026-11-18 16:24:50', '', '2026-11-18 16:24:49', '', NULL, NULL);
 
 -- ----------------------------
 -- Table structure for sys_user_online
@@ -3292,12 +4072,8 @@ CREATE TABLE `sys_user_online`  (
 -- ----------------------------
 -- Records of sys_user_online
 -- ----------------------------
-INSERT INTO `sys_user_online` VALUES ('243640a3-3730-400a-8b0e-a848a04154be', 'admin', '研发部门', '127.0.0.1', '内网IP', 'Curl 8.21.0', '', 'on_line', '2026-11-10 09:18:29', '2026-11-10 09:18:59', 1800000, 0xACED00057372002B636F6D2E72756F79692E636F6D6D6F6E2E636F72652E73657373696F6E2E4F6E6C696E6553657373696F6E00000000000000010200084C00066176617461727400124C6A6176612F6C616E672F537472696E673B4C000762726F7773657271007E00014C0008646570744E616D6571007E00014C0004686F737471007E00014C00096C6F67696E4E616D6571007E00014C00026F7371007E00014C00067374617475737400254C636F6D2F72756F79692F636F6D6D6F6E2F656E756D732F4F6E6C696E655374617475733B4C00067573657249647400104C6A6176612F6C616E672F4C6F6E673B7872002A6F72672E6170616368652E736869726F2E73657373696F6E2E6D67742E53696D706C6553657373696F6E9D1CA1B8D58C626E03000078707702009B74002432343336343061332D333733302D343030612D386230652D6138343861303431353462657372000E6A6176612E7574696C2E44617465686A81014B59741903000078707708000001A1C308FDA4787371007E00077708000001A1C30974D578770800000000001B7740737200266A6176612E7574696C2E636F6E63757272656E742E436F6E63757272656E74486173684D61706499DE129D87293D03000349000B7365676D656E744D61736B49000C7365676D656E7453686966745B00087365676D656E74737400315B4C6A6176612F7574696C2F636F6E63757272656E742F436F6E63757272656E74486173684D6170245365676D656E743B78700000000F0000001C757200315B4C6A6176612E7574696C2E636F6E63757272656E742E436F6E63757272656E74486173684D6170245365676D656E743B52773F41329B39740200007870000000107372002E6A6176612E7574696C2E636F6E63757272656E742E436F6E63757272656E74486173684D6170245365676D656E741F364C905893293D02000146000A6C6F6164466163746F72787200286A6176612E7574696C2E636F6E63757272656E742E6C6F636B732E5265656E7472616E744C6F636B6655A82C2CC86AEB0200014C000473796E6374002F4C6A6176612F7574696C2F636F6E63757272656E742F6C6F636B732F5265656E7472616E744C6F636B2453796E633B7870737200346A6176612E7574696C2E636F6E63757272656E742E6C6F636B732E5265656E7472616E744C6F636B244E6F6E6661697253796E63658832E7537BBF0B0200007872002D6A6176612E7574696C2E636F6E63757272656E742E6C6F636B732E5265656E7472616E744C6F636B2453796E63B81EA294AA445A7C020000787200356A6176612E7574696C2E636F6E63757272656E742E6C6F636B732E416273747261637451756575656453796E6368726F6E697A65726655A843753F52E30200014900057374617465787200366A6176612E7574696C2E636F6E63757272656E742E6C6F636B732E41627374726163744F776E61626C6553796E6368726F6E697A657233DFAFB9AD6D6FA90200007870000000003F4000007371007E000F7371007E0013000000003F4000007371007E000F7371007E0013000000003F4000007371007E000F7371007E0013000000003F4000007371007E000F7371007E0013000000003F4000007371007E000F7371007E0013000000003F4000007371007E000F7371007E0013000000003F4000007371007E000F7371007E0013000000003F4000007371007E000F7371007E0013000000003F4000007371007E000F7371007E0013000000003F4000007371007E000F7371007E0013000000003F4000007371007E000F7371007E0013000000003F4000007371007E000F7371007E0013000000003F4000007371007E000F7371007E0013000000003F4000007371007E000F7371007E0013000000003F4000007371007E000F7371007E0013000000003F4000007400506F72672E6170616368652E736869726F2E7375626A6563742E737570706F72742E44656661756C745375626A656374436F6E746578745F41555448454E544943415445445F53455353494F4E5F4B4559737200116A6176612E6C616E672E426F6F6C65616ECD207280D59CFAEE0200015A000576616C7565787001740048636F6D2E72756F79692E6672616D65776F726B2E736869726F2E73657373696F6E2E4F6E6C696E6553657373696F6E44414F4C4153545F53594E435F44425F54494D455354414D5071007E000974004D6F72672E6170616368652E736869726F2E7375626A6563742E737570706F72742E44656661756C745375626A656374436F6E746578745F5052494E434950414C535F53455353494F4E5F4B4559737200356F72672E6170616368652E736869726F2E7375626A6563742E496D6D757461626C655072696E636970616C436F6C6C656374696F6E7057568687B455EC0200014C000F7265616C6D5072696E636970616C7374000F4C6A6176612F7574696C2F4D61703B7870737200226A6176612E7574696C2E436F6C6C656374696F6E732453696E676C65746F6E4D61709F230991717F6B910200024C00016B7400124C6A6176612F6C616E672F4F626A6563743B4C00017671007E003F787074002B636F6D2E72756F79692E6672616D65776F726B2E736869726F2E7265616C6D2E557365725265616C6D5F30737200116A6176612E7574696C2E436F6C6C536572578EABB63A1BA8110300014900037461677870000000027704000000017372002B636F6D2E72756F79692E636F6D6D6F6E2E636F72652E646F6D61696E2E656E746974792E5379735573657200000000000000010200164C000661766174617271007E00014C000764656C466C616771007E00014C00046465707474002D4C636F6D2F72756F79692F636F6D6D6F6E2F636F72652F646F6D61696E2F656E746974792F537973446570743B4C000664657074496471007E00034C0005656D61696C71007E00014C00096C6F67696E446174657400104C6A6176612F7574696C2F446174653B4C00076C6F67696E497071007E00014C00096C6F67696E4E616D6571007E00014C0008706172656E74496471007E00034C000870617373776F726471007E00014C000B70686F6E656E756D62657271007E00015B0007706F73744964737400115B4C6A6176612F6C616E672F4C6F6E673B4C000D7077645570646174654461746571007E00464C0006726F6C65496471007E00035B0007726F6C6549647371007E00474C0005726F6C65737400104C6A6176612F7574696C2F4C6973743B4C000473616C7471007E00014C000373657871007E00014C000673746174757371007E00014C000675736572496471007E00034C0008757365724E616D6571007E00014C0008757365725479706571007E000178720027636F6D2E72756F79692E636F6D6D6F6E2E636F72652E646F6D61696E2E42617365456E7469747900000000000000010200074C0008637265617465427971007E00014C000A63726561746554696D6571007E00464C0006706172616D7371007E003C4C000672656D61726B71007E00014C000B73656172636856616C756571007E00014C0008757064617465427971007E00014C000A75706461746554696D6571007E0046787074000561646D696E7371007E00077708000001A132C6C9B87870740009E7AEA1E79086E59198707400007071007E004E740001307372002B636F6D2E72756F79692E636F6D6D6F6E2E636F72652E646F6D61696E2E656E746974792E53797344657074000000000000000102000C4C0009616E636573746F727371007E00014C000764656C466C616771007E00014C000664657074496471007E00034C0008646570744E616D6571007E00014C0005656D61696C71007E00014C00096578636C756465496471007E00034C00066C656164657271007E00014C00086F726465724E756D7400134C6A6176612F6C616E672F496E74656765723B4C0008706172656E74496471007E00034C000A706172656E744E616D6571007E00014C000570686F6E6571007E00014C000673746174757371007E00017871007E004970707070707070740009302C3130302C313031707372000E6A6176612E6C616E672E4C6F6E673B8BE490CC8F23DF0200014A000576616C7565787200106A6176612E6C616E672E4E756D62657286AC951D0B94E08B0200007870000000000000006774000CE7A094E58F91E983A8E997A87070740006E88BA5E4BE9D737200116A6176612E6C616E672E496E746567657212E2A0A4F781873802000149000576616C75657871007E0055000000017371007E0054000000000000006570707400013071007E005674000A7279403136332E636F6D7371007E00077708000001A1BE58AD487874000B35382E31362E34312E393874000561646D696E70740020323963363761333033393836333832363966653630306637336130353439333474000B313538383838383838383870707070737200136A6176612E7574696C2E41727261794C6973747881D21D99C7619D03000149000473697A657870000000017704000000017372002B636F6D2E72756F79692E636F6D6D6F6E2E636F72652E646F6D61696E2E656E746974792E537973526F6C65000000000000000102000B5A0004666C61674C00096461746153636F706571007E00014C000764656C466C616771007E00015B00076465707449647371007E00475B00076D656E7549647371007E00474C000B7065726D697373696F6E7374000F4C6A6176612F7574696C2F5365743B4C0006726F6C65496471007E00034C0007726F6C654B657971007E00014C0008726F6C654E616D6571007E00014C0008726F6C65536F727471007E00014C000673746174757371007E00017871007E0049707070707070700074000131707070707371007E0054000000000000000174000561646D696E74000FE8B685E7BAA7E7AEA1E79086E59198740001317400013078740006313131313131740001317400013071007E0069740006E88BA5E4BE9D7400023030787070787871007E004E74000B4375726C20382E32312E3074000CE7A094E58F91E983A8E997A87400093132372E302E302E3174000561646D696E71007E004E7E720023636F6D2E72756F79692E636F6D6D6F6E2E656E756D732E4F6E6C696E6553746174757300000000000000001200007872000E6A6176612E6C616E672E456E756D000000000000000012000078707400076F6E5F6C696E657371007E00540000000000000001);
-INSERT INTO `sys_user_online` VALUES ('3636208b-cd01-418e-a67e-7711e676ccf9', 'admin', '研发部门', '58.16.41.98', 'XX XX', 'Edge 157', 'Windows >=10', 'on_line', '2026-11-10 09:51:07', '2026-11-10 09:51:13', 1800000, 0xACED00057372002B636F6D2E72756F79692E636F6D6D6F6E2E636F72652E73657373696F6E2E4F6E6C696E6553657373696F6E00000000000000010200084C00066176617461727400124C6A6176612F6C616E672F537472696E673B4C000762726F7773657271007E00014C0008646570744E616D6571007E00014C0004686F737471007E00014C00096C6F67696E4E616D6571007E00014C00026F7371007E00014C00067374617475737400254C636F6D2F72756F79692F636F6D6D6F6E2F656E756D732F4F6E6C696E655374617475733B4C00067573657249647400104C6A6176612F6C616E672F4C6F6E673B7872002A6F72672E6170616368652E736869726F2E73657373696F6E2E6D67742E53696D706C6553657373696F6E9D1CA1B8D58C626E03000078707702009B74002433363336323038622D636430312D343138652D613637652D3737313165363736636366397372000E6A6176612E7574696C2E44617465686A81014B59741903000078707708000001A1C326DE9A787371007E00077708000001A1C326F54E78770800000000001B7740737200266A6176612E7574696C2E636F6E63757272656E742E436F6E63757272656E74486173684D61706499DE129D87293D03000349000B7365676D656E744D61736B49000C7365676D656E7453686966745B00087365676D656E74737400315B4C6A6176612F7574696C2F636F6E63757272656E742F436F6E63757272656E74486173684D6170245365676D656E743B78700000000F0000001C757200315B4C6A6176612E7574696C2E636F6E63757272656E742E436F6E63757272656E74486173684D6170245365676D656E743B52773F41329B39740200007870000000107372002E6A6176612E7574696C2E636F6E63757272656E742E436F6E63757272656E74486173684D6170245365676D656E741F364C905893293D02000146000A6C6F6164466163746F72787200286A6176612E7574696C2E636F6E63757272656E742E6C6F636B732E5265656E7472616E744C6F636B6655A82C2CC86AEB0200014C000473796E6374002F4C6A6176612F7574696C2F636F6E63757272656E742F6C6F636B732F5265656E7472616E744C6F636B2453796E633B7870737200346A6176612E7574696C2E636F6E63757272656E742E6C6F636B732E5265656E7472616E744C6F636B244E6F6E6661697253796E63658832E7537BBF0B0200007872002D6A6176612E7574696C2E636F6E63757272656E742E6C6F636B732E5265656E7472616E744C6F636B2453796E63B81EA294AA445A7C020000787200356A6176612E7574696C2E636F6E63757272656E742E6C6F636B732E416273747261637451756575656453796E6368726F6E697A65726655A843753F52E30200014900057374617465787200366A6176612E7574696C2E636F6E63757272656E742E6C6F636B732E41627374726163744F776E61626C6553796E6368726F6E697A657233DFAFB9AD6D6FA90200007870000000003F4000007371007E000F7371007E0013000000003F4000007371007E000F7371007E0013000000003F4000007371007E000F7371007E0013000000003F4000007371007E000F7371007E0013000000003F4000007371007E000F7371007E0013000000003F4000007371007E000F7371007E0013000000003F4000007371007E000F7371007E0013000000003F4000007371007E000F7371007E0013000000003F4000007371007E000F7371007E0013000000003F4000007371007E000F7371007E0013000000003F4000007371007E000F7371007E0013000000003F4000007371007E000F7371007E0013000000003F4000007371007E000F7371007E0013000000003F4000007371007E000F7371007E0013000000003F4000007371007E000F7371007E0013000000003F4000007400506F72672E6170616368652E736869726F2E7375626A6563742E737570706F72742E44656661756C745375626A656374436F6E746578745F41555448454E544943415445445F53455353494F4E5F4B4559737200116A6176612E6C616E672E426F6F6C65616ECD207280D59CFAEE0200015A000576616C7565787001740011736869726F536176656452657175657374737200266F72672E6170616368652E736869726F2E7765622E7574696C2E5361766564526571756573749834DDF5BF680B440200034C00066D6574686F6471007E00014C000B7175657279537472696E6771007E00014C000A7265717565737455524971007E00017870740003474554707400012F740048636F6D2E72756F79692E6672616D65776F726B2E736869726F2E73657373696F6E2E4F6E6C696E6553657373696F6E44414F4C4153545F53594E435F44425F54494D455354414D5071007E000974004D6F72672E6170616368652E736869726F2E7375626A6563742E737570706F72742E44656661756C745375626A656374436F6E746578745F5052494E434950414C535F53455353494F4E5F4B4559737200356F72672E6170616368652E736869726F2E7375626A6563742E496D6D757461626C655072696E636970616C436F6C6C656374696F6E7057568687B455EC0200014C000F7265616C6D5072696E636970616C7374000F4C6A6176612F7574696C2F4D61703B7870737200226A6176612E7574696C2E436F6C6C656374696F6E732453696E676C65746F6E4D61709F230991717F6B910200024C00016B7400124C6A6176612F6C616E672F4F626A6563743B4C00017671007E0044787074002B636F6D2E72756F79692E6672616D65776F726B2E736869726F2E7265616C6D2E557365725265616C6D5F30737200116A6176612E7574696C2E436F6C6C536572578EABB63A1BA8110300014900037461677870000000027704000000017372002B636F6D2E72756F79692E636F6D6D6F6E2E636F72652E646F6D61696E2E656E746974792E5379735573657200000000000000010200164C000661766174617271007E00014C000764656C466C616771007E00014C00046465707474002D4C636F6D2F72756F79692F636F6D6D6F6E2F636F72652F646F6D61696E2F656E746974792F537973446570743B4C000664657074496471007E00034C0005656D61696C71007E00014C00096C6F67696E446174657400104C6A6176612F7574696C2F446174653B4C00076C6F67696E497071007E00014C00096C6F67696E4E616D6571007E00014C0008706172656E74496471007E00034C000870617373776F726471007E00014C000B70686F6E656E756D62657271007E00015B0007706F73744964737400115B4C6A6176612F6C616E672F4C6F6E673B4C000D7077645570646174654461746571007E004B4C0006726F6C65496471007E00035B0007726F6C6549647371007E004C4C0005726F6C65737400104C6A6176612F7574696C2F4C6973743B4C000473616C7471007E00014C000373657871007E00014C000673746174757371007E00014C000675736572496471007E00034C0008757365724E616D6571007E00014C0008757365725479706571007E000178720027636F6D2E72756F79692E636F6D6D6F6E2E636F72652E646F6D61696E2E42617365456E7469747900000000000000010200074C0008637265617465427971007E00014C000A63726561746554696D6571007E004B4C0006706172616D7371007E00414C000672656D61726B71007E00014C000B73656172636856616C756571007E00014C0008757064617465427971007E00014C000A75706461746554696D6571007E004B787074000561646D696E7371007E00077708000001A132C6C9B87870740009E7AEA1E79086E59198707400007071007E0053740001307372002B636F6D2E72756F79692E636F6D6D6F6E2E636F72652E646F6D61696E2E656E746974792E53797344657074000000000000000102000C4C0009616E636573746F727371007E00014C000764656C466C616771007E00014C000664657074496471007E00034C0008646570744E616D6571007E00014C0005656D61696C71007E00014C00096578636C756465496471007E00034C00066C656164657271007E00014C00086F726465724E756D7400134C6A6176612F6C616E672F496E74656765723B4C0008706172656E74496471007E00034C000A706172656E744E616D6571007E00014C000570686F6E6571007E00014C000673746174757371007E00017871007E004E70707070707070740009302C3130302C313031707372000E6A6176612E6C616E672E4C6F6E673B8BE490CC8F23DF0200014A000576616C7565787200106A6176612E6C616E672E4E756D62657286AC951D0B94E08B0200007870000000000000006774000CE7A094E58F91E983A8E997A87070740006E88BA5E4BE9D737200116A6176612E6C616E672E496E746567657212E2A0A4F781873802000149000576616C75657871007E005A000000017371007E0059000000000000006570707400013071007E005B74000A7279403136332E636F6D7371007E00077708000001A1C323D1B87874000B35382E31362E34312E393874000561646D696E70740020323963363761333033393836333832363966653630306637336130353439333474000B313538383838383838383870707070737200136A6176612E7574696C2E41727261794C6973747881D21D99C7619D03000149000473697A657870000000017704000000017372002B636F6D2E72756F79692E636F6D6D6F6E2E636F72652E646F6D61696E2E656E746974792E537973526F6C65000000000000000102000B5A0004666C61674C00096461746153636F706571007E00014C000764656C466C616771007E00015B00076465707449647371007E004C5B00076D656E7549647371007E004C4C000B7065726D697373696F6E7374000F4C6A6176612F7574696C2F5365743B4C0006726F6C65496471007E00034C0007726F6C654B657971007E00014C0008726F6C654E616D6571007E00014C0008726F6C65536F727471007E00014C000673746174757371007E00017871007E004E707070707070700074000131707070707371007E0059000000000000000174000561646D696E74000FE8B685E7BAA7E7AEA1E79086E59198740001317400013078740006313131313131740001317400013071007E006E740006E88BA5E4BE9D74000230307874000A637372665F746F6B656E74002C454E6E34772B766E66596B57486A2B66536E2B464F6A6A4736773371384C2F724B4F6B57736A68356A7A6F3D7070787871007E0053740008456467652031353774000CE7A094E58F91E983A8E997A874000B35382E31362E34312E393874000561646D696E74000C57696E646F7773203E3D31307E720023636F6D2E72756F79692E636F6D6D6F6E2E656E756D732E4F6E6C696E6553746174757300000000000000001200007872000E6A6176612E6C616E672E456E756D000000000000000012000078707400076F6E5F6C696E657371007E00590000000000000001);
-INSERT INTO `sys_user_online` VALUES ('9898535b-7656-4660-b1f5-6133a64e6c55', 'admin', '研发部门', '127.0.0.1', '内网IP', 'Curl 8.21.0', '', 'on_line', '2026-11-10 09:20:59', '2026-11-10 09:21:26', 1800000, 0xACED00057372002B636F6D2E72756F79692E636F6D6D6F6E2E636F72652E73657373696F6E2E4F6E6C696E6553657373696F6E00000000000000010200084C00066176617461727400124C6A6176612F6C616E672F537472696E673B4C000762726F7773657271007E00014C0008646570744E616D6571007E00014C0004686F737471007E00014C00096C6F67696E4E616D6571007E00014C00026F7371007E00014C00067374617475737400254C636F6D2F72756F79692F636F6D6D6F6E2F656E756D732F4F6E6C696E655374617475733B4C00067573657249647400104C6A6176612F6C616E672F4C6F6E673B7872002A6F72672E6170616368652E736869726F2E73657373696F6E2E6D67742E53696D706C6553657373696F6E9D1CA1B8D58C626E03000078707702009B74002439383938353335622D373635362D343636302D623166352D3631333361363465366335357372000E6A6176612E7574696C2E44617465686A81014B59741903000078707708000001A1C30B4879787371007E00077708000001A1C30BB2BA78770800000000001B7740737200266A6176612E7574696C2E636F6E63757272656E742E436F6E63757272656E74486173684D61706499DE129D87293D03000349000B7365676D656E744D61736B49000C7365676D656E7453686966745B00087365676D656E74737400315B4C6A6176612F7574696C2F636F6E63757272656E742F436F6E63757272656E74486173684D6170245365676D656E743B78700000000F0000001C757200315B4C6A6176612E7574696C2E636F6E63757272656E742E436F6E63757272656E74486173684D6170245365676D656E743B52773F41329B39740200007870000000107372002E6A6176612E7574696C2E636F6E63757272656E742E436F6E63757272656E74486173684D6170245365676D656E741F364C905893293D02000146000A6C6F6164466163746F72787200286A6176612E7574696C2E636F6E63757272656E742E6C6F636B732E5265656E7472616E744C6F636B6655A82C2CC86AEB0200014C000473796E6374002F4C6A6176612F7574696C2F636F6E63757272656E742F6C6F636B732F5265656E7472616E744C6F636B2453796E633B7870737200346A6176612E7574696C2E636F6E63757272656E742E6C6F636B732E5265656E7472616E744C6F636B244E6F6E6661697253796E63658832E7537BBF0B0200007872002D6A6176612E7574696C2E636F6E63757272656E742E6C6F636B732E5265656E7472616E744C6F636B2453796E63B81EA294AA445A7C020000787200356A6176612E7574696C2E636F6E63757272656E742E6C6F636B732E416273747261637451756575656453796E6368726F6E697A65726655A843753F52E30200014900057374617465787200366A6176612E7574696C2E636F6E63757272656E742E6C6F636B732E41627374726163744F776E61626C6553796E6368726F6E697A657233DFAFB9AD6D6FA90200007870000000003F4000007371007E000F7371007E0013000000003F4000007371007E000F7371007E0013000000003F4000007371007E000F7371007E0013000000003F4000007371007E000F7371007E0013000000003F4000007371007E000F7371007E0013000000003F4000007371007E000F7371007E0013000000003F4000007371007E000F7371007E0013000000003F4000007371007E000F7371007E0013000000003F4000007371007E000F7371007E0013000000003F4000007371007E000F7371007E0013000000003F4000007371007E000F7371007E0013000000003F4000007371007E000F7371007E0013000000003F4000007371007E000F7371007E0013000000003F4000007371007E000F7371007E0013000000003F4000007371007E000F7371007E0013000000003F4000007400506F72672E6170616368652E736869726F2E7375626A6563742E737570706F72742E44656661756C745375626A656374436F6E746578745F41555448454E544943415445445F53455353494F4E5F4B4559737200116A6176612E6C616E672E426F6F6C65616ECD207280D59CFAEE0200015A000576616C7565787001740048636F6D2E72756F79692E6672616D65776F726B2E736869726F2E73657373696F6E2E4F6E6C696E6553657373696F6E44414F4C4153545F53594E435F44425F54494D455354414D5071007E000974004D6F72672E6170616368652E736869726F2E7375626A6563742E737570706F72742E44656661756C745375626A656374436F6E746578745F5052494E434950414C535F53455353494F4E5F4B4559737200356F72672E6170616368652E736869726F2E7375626A6563742E496D6D757461626C655072696E636970616C436F6C6C656374696F6E7057568687B455EC0200014C000F7265616C6D5072696E636970616C7374000F4C6A6176612F7574696C2F4D61703B7870737200226A6176612E7574696C2E436F6C6C656374696F6E732453696E676C65746F6E4D61709F230991717F6B910200024C00016B7400124C6A6176612F6C616E672F4F626A6563743B4C00017671007E003F787074002B636F6D2E72756F79692E6672616D65776F726B2E736869726F2E7265616C6D2E557365725265616C6D5F30737200116A6176612E7574696C2E436F6C6C536572578EABB63A1BA8110300014900037461677870000000027704000000017372002B636F6D2E72756F79692E636F6D6D6F6E2E636F72652E646F6D61696E2E656E746974792E5379735573657200000000000000010200164C000661766174617271007E00014C000764656C466C616771007E00014C00046465707474002D4C636F6D2F72756F79692F636F6D6D6F6E2F636F72652F646F6D61696E2F656E746974792F537973446570743B4C000664657074496471007E00034C0005656D61696C71007E00014C00096C6F67696E446174657400104C6A6176612F7574696C2F446174653B4C00076C6F67696E497071007E00014C00096C6F67696E4E616D6571007E00014C0008706172656E74496471007E00034C000870617373776F726471007E00014C000B70686F6E656E756D62657271007E00015B0007706F73744964737400115B4C6A6176612F6C616E672F4C6F6E673B4C000D7077645570646174654461746571007E00464C0006726F6C65496471007E00035B0007726F6C6549647371007E00474C0005726F6C65737400104C6A6176612F7574696C2F4C6973743B4C000473616C7471007E00014C000373657871007E00014C000673746174757371007E00014C000675736572496471007E00034C0008757365724E616D6571007E00014C0008757365725479706571007E000178720027636F6D2E72756F79692E636F6D6D6F6E2E636F72652E646F6D61696E2E42617365456E7469747900000000000000010200074C0008637265617465427971007E00014C000A63726561746554696D6571007E00464C0006706172616D7371007E003C4C000672656D61726B71007E00014C000B73656172636856616C756571007E00014C0008757064617465427971007E00014C000A75706461746554696D6571007E0046787074000561646D696E7371007E00077708000001A132C6C9B87870740009E7AEA1E79086E59198707400007071007E004E740001307372002B636F6D2E72756F79692E636F6D6D6F6E2E636F72652E646F6D61696E2E656E746974792E53797344657074000000000000000102000C4C0009616E636573746F727371007E00014C000764656C466C616771007E00014C000664657074496471007E00034C0008646570744E616D6571007E00014C0005656D61696C71007E00014C00096578636C756465496471007E00034C00066C656164657271007E00014C00086F726465724E756D7400134C6A6176612F6C616E672F496E74656765723B4C0008706172656E74496471007E00034C000A706172656E744E616D6571007E00014C000570686F6E6571007E00014C000673746174757371007E00017871007E004970707070707070740009302C3130302C313031707372000E6A6176612E6C616E672E4C6F6E673B8BE490CC8F23DF0200014A000576616C7565787200106A6176612E6C616E672E4E756D62657286AC951D0B94E08B0200007870000000000000006774000CE7A094E58F91E983A8E997A87070740006E88BA5E4BE9D737200116A6176612E6C616E672E496E746567657212E2A0A4F781873802000149000576616C75657871007E0055000000017371007E0054000000000000006570707400013071007E005674000A7279403136332E636F6D7371007E00077708000001A1C308FAA0787400093132372E302E302E3174000561646D696E70740020323963363761333033393836333832363966653630306637336130353439333474000B313538383838383838383870707070737200136A6176612E7574696C2E41727261794C6973747881D21D99C7619D03000149000473697A657870000000017704000000017372002B636F6D2E72756F79692E636F6D6D6F6E2E636F72652E646F6D61696E2E656E746974792E537973526F6C65000000000000000102000B5A0004666C61674C00096461746153636F706571007E00014C000764656C466C616771007E00015B00076465707449647371007E00475B00076D656E7549647371007E00474C000B7065726D697373696F6E7374000F4C6A6176612F7574696C2F5365743B4C0006726F6C65496471007E00034C0007726F6C654B657971007E00014C0008726F6C654E616D6571007E00014C0008726F6C65536F727471007E00014C000673746174757371007E00017871007E0049707070707070700074000131707070707371007E0054000000000000000174000561646D696E74000FE8B685E7BAA7E7AEA1E79086E59198740001317400013078740006313131313131740001317400013071007E0069740006E88BA5E4BE9D7400023030787070787871007E004E74000B4375726C20382E32312E3074000CE7A094E58F91E983A8E997A87400093132372E302E302E3174000561646D696E71007E004E7E720023636F6D2E72756F79692E636F6D6D6F6E2E656E756D732E4F6E6C696E6553746174757300000000000000001200007872000E6A6176612E6C616E672E456E756D000000000000000012000078707400076F6E5F6C696E657371007E00540000000000000001);
-INSERT INTO `sys_user_online` VALUES ('99203541-9cc3-41f7-96c3-c0ace4814d9a', 'admin', '研发部门', '127.0.0.1', '内网IP', 'Curl 8.21.0', '', 'on_line', '2026-11-10 09:33:37', '2026-11-10 09:33:51', 1800000, 0xACED00057372002B636F6D2E72756F79692E636F6D6D6F6E2E636F72652E73657373696F6E2E4F6E6C696E6553657373696F6E00000000000000010200084C00066176617461727400124C6A6176612F6C616E672F537472696E673B4C000762726F7773657271007E00014C0008646570744E616D6571007E00014C0004686F737471007E00014C00096C6F67696E4E616D6571007E00014C00026F7371007E00014C00067374617475737400254C636F6D2F72756F79692F636F6D6D6F6E2F656E756D732F4F6E6C696E655374617475733B4C00067573657249647400104C6A6176612F6C616E672F4C6F6E673B7872002A6F72672E6170616368652E736869726F2E73657373696F6E2E6D67742E53696D706C6553657373696F6E9D1CA1B8D58C626E03000078707702009B74002439393230333534312D396363332D343166372D393663332D6330616365343831346439617372000E6A6176612E7574696C2E44617465686A81014B59741903000078707708000001A1C316D78E787371007E00077708000001A1C3170E4878770800000000001B7740737200266A6176612E7574696C2E636F6E63757272656E742E436F6E63757272656E74486173684D61706499DE129D87293D03000349000B7365676D656E744D61736B49000C7365676D656E7453686966745B00087365676D656E74737400315B4C6A6176612F7574696C2F636F6E63757272656E742F436F6E63757272656E74486173684D6170245365676D656E743B78700000000F0000001C757200315B4C6A6176612E7574696C2E636F6E63757272656E742E436F6E63757272656E74486173684D6170245365676D656E743B52773F41329B39740200007870000000107372002E6A6176612E7574696C2E636F6E63757272656E742E436F6E63757272656E74486173684D6170245365676D656E741F364C905893293D02000146000A6C6F6164466163746F72787200286A6176612E7574696C2E636F6E63757272656E742E6C6F636B732E5265656E7472616E744C6F636B6655A82C2CC86AEB0200014C000473796E6374002F4C6A6176612F7574696C2F636F6E63757272656E742F6C6F636B732F5265656E7472616E744C6F636B2453796E633B7870737200346A6176612E7574696C2E636F6E63757272656E742E6C6F636B732E5265656E7472616E744C6F636B244E6F6E6661697253796E63658832E7537BBF0B0200007872002D6A6176612E7574696C2E636F6E63757272656E742E6C6F636B732E5265656E7472616E744C6F636B2453796E63B81EA294AA445A7C020000787200356A6176612E7574696C2E636F6E63757272656E742E6C6F636B732E416273747261637451756575656453796E6368726F6E697A65726655A843753F52E30200014900057374617465787200366A6176612E7574696C2E636F6E63757272656E742E6C6F636B732E41627374726163744F776E61626C6553796E6368726F6E697A657233DFAFB9AD6D6FA90200007870000000003F4000007371007E000F7371007E0013000000003F4000007371007E000F7371007E0013000000003F4000007371007E000F7371007E0013000000003F4000007371007E000F7371007E0013000000003F4000007371007E000F7371007E0013000000003F4000007371007E000F7371007E0013000000003F4000007371007E000F7371007E0013000000003F4000007371007E000F7371007E0013000000003F4000007371007E000F7371007E0013000000003F4000007371007E000F7371007E0013000000003F4000007371007E000F7371007E0013000000003F4000007371007E000F7371007E0013000000003F4000007371007E000F7371007E0013000000003F4000007371007E000F7371007E0013000000003F4000007371007E000F7371007E0013000000003F4000007400506F72672E6170616368652E736869726F2E7375626A6563742E737570706F72742E44656661756C745375626A656374436F6E746578745F41555448454E544943415445445F53455353494F4E5F4B4559737200116A6176612E6C616E672E426F6F6C65616ECD207280D59CFAEE0200015A000576616C7565787001740048636F6D2E72756F79692E6672616D65776F726B2E736869726F2E73657373696F6E2E4F6E6C696E6553657373696F6E44414F4C4153545F53594E435F44425F54494D455354414D5071007E000974004D6F72672E6170616368652E736869726F2E7375626A6563742E737570706F72742E44656661756C745375626A656374436F6E746578745F5052494E434950414C535F53455353494F4E5F4B4559737200356F72672E6170616368652E736869726F2E7375626A6563742E496D6D757461626C655072696E636970616C436F6C6C656374696F6E7057568687B455EC0200014C000F7265616C6D5072696E636970616C7374000F4C6A6176612F7574696C2F4D61703B7870737200226A6176612E7574696C2E436F6C6C656374696F6E732453696E676C65746F6E4D61709F230991717F6B910200024C00016B7400124C6A6176612F6C616E672F4F626A6563743B4C00017671007E003F787074002B636F6D2E72756F79692E6672616D65776F726B2E736869726F2E7265616C6D2E557365725265616C6D5F30737200116A6176612E7574696C2E436F6C6C536572578EABB63A1BA8110300014900037461677870000000027704000000017372002B636F6D2E72756F79692E636F6D6D6F6E2E636F72652E646F6D61696E2E656E746974792E5379735573657200000000000000010200164C000661766174617271007E00014C000764656C466C616771007E00014C00046465707474002D4C636F6D2F72756F79692F636F6D6D6F6E2F636F72652F646F6D61696E2F656E746974792F537973446570743B4C000664657074496471007E00034C0005656D61696C71007E00014C00096C6F67696E446174657400104C6A6176612F7574696C2F446174653B4C00076C6F67696E497071007E00014C00096C6F67696E4E616D6571007E00014C0008706172656E74496471007E00034C000870617373776F726471007E00014C000B70686F6E656E756D62657271007E00015B0007706F73744964737400115B4C6A6176612F6C616E672F4C6F6E673B4C000D7077645570646174654461746571007E00464C0006726F6C65496471007E00035B0007726F6C6549647371007E00474C0005726F6C65737400104C6A6176612F7574696C2F4C6973743B4C000473616C7471007E00014C000373657871007E00014C000673746174757371007E00014C000675736572496471007E00034C0008757365724E616D6571007E00014C0008757365725479706571007E000178720027636F6D2E72756F79692E636F6D6D6F6E2E636F72652E646F6D61696E2E42617365456E7469747900000000000000010200074C0008637265617465427971007E00014C000A63726561746554696D6571007E00464C0006706172616D7371007E003C4C000672656D61726B71007E00014C000B73656172636856616C756571007E00014C0008757064617465427971007E00014C000A75706461746554696D6571007E0046787074000561646D696E7371007E00077708000001A132C6C9B87870740009E7AEA1E79086E59198707400007071007E004E740001307372002B636F6D2E72756F79692E636F6D6D6F6E2E636F72652E646F6D61696E2E656E746974792E53797344657074000000000000000102000C4C0009616E636573746F727371007E00014C000764656C466C616771007E00014C000664657074496471007E00034C0008646570744E616D6571007E00014C0005656D61696C71007E00014C00096578636C756465496471007E00034C00066C656164657271007E00014C00086F726465724E756D7400134C6A6176612F6C616E672F496E74656765723B4C0008706172656E74496471007E00034C000A706172656E744E616D6571007E00014C000570686F6E6571007E00014C000673746174757371007E00017871007E004970707070707070740009302C3130302C313031707372000E6A6176612E6C616E672E4C6F6E673B8BE490CC8F23DF0200014A000576616C7565787200106A6176612E6C616E672E4E756D62657286AC951D0B94E08B0200007870000000000000006774000CE7A094E58F91E983A8E997A87070740006E88BA5E4BE9D737200116A6176612E6C616E672E496E746567657212E2A0A4F781873802000149000576616C75657871007E0055000000017371007E0054000000000000006570707400013071007E005674000A7279403136332E636F6D7371007E00077708000001A1C30B4878787400093132372E302E302E3174000561646D696E70740020323963363761333033393836333832363966653630306637336130353439333474000B313538383838383838383870707070737200136A6176612E7574696C2E41727261794C6973747881D21D99C7619D03000149000473697A657870000000017704000000017372002B636F6D2E72756F79692E636F6D6D6F6E2E636F72652E646F6D61696E2E656E746974792E537973526F6C65000000000000000102000B5A0004666C61674C00096461746153636F706571007E00014C000764656C466C616771007E00015B00076465707449647371007E00475B00076D656E7549647371007E00474C000B7065726D697373696F6E7374000F4C6A6176612F7574696C2F5365743B4C0006726F6C65496471007E00034C0007726F6C654B657971007E00014C0008726F6C654E616D6571007E00014C0008726F6C65536F727471007E00014C000673746174757371007E00017871007E0049707070707070700074000131707070707371007E0054000000000000000174000561646D696E74000FE8B685E7BAA7E7AEA1E79086E59198740001317400013078740006313131313131740001317400013071007E0069740006E88BA5E4BE9D7400023030787070787871007E004E74000B4375726C20382E32312E3074000CE7A094E58F91E983A8E997A87400093132372E302E302E3174000561646D696E71007E004E7E720023636F6D2E72756F79692E636F6D6D6F6E2E656E756D732E4F6E6C696E6553746174757300000000000000001200007872000E6A6176612E6C616E672E456E756D000000000000000012000078707400076F6E5F6C696E657371007E00540000000000000001);
-INSERT INTO `sys_user_online` VALUES ('a85e1504-6b77-460a-b564-e526ff1a18e0', 'admin', '研发部门', '127.0.0.1', '内网IP', 'Curl 8.21.0', '', 'on_line', '2026-11-10 09:39:40', '2026-11-10 09:40:11', 1800000, 0xACED00057372002B636F6D2E72756F79692E636F6D6D6F6E2E636F72652E73657373696F6E2E4F6E6C696E6553657373696F6E00000000000000010200084C00066176617461727400124C6A6176612F6C616E672F537472696E673B4C000762726F7773657271007E00014C0008646570744E616D6571007E00014C0004686F737471007E00014C00096C6F67696E4E616D6571007E00014C00026F7371007E00014C00067374617475737400254C636F6D2F72756F79692F636F6D6D6F6E2F656E756D732F4F6E6C696E655374617475733B4C00067573657249647400104C6A6176612F6C616E672F4C6F6E673B7872002A6F72672E6170616368652E736869726F2E73657373696F6E2E6D67742E53696D706C6553657373696F6E9D1CA1B8D58C626E03000078707702009B74002461383565313530342D366237372D343630612D623536342D6535323666663161313865307372000E6A6176612E7574696C2E44617465686A81014B59741903000078707708000001A1C31C6211787371007E00077708000001A1C31CDACE78770800000000001B7740737200266A6176612E7574696C2E636F6E63757272656E742E436F6E63757272656E74486173684D61706499DE129D87293D03000349000B7365676D656E744D61736B49000C7365676D656E7453686966745B00087365676D656E74737400315B4C6A6176612F7574696C2F636F6E63757272656E742F436F6E63757272656E74486173684D6170245365676D656E743B78700000000F0000001C757200315B4C6A6176612E7574696C2E636F6E63757272656E742E436F6E63757272656E74486173684D6170245365676D656E743B52773F41329B39740200007870000000107372002E6A6176612E7574696C2E636F6E63757272656E742E436F6E63757272656E74486173684D6170245365676D656E741F364C905893293D02000146000A6C6F6164466163746F72787200286A6176612E7574696C2E636F6E63757272656E742E6C6F636B732E5265656E7472616E744C6F636B6655A82C2CC86AEB0200014C000473796E6374002F4C6A6176612F7574696C2F636F6E63757272656E742F6C6F636B732F5265656E7472616E744C6F636B2453796E633B7870737200346A6176612E7574696C2E636F6E63757272656E742E6C6F636B732E5265656E7472616E744C6F636B244E6F6E6661697253796E63658832E7537BBF0B0200007872002D6A6176612E7574696C2E636F6E63757272656E742E6C6F636B732E5265656E7472616E744C6F636B2453796E63B81EA294AA445A7C020000787200356A6176612E7574696C2E636F6E63757272656E742E6C6F636B732E416273747261637451756575656453796E6368726F6E697A65726655A843753F52E30200014900057374617465787200366A6176612E7574696C2E636F6E63757272656E742E6C6F636B732E41627374726163744F776E61626C6553796E6368726F6E697A657233DFAFB9AD6D6FA90200007870000000003F4000007371007E000F7371007E0013000000003F4000007371007E000F7371007E0013000000003F4000007371007E000F7371007E0013000000003F4000007371007E000F7371007E0013000000003F4000007371007E000F7371007E0013000000003F4000007371007E000F7371007E0013000000003F4000007371007E000F7371007E0013000000003F4000007371007E000F7371007E0013000000003F4000007371007E000F7371007E0013000000003F4000007371007E000F7371007E0013000000003F4000007371007E000F7371007E0013000000003F4000007371007E000F7371007E0013000000003F4000007371007E000F7371007E0013000000003F4000007371007E000F7371007E0013000000003F4000007371007E000F7371007E0013000000003F4000007400506F72672E6170616368652E736869726F2E7375626A6563742E737570706F72742E44656661756C745375626A656374436F6E746578745F41555448454E544943415445445F53455353494F4E5F4B4559737200116A6176612E6C616E672E426F6F6C65616ECD207280D59CFAEE0200015A000576616C7565787001740048636F6D2E72756F79692E6672616D65776F726B2E736869726F2E73657373696F6E2E4F6E6C696E6553657373696F6E44414F4C4153545F53594E435F44425F54494D455354414D5071007E000974004D6F72672E6170616368652E736869726F2E7375626A6563742E737570706F72742E44656661756C745375626A656374436F6E746578745F5052494E434950414C535F53455353494F4E5F4B4559737200356F72672E6170616368652E736869726F2E7375626A6563742E496D6D757461626C655072696E636970616C436F6C6C656374696F6E7057568687B455EC0200014C000F7265616C6D5072696E636970616C7374000F4C6A6176612F7574696C2F4D61703B7870737200226A6176612E7574696C2E436F6C6C656374696F6E732453696E676C65746F6E4D61709F230991717F6B910200024C00016B7400124C6A6176612F6C616E672F4F626A6563743B4C00017671007E003F787074002B636F6D2E72756F79692E6672616D65776F726B2E736869726F2E7265616C6D2E557365725265616C6D5F30737200116A6176612E7574696C2E436F6C6C536572578EABB63A1BA8110300014900037461677870000000027704000000017372002B636F6D2E72756F79692E636F6D6D6F6E2E636F72652E646F6D61696E2E656E746974792E5379735573657200000000000000010200164C000661766174617271007E00014C000764656C466C616771007E00014C00046465707474002D4C636F6D2F72756F79692F636F6D6D6F6E2F636F72652F646F6D61696E2F656E746974792F537973446570743B4C000664657074496471007E00034C0005656D61696C71007E00014C00096C6F67696E446174657400104C6A6176612F7574696C2F446174653B4C00076C6F67696E497071007E00014C00096C6F67696E4E616D6571007E00014C0008706172656E74496471007E00034C000870617373776F726471007E00014C000B70686F6E656E756D62657271007E00015B0007706F73744964737400115B4C6A6176612F6C616E672F4C6F6E673B4C000D7077645570646174654461746571007E00464C0006726F6C65496471007E00035B0007726F6C6549647371007E00474C0005726F6C65737400104C6A6176612F7574696C2F4C6973743B4C000473616C7471007E00014C000373657871007E00014C000673746174757371007E00014C000675736572496471007E00034C0008757365724E616D6571007E00014C0008757365725479706571007E000178720027636F6D2E72756F79692E636F6D6D6F6E2E636F72652E646F6D61696E2E42617365456E7469747900000000000000010200074C0008637265617465427971007E00014C000A63726561746554696D6571007E00464C0006706172616D7371007E003C4C000672656D61726B71007E00014C000B73656172636856616C756571007E00014C0008757064617465427971007E00014C000A75706461746554696D6571007E0046787074000561646D696E7371007E00077708000001A132C6C9B87870740009E7AEA1E79086E59198707400007071007E004E740001307372002B636F6D2E72756F79692E636F6D6D6F6E2E636F72652E646F6D61696E2E656E746974792E53797344657074000000000000000102000C4C0009616E636573746F727371007E00014C000764656C466C616771007E00014C000664657074496471007E00034C0008646570744E616D6571007E00014C0005656D61696C71007E00014C00096578636C756465496471007E00034C00066C656164657271007E00014C00086F726465724E756D7400134C6A6176612F6C616E672F496E74656765723B4C0008706172656E74496471007E00034C000A706172656E744E616D6571007E00014C000570686F6E6571007E00014C000673746174757371007E00017871007E004970707070707070740009302C3130302C313031707372000E6A6176612E6C616E672E4C6F6E673B8BE490CC8F23DF0200014A000576616C7565787200106A6176612E6C616E672E4E756D62657286AC951D0B94E08B0200007870000000000000006774000CE7A094E58F91E983A8E997A87070740006E88BA5E4BE9D737200116A6176612E6C616E672E496E746567657212E2A0A4F781873802000149000576616C75657871007E0055000000017371007E0054000000000000006570707400013071007E005674000A7279403136332E636F6D7371007E00077708000001A1C316D580787400093132372E302E302E3174000561646D696E70740020323963363761333033393836333832363966653630306637336130353439333474000B313538383838383838383870707070737200136A6176612E7574696C2E41727261794C6973747881D21D99C7619D03000149000473697A657870000000017704000000017372002B636F6D2E72756F79692E636F6D6D6F6E2E636F72652E646F6D61696E2E656E746974792E537973526F6C65000000000000000102000B5A0004666C61674C00096461746153636F706571007E00014C000764656C466C616771007E00015B00076465707449647371007E00475B00076D656E7549647371007E00474C000B7065726D697373696F6E7374000F4C6A6176612F7574696C2F5365743B4C0006726F6C65496471007E00034C0007726F6C654B657971007E00014C0008726F6C654E616D6571007E00014C0008726F6C65536F727471007E00014C000673746174757371007E00017871007E0049707070707070700074000131707070707371007E0054000000000000000174000561646D696E74000FE8B685E7BAA7E7AEA1E79086E59198740001317400013078740006313131313131740001317400013071007E0069740006E88BA5E4BE9D7400023030787070787871007E004E74000B4375726C20382E32312E3074000CE7A094E58F91E983A8E997A87400093132372E302E302E3174000561646D696E71007E004E7E720023636F6D2E72756F79692E636F6D6D6F6E2E656E756D732E4F6E6C696E6553746174757300000000000000001200007872000E6A6176612E6C616E672E456E756D000000000000000012000078707400076F6E5F6C696E657371007E00540000000000000001);
-INSERT INTO `sys_user_online` VALUES ('c5aa92b6-f1e5-491a-91d8-f463cae3dc4a', 'admin', '研发部门', '58.16.41.98', 'XX XX', 'Edge 142', 'Windows >=10', 'on_line', '2026-11-10 09:04:44', '2026-11-10 09:18:39', 1800000, 0xACED00057372002B636F6D2E72756F79692E636F6D6D6F6E2E636F72652E73657373696F6E2E4F6E6C696E6553657373696F6E00000000000000010200084C00066176617461727400124C6A6176612F6C616E672F537472696E673B4C000762726F7773657271007E00014C0008646570744E616D6571007E00014C0004686F737471007E00014C00096C6F67696E4E616D6571007E00014C00026F7371007E00014C00067374617475737400254C636F6D2F72756F79692F636F6D6D6F6E2F656E756D732F4F6E6C696E655374617475733B4C00067573657249647400104C6A6176612F6C616E672F4C6F6E673B7872002A6F72672E6170616368652E736869726F2E73657373696F6E2E6D67742E53696D706C6553657373696F6E9D1CA1B8D58C626E03000078707702009B74002463356161393262362D663165352D343931612D393164382D6634363363616533646334617372000E6A6176612E7574696C2E44617465686A81014B59741903000078707708000001A1C2FC6760787371007E00077708000001A1C30926B978770800000000001B7740737200266A6176612E7574696C2E636F6E63757272656E742E436F6E63757272656E74486173684D61706499DE129D87293D03000349000B7365676D656E744D61736B49000C7365676D656E7453686966745B00087365676D656E74737400315B4C6A6176612F7574696C2F636F6E63757272656E742F436F6E63757272656E74486173684D6170245365676D656E743B78700000000F0000001C757200315B4C6A6176612E7574696C2E636F6E63757272656E742E436F6E63757272656E74486173684D6170245365676D656E743B52773F41329B39740200007870000000107372002E6A6176612E7574696C2E636F6E63757272656E742E436F6E63757272656E74486173684D6170245365676D656E741F364C905893293D02000146000A6C6F6164466163746F72787200286A6176612E7574696C2E636F6E63757272656E742E6C6F636B732E5265656E7472616E744C6F636B6655A82C2CC86AEB0200014C000473796E6374002F4C6A6176612F7574696C2F636F6E63757272656E742F6C6F636B732F5265656E7472616E744C6F636B2453796E633B7870737200346A6176612E7574696C2E636F6E63757272656E742E6C6F636B732E5265656E7472616E744C6F636B244E6F6E6661697253796E63658832E7537BBF0B0200007872002D6A6176612E7574696C2E636F6E63757272656E742E6C6F636B732E5265656E7472616E744C6F636B2453796E63B81EA294AA445A7C020000787200356A6176612E7574696C2E636F6E63757272656E742E6C6F636B732E416273747261637451756575656453796E6368726F6E697A65726655A843753F52E30200014900057374617465787200366A6176612E7574696C2E636F6E63757272656E742E6C6F636B732E41627374726163744F776E61626C6553796E6368726F6E697A657233DFAFB9AD6D6FA90200007870000000003F4000007371007E000F7371007E0013000000003F4000007371007E000F7371007E0013000000003F4000007371007E000F7371007E0013000000003F4000007371007E000F7371007E0013000000003F4000007371007E000F7371007E0013000000003F4000007371007E000F7371007E0013000000003F4000007371007E000F7371007E0013000000003F4000007371007E000F7371007E0013000000003F4000007371007E000F7371007E0013000000003F4000007371007E000F7371007E0013000000003F4000007371007E000F7371007E0013000000003F4000007371007E000F7371007E0013000000003F4000007371007E000F7371007E0013000000003F4000007371007E000F7371007E0013000000003F4000007371007E000F7371007E0013000000003F400000740048636F6D2E72756F79692E6672616D65776F726B2E736869726F2E73657373696F6E2E4F6E6C696E6553657373696F6E44414F4C4153545F53594E435F44425F54494D455354414D5071007E000974004D6F72672E6170616368652E736869726F2E7375626A6563742E737570706F72742E44656661756C745375626A656374436F6E746578745F5052494E434950414C535F53455353494F4E5F4B4559737200356F72672E6170616368652E736869726F2E7375626A6563742E496D6D757461626C655072696E636970616C436F6C6C656374696F6E7057568687B455EC0200014C000F7265616C6D5072696E636970616C7374000F4C6A6176612F7574696C2F4D61703B7870737200226A6176612E7574696C2E436F6C6C656374696F6E732453696E676C65746F6E4D61709F230991717F6B910200024C00016B7400124C6A6176612F6C616E672F4F626A6563743B4C00017671007E003C787074002B636F6D2E72756F79692E6672616D65776F726B2E736869726F2E7265616C6D2E557365725265616C6D5F30737200116A6176612E7574696C2E436F6C6C536572578EABB63A1BA8110300014900037461677870000000027704000000017372002B636F6D2E72756F79692E636F6D6D6F6E2E636F72652E646F6D61696E2E656E746974792E5379735573657200000000000000010200164C000661766174617271007E00014C000764656C466C616771007E00014C00046465707474002D4C636F6D2F72756F79692F636F6D6D6F6E2F636F72652F646F6D61696E2F656E746974792F537973446570743B4C000664657074496471007E00034C0005656D61696C71007E00014C00096C6F67696E446174657400104C6A6176612F7574696C2F446174653B4C00076C6F67696E497071007E00014C00096C6F67696E4E616D6571007E00014C0008706172656E74496471007E00034C000870617373776F726471007E00014C000B70686F6E656E756D62657271007E00015B0007706F73744964737400115B4C6A6176612F6C616E672F4C6F6E673B4C000D7077645570646174654461746571007E00434C0006726F6C65496471007E00035B0007726F6C6549647371007E00444C0005726F6C65737400104C6A6176612F7574696C2F4C6973743B4C000473616C7471007E00014C000373657871007E00014C000673746174757371007E00014C000675736572496471007E00034C0008757365724E616D6571007E00014C0008757365725479706571007E000178720027636F6D2E72756F79692E636F6D6D6F6E2E636F72652E646F6D61696E2E42617365456E7469747900000000000000010200074C0008637265617465427971007E00014C000A63726561746554696D6571007E00434C0006706172616D7371007E00394C000672656D61726B71007E00014C000B73656172636856616C756571007E00014C0008757064617465427971007E00014C000A75706461746554696D6571007E0043787074000561646D696E7371007E00077708000001A132C6C9B87870740009E7AEA1E79086E59198707400007071007E004B740001307372002B636F6D2E72756F79692E636F6D6D6F6E2E636F72652E646F6D61696E2E656E746974792E53797344657074000000000000000102000C4C0009616E636573746F727371007E00014C000764656C466C616771007E00014C000664657074496471007E00034C0008646570744E616D6571007E00014C0005656D61696C71007E00014C00096578636C756465496471007E00034C00066C656164657271007E00014C00086F726465724E756D7400134C6A6176612F6C616E672F496E74656765723B4C0008706172656E74496471007E00034C000A706172656E744E616D6571007E00014C000570686F6E6571007E00014C000673746174757371007E00017871007E004670707070707070740009302C3130302C313031707372000E6A6176612E6C616E672E4C6F6E673B8BE490CC8F23DF0200014A000576616C7565787200106A6176612E6C616E672E4E756D62657286AC951D0B94E08B0200007870000000000000006774000CE7A094E58F91E983A8E997A87070740006E88BA5E4BE9D737200116A6176612E6C616E672E496E746567657212E2A0A4F781873802000149000576616C75657871007E0052000000017371007E0051000000000000006570707400013071007E005374000A7279403136332E636F6D7371007E00077708000001A1A55105E8787400093132372E302E302E3174000561646D696E70740020323963363761333033393836333832363966653630306637336130353439333474000B313538383838383838383870707070737200136A6176612E7574696C2E41727261794C6973747881D21D99C7619D03000149000473697A657870000000017704000000017372002B636F6D2E72756F79692E636F6D6D6F6E2E636F72652E646F6D61696E2E656E746974792E537973526F6C65000000000000000102000B5A0004666C61674C00096461746153636F706571007E00014C000764656C466C616771007E00015B00076465707449647371007E00445B00076D656E7549647371007E00444C000B7065726D697373696F6E7374000F4C6A6176612F7574696C2F5365743B4C0006726F6C65496471007E00034C0007726F6C654B657971007E00014C0008726F6C654E616D6571007E00014C0008726F6C65536F727471007E00014C000673746174757371007E00017871007E0046707070707070700074000131707070707371007E0051000000000000000174000561646D696E74000FE8B685E7BAA7E7AEA1E79086E59198740001317400013078740006313131313131740001317400013071007E0066740006E88BA5E4BE9D74000230307874000A637372665F746F6B656E74002C676F546E4757452B6F5436334944534353794B2F644F56574A723546756C337A7159785764355644346E493D7070787871007E004B740008456467652031343274000CE7A094E58F91E983A8E997A874000B35382E31362E34312E393874000561646D696E74000C57696E646F7773203E3D31307E720023636F6D2E72756F79692E636F6D6D6F6E2E656E756D732E4F6E6C696E6553746174757300000000000000001200007872000E6A6176612E6C616E672E456E756D000000000000000012000078707400076F6E5F6C696E657371007E00510000000000000001);
+INSERT INTO `sys_user_online` VALUES ('3c5140db-cac2-4ed4-8f31-307ea3b3d090', 'admin', '研发部门', '127.0.0.1', '内网IP', 'Curl 8.22.0', '', 'on_line', '2026-11-19 09:21:51', '2026-11-19 09:21:52', 1800000, 0xACED00057372002B636F6D2E72756F79692E636F6D6D6F6E2E636F72652E73657373696F6E2E4F6E6C696E6553657373696F6E00000000000000010200084C00066176617461727400124C6A6176612F6C616E672F537472696E673B4C000762726F7773657271007E00014C0008646570744E616D6571007E00014C0004686F737471007E00014C00096C6F67696E4E616D6571007E00014C00026F7371007E00014C00067374617475737400254C636F6D2F72756F79692F636F6D6D6F6E2F656E756D732F4F6E6C696E655374617475733B4C00067573657249647400104C6A6176612F6C616E672F4C6F6E673B7872002A6F72672E6170616368652E736869726F2E73657373696F6E2E6D67742E53696D706C6553657373696F6E9D1CA1B8D58C626E03000078707702009B74002433633531343064622D636163322D346564342D386633312D3330376561336233643039307372000E6A6176612E7574696C2E44617465686A81014B59741903000078707708000001A1F1655099787371007E00077708000001A1F16553C078770800000000001B7740737200266A6176612E7574696C2E636F6E63757272656E742E436F6E63757272656E74486173684D61706499DE129D87293D03000349000B7365676D656E744D61736B49000C7365676D656E7453686966745B00087365676D656E74737400315B4C6A6176612F7574696C2F636F6E63757272656E742F436F6E63757272656E74486173684D6170245365676D656E743B78700000000F0000001C757200315B4C6A6176612E7574696C2E636F6E63757272656E742E436F6E63757272656E74486173684D6170245365676D656E743B52773F41329B39740200007870000000107372002E6A6176612E7574696C2E636F6E63757272656E742E436F6E63757272656E74486173684D6170245365676D656E741F364C905893293D02000146000A6C6F6164466163746F72787200286A6176612E7574696C2E636F6E63757272656E742E6C6F636B732E5265656E7472616E744C6F636B6655A82C2CC86AEB0200014C000473796E6374002F4C6A6176612F7574696C2F636F6E63757272656E742F6C6F636B732F5265656E7472616E744C6F636B2453796E633B7870737200346A6176612E7574696C2E636F6E63757272656E742E6C6F636B732E5265656E7472616E744C6F636B244E6F6E6661697253796E63658832E7537BBF0B0200007872002D6A6176612E7574696C2E636F6E63757272656E742E6C6F636B732E5265656E7472616E744C6F636B2453796E63B81EA294AA445A7C020000787200356A6176612E7574696C2E636F6E63757272656E742E6C6F636B732E416273747261637451756575656453796E6368726F6E697A65726655A843753F52E30200014900057374617465787200366A6176612E7574696C2E636F6E63757272656E742E6C6F636B732E41627374726163744F776E61626C6553796E6368726F6E697A657233DFAFB9AD6D6FA90200007870000000003F4000007371007E000F7371007E0013000000003F4000007371007E000F7371007E0013000000003F4000007371007E000F7371007E0013000000003F4000007371007E000F7371007E0013000000003F4000007371007E000F7371007E0013000000003F4000007371007E000F7371007E0013000000003F4000007371007E000F7371007E0013000000003F4000007371007E000F7371007E0013000000003F4000007371007E000F7371007E0013000000003F4000007371007E000F7371007E0013000000003F4000007371007E000F7371007E0013000000003F4000007371007E000F7371007E0013000000003F4000007371007E000F7371007E0013000000003F4000007371007E000F7371007E0013000000003F4000007371007E000F7371007E0013000000003F4000007400506F72672E6170616368652E736869726F2E7375626A6563742E737570706F72742E44656661756C745375626A656374436F6E746578745F41555448454E544943415445445F53455353494F4E5F4B4559737200116A6176612E6C616E672E426F6F6C65616ECD207280D59CFAEE0200015A000576616C7565787001740048636F6D2E72756F79692E6672616D65776F726B2E736869726F2E73657373696F6E2E4F6E6C696E6553657373696F6E44414F4C4153545F53594E435F44425F54494D455354414D5071007E000974004D6F72672E6170616368652E736869726F2E7375626A6563742E737570706F72742E44656661756C745375626A656374436F6E746578745F5052494E434950414C535F53455353494F4E5F4B4559737200356F72672E6170616368652E736869726F2E7375626A6563742E496D6D757461626C655072696E636970616C436F6C6C656374696F6E7057568687B455EC0200014C000F7265616C6D5072696E636970616C7374000F4C6A6176612F7574696C2F4D61703B7870737200226A6176612E7574696C2E436F6C6C656374696F6E732453696E676C65746F6E4D61709F230991717F6B910200024C00016B7400124C6A6176612F6C616E672F4F626A6563743B4C00017671007E003F787074002B636F6D2E72756F79692E6672616D65776F726B2E736869726F2E7265616C6D2E557365725265616C6D5F30737200116A6176612E7574696C2E436F6C6C536572578EABB63A1BA8110300014900037461677870000000027704000000017372002B636F6D2E72756F79692E636F6D6D6F6E2E636F72652E646F6D61696E2E656E746974792E5379735573657200000000000000010200164C000661766174617271007E00014C000764656C466C616771007E00014C00046465707474002D4C636F6D2F72756F79692F636F6D6D6F6E2F636F72652F646F6D61696E2F656E746974792F537973446570743B4C000664657074496471007E00034C0005656D61696C71007E00014C00096C6F67696E446174657400104C6A6176612F7574696C2F446174653B4C00076C6F67696E497071007E00014C00096C6F67696E4E616D6571007E00014C0008706172656E74496471007E00034C000870617373776F726471007E00014C000B70686F6E656E756D62657271007E00015B0007706F73744964737400115B4C6A6176612F6C616E672F4C6F6E673B4C000D7077645570646174654461746571007E00464C0006726F6C65496471007E00035B0007726F6C6549647371007E00474C0005726F6C65737400104C6A6176612F7574696C2F4C6973743B4C000473616C7471007E00014C000373657871007E00014C000673746174757371007E00014C000675736572496471007E00034C0008757365724E616D6571007E00014C0008757365725479706571007E000178720027636F6D2E72756F79692E636F6D6D6F6E2E636F72652E646F6D61696E2E42617365456E7469747900000000000000010200074C0008637265617465427971007E00014C000A63726561746554696D6571007E00464C0006706172616D7371007E003C4C000672656D61726B71007E00014C000B73656172636856616C756571007E00014C0008757064617465427971007E00014C000A75706461746554696D6571007E0046787074000561646D696E7371007E00077708000001A132C6C9B87870740009E7AEA1E79086E59198707400007071007E004E740001307372002B636F6D2E72756F79692E636F6D6D6F6E2E636F72652E646F6D61696E2E656E746974792E53797344657074000000000000000102000C4C0009616E636573746F727371007E00014C000764656C466C616771007E00014C000664657074496471007E00034C0008646570744E616D6571007E00014C0005656D61696C71007E00014C00096578636C756465496471007E00034C00066C656164657271007E00014C00086F726465724E756D7400134C6A6176612F6C616E672F496E74656765723B4C0008706172656E74496471007E00034C000A706172656E744E616D6571007E00014C000570686F6E6571007E00014C000673746174757371007E00017871007E004970707070707070740009302C3130302C313031707372000E6A6176612E6C616E672E4C6F6E673B8BE490CC8F23DF0200014A000576616C7565787200106A6176612E6C616E672E4E756D62657286AC951D0B94E08B0200007870000000000000006774000CE7A094E58F91E983A8E997A87070740006E88BA5E4BE9D737200116A6176612E6C616E672E496E746567657212E2A0A4F781873802000149000576616C75657871007E0055000000017371007E0054000000000000006570707400013071007E005674000A7279403136332E636F6D7371007E00077708000001A1ED53F5A87874000B35382E31362E34312E393874000561646D696E70740020323963363761333033393836333832363966653630306637336130353439333474000B313538383838383838383870707070737200136A6176612E7574696C2E41727261794C6973747881D21D99C7619D03000149000473697A657870000000017704000000017372002B636F6D2E72756F79692E636F6D6D6F6E2E636F72652E646F6D61696E2E656E746974792E537973526F6C65000000000000000102000B5A0004666C61674C00096461746153636F706571007E00014C000764656C466C616771007E00015B00076465707449647371007E00475B00076D656E7549647371007E00474C000B7065726D697373696F6E7374000F4C6A6176612F7574696C2F5365743B4C0006726F6C65496471007E00034C0007726F6C654B657971007E00014C0008726F6C654E616D6571007E00014C0008726F6C65536F727471007E00014C000673746174757371007E00017871007E0049707070707070700074000131707070707371007E0054000000000000000174000561646D696E74000FE8B685E7BAA7E7AEA1E79086E59198740001317400013078740006313131313131740001317400013071007E0069740006E88BA5E4BE9D7400023030787070787871007E004E74000B4375726C20382E32322E3074000CE7A094E58F91E983A8E997A87400093132372E302E302E3174000561646D696E71007E004E7E720023636F6D2E72756F79692E636F6D6D6F6E2E656E756D732E4F6E6C696E6553746174757300000000000000001200007872000E6A6176612E6C616E672E456E756D000000000000000012000078707400076F6E5F6C696E657371007E00540000000000000001);
+INSERT INTO `sys_user_online` VALUES ('4e1ffbe3-dd6c-4b56-8148-3cd4bd1cc12c', 'admin', '研发部门', '127.0.0.1', '内网IP', 'Edge 157', 'Windows >=10', 'on_line', '2026-11-19 09:23:28', '2026-11-19 09:24:20', 1800000, 0xACED00057372002B636F6D2E72756F79692E636F6D6D6F6E2E636F72652E73657373696F6E2E4F6E6C696E6553657373696F6E00000000000000010200084C00066176617461727400124C6A6176612F6C616E672F537472696E673B4C000762726F7773657271007E00014C0008646570744E616D6571007E00014C0004686F737471007E00014C00096C6F67696E4E616D6571007E00014C00026F7371007E00014C00067374617475737400254C636F6D2F72756F79692F636F6D6D6F6E2F656E756D732F4F6E6C696E655374617475733B4C00067573657249647400104C6A6176612F6C616E672F4C6F6E673B7872002A6F72672E6170616368652E736869726F2E73657373696F6E2E6D67742E53696D706C6553657373696F6E9D1CA1B8D58C626E03000078707702009B74002434653166666265332D646436632D346235362D383134382D3363643462643163633132637372000E6A6176612E7574696C2E44617465686A81014B59741903000078707708000001A1F166CACD787371007E00077708000001A1F16796B478770800000000001B7740737200266A6176612E7574696C2E636F6E63757272656E742E436F6E63757272656E74486173684D61706499DE129D87293D03000349000B7365676D656E744D61736B49000C7365676D656E7453686966745B00087365676D656E74737400315B4C6A6176612F7574696C2F636F6E63757272656E742F436F6E63757272656E74486173684D6170245365676D656E743B78700000000F0000001C757200315B4C6A6176612E7574696C2E636F6E63757272656E742E436F6E63757272656E74486173684D6170245365676D656E743B52773F41329B39740200007870000000107372002E6A6176612E7574696C2E636F6E63757272656E742E436F6E63757272656E74486173684D6170245365676D656E741F364C905893293D02000146000A6C6F6164466163746F72787200286A6176612E7574696C2E636F6E63757272656E742E6C6F636B732E5265656E7472616E744C6F636B6655A82C2CC86AEB0200014C000473796E6374002F4C6A6176612F7574696C2F636F6E63757272656E742F6C6F636B732F5265656E7472616E744C6F636B2453796E633B7870737200346A6176612E7574696C2E636F6E63757272656E742E6C6F636B732E5265656E7472616E744C6F636B244E6F6E6661697253796E63658832E7537BBF0B0200007872002D6A6176612E7574696C2E636F6E63757272656E742E6C6F636B732E5265656E7472616E744C6F636B2453796E63B81EA294AA445A7C020000787200356A6176612E7574696C2E636F6E63757272656E742E6C6F636B732E416273747261637451756575656453796E6368726F6E697A65726655A843753F52E30200014900057374617465787200366A6176612E7574696C2E636F6E63757272656E742E6C6F636B732E41627374726163744F776E61626C6553796E6368726F6E697A657233DFAFB9AD6D6FA90200007870000000003F4000007371007E000F7371007E0013000000003F4000007371007E000F7371007E0013000000003F4000007371007E000F7371007E0013000000003F4000007371007E000F7371007E0013000000003F4000007371007E000F7371007E0013000000003F4000007371007E000F7371007E0013000000003F4000007371007E000F7371007E0013000000003F4000007371007E000F7371007E0013000000003F4000007371007E000F7371007E0013000000003F4000007371007E000F7371007E0013000000003F4000007371007E000F7371007E0013000000003F4000007371007E000F7371007E0013000000003F4000007371007E000F7371007E0013000000003F4000007371007E000F7371007E0013000000003F4000007371007E000F7371007E0013000000003F4000007400506F72672E6170616368652E736869726F2E7375626A6563742E737570706F72742E44656661756C745375626A656374436F6E746578745F41555448454E544943415445445F53455353494F4E5F4B4559737200116A6176612E6C616E672E426F6F6C65616ECD207280D59CFAEE0200015A000576616C7565787001740048636F6D2E72756F79692E6672616D65776F726B2E736869726F2E73657373696F6E2E4F6E6C696E6553657373696F6E44414F4C4153545F53594E435F44425F54494D455354414D5071007E000974004D6F72672E6170616368652E736869726F2E7375626A6563742E737570706F72742E44656661756C745375626A656374436F6E746578745F5052494E434950414C535F53455353494F4E5F4B4559737200356F72672E6170616368652E736869726F2E7375626A6563742E496D6D757461626C655072696E636970616C436F6C6C656374696F6E7057568687B455EC0200014C000F7265616C6D5072696E636970616C7374000F4C6A6176612F7574696C2F4D61703B7870737200226A6176612E7574696C2E436F6C6C656374696F6E732453696E676C65746F6E4D61709F230991717F6B910200024C00016B7400124C6A6176612F6C616E672F4F626A6563743B4C00017671007E003F787074002B636F6D2E72756F79692E6672616D65776F726B2E736869726F2E7265616C6D2E557365725265616C6D5F30737200116A6176612E7574696C2E436F6C6C536572578EABB63A1BA8110300014900037461677870000000027704000000017372002B636F6D2E72756F79692E636F6D6D6F6E2E636F72652E646F6D61696E2E656E746974792E5379735573657200000000000000010200164C000661766174617271007E00014C000764656C466C616771007E00014C00046465707474002D4C636F6D2F72756F79692F636F6D6D6F6E2F636F72652F646F6D61696E2F656E746974792F537973446570743B4C000664657074496471007E00034C0005656D61696C71007E00014C00096C6F67696E446174657400104C6A6176612F7574696C2F446174653B4C00076C6F67696E497071007E00014C00096C6F67696E4E616D6571007E00014C0008706172656E74496471007E00034C000870617373776F726471007E00014C000B70686F6E656E756D62657271007E00015B0007706F73744964737400115B4C6A6176612F6C616E672F4C6F6E673B4C000D7077645570646174654461746571007E00464C0006726F6C65496471007E00035B0007726F6C6549647371007E00474C0005726F6C65737400104C6A6176612F7574696C2F4C6973743B4C000473616C7471007E00014C000373657871007E00014C000673746174757371007E00014C000675736572496471007E00034C0008757365724E616D6571007E00014C0008757365725479706571007E000178720027636F6D2E72756F79692E636F6D6D6F6E2E636F72652E646F6D61696E2E42617365456E7469747900000000000000010200074C0008637265617465427971007E00014C000A63726561746554696D6571007E00464C0006706172616D7371007E003C4C000672656D61726B71007E00014C000B73656172636856616C756571007E00014C0008757064617465427971007E00014C000A75706461746554696D6571007E0046787074000561646D696E7371007E00077708000001A132C6C9B87870740009E7AEA1E79086E59198707400007071007E004E740001307372002B636F6D2E72756F79692E636F6D6D6F6E2E636F72652E646F6D61696E2E656E746974792E53797344657074000000000000000102000C4C0009616E636573746F727371007E00014C000764656C466C616771007E00014C000664657074496471007E00034C0008646570744E616D6571007E00014C0005656D61696C71007E00014C00096578636C756465496471007E00034C00066C656164657271007E00014C00086F726465724E756D7400134C6A6176612F6C616E672F496E74656765723B4C0008706172656E74496471007E00034C000A706172656E744E616D6571007E00014C000570686F6E6571007E00014C000673746174757371007E00017871007E004970707070707070740009302C3130302C313031707372000E6A6176612E6C616E672E4C6F6E673B8BE490CC8F23DF0200014A000576616C7565787200106A6176612E6C616E672E4E756D62657286AC951D0B94E08B0200007870000000000000006774000CE7A094E58F91E983A8E997A87070740006E88BA5E4BE9D737200116A6176612E6C616E672E496E746567657212E2A0A4F781873802000149000576616C75657871007E0055000000017371007E0054000000000000006570707400013071007E005674000A7279403136332E636F6D7371007E00077708000001A1F1654F98787400093132372E302E302E3174000561646D696E70740020323963363761333033393836333832363966653630306637336130353439333474000B313538383838383838383870707070737200136A6176612E7574696C2E41727261794C6973747881D21D99C7619D03000149000473697A657870000000017704000000017372002B636F6D2E72756F79692E636F6D6D6F6E2E636F72652E646F6D61696E2E656E746974792E537973526F6C65000000000000000102000B5A0004666C61674C00096461746153636F706571007E00014C000764656C466C616771007E00015B00076465707449647371007E00475B00076D656E7549647371007E00474C000B7065726D697373696F6E7374000F4C6A6176612F7574696C2F5365743B4C0006726F6C65496471007E00034C0007726F6C654B657971007E00014C0008726F6C654E616D6571007E00014C0008726F6C65536F727471007E00014C000673746174757371007E00017871007E0049707070707070700074000131707070707371007E0054000000000000000174000561646D696E74000FE8B685E7BAA7E7AEA1E79086E59198740001317400013078740006313131313131740001317400013071007E0069740006E88BA5E4BE9D74000230307874000A637372665F746F6B656E74002C4E58784B52316451453839665550536D58395A3673417A6836447765653767374E785861536551597255673D7070787871007E004E740008456467652031353774000CE7A094E58F91E983A8E997A87400093132372E302E302E3174000561646D696E74000C57696E646F7773203E3D31307E720023636F6D2E72756F79692E636F6D6D6F6E2E656E756D732E4F6E6C696E6553746174757300000000000000001200007872000E6A6176612E6C616E672E456E756D000000000000000012000078707400076F6E5F6C696E657371007E00540000000000000001);
 
 -- ----------------------------
 -- Table structure for sys_user_post
@@ -3344,5 +4120,15 @@ INSERT INTO `sys_user_role` VALUES (117, 2);
 INSERT INTO `sys_user_role` VALUES (118, 2);
 INSERT INTO `sys_user_role` VALUES (119, 2);
 INSERT INTO `sys_user_role` VALUES (120, 2);
+INSERT INTO `sys_user_role` VALUES (121, 2);
+INSERT INTO `sys_user_role` VALUES (122, 2);
+INSERT INTO `sys_user_role` VALUES (123, 2);
+INSERT INTO `sys_user_role` VALUES (124, 2);
+INSERT INTO `sys_user_role` VALUES (125, 2);
+INSERT INTO `sys_user_role` VALUES (126, 2);
+INSERT INTO `sys_user_role` VALUES (127, 2);
+INSERT INTO `sys_user_role` VALUES (128, 2);
+INSERT INTO `sys_user_role` VALUES (129, 2);
+INSERT INTO `sys_user_role` VALUES (130, 2);
 
 SET FOREIGN_KEY_CHECKS = 1;

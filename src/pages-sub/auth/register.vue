@@ -1,5 +1,5 @@
 <template>
-  <view class="register-page">
+  <view class="register-page" :class="themeClass">
     <!-- 顶部柔光圆 600rpx, TopCenter, top 16rpx -->
     <view class="glow-orb"></view>
 
@@ -96,6 +96,9 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { registerApi } from '@/api/auth'
+import { useTheme } from '@/composables/useTheme'
+
+const { themeClass } = useTheme()
 
 const phone = ref<string>('')
 const password = ref<string>('')
@@ -351,7 +354,7 @@ function goToLogin() {
   height: 72rpx;
   border-radius: 12rpx;
   margin-left: 16rpx;
-  background-color: #F0F3F8;
+  background-color: var(--edu-surface-variant);
   flex-shrink: 0;
 }
 .captcha-img-empty {

@@ -8,11 +8,11 @@
         <text class="sheet-count">{{ total }}</text>
       </view>
 
-      <scroll-view class="comment-scroll" scroll-y :show-scrollbar="false">
+      <scroll-view class="comment-scroll" scroll-y :show-scrollbar="false" :scroll-into-view="scrollInto" scroll-with-animation>
         <LoadingState v-if="state === 'loading'" inline text="加载评论…" />
         <EmptyState v-else-if="comments.length === 0" text="还没有评论，抢占沙发" />
         <view v-else class="comment-list">
-          <view v-for="c in comments" :key="c.commentId" class="comment-item">
+          <view v-for="c in comments" :key="c.commentId" :id="'c-' + c.commentId" class="comment-item" :class="{ 'comment-hl': highlightId === c.commentId }">
             <view class="c-avatar"><text class="c-avatar-char">{{ charOf(c.nickName) }}</text></view>
             <view class="c-body">
               <text class="c-name">{{ c.nickName }}</text>
@@ -22,14 +22,19 @@
                 <text class="c-reply-btn" @tap="startReply(c)">回复</text>
               </view>
 
-              <!-- 楼中楼：灰底框，预览 2 条 + 展开/收起 -->
+              <!-- 楼中楼：每条带头像，昵称 / 内容 / 时间分行，预览 2 条 + 展开/收起 -->
               <view class="reply-list" v-if="visibleReplies(c).length">
-                <view class="reply-item" v-for="r in visibleReplies(c)" :key="r.commentId">
-                  <text class="reply-name">{{ r.nickName }}</text>
-                  <text v-if="r.replyToUserName" class="reply-to"> 回复 {{ r.replyToUserName }}</text>
-                  <text class="reply-colon">：</text>
-                  <text class="reply-content">{{ r.content }}</text>
-                  <text class="reply-btn" @tap="startReply(r, c)">回复</text>
+                <view class="reply-item" v-for="r in visibleReplies(c)" :key="r.commentId" :id="'r-' + r.commentId" :class="{ 'comment-hl': highlightId === r.commentId }">
+                  <view class="r-avatar"><text class="r-avatar-char">{{ charOf(r.nickName) }}</text></view>
+                  <view class="r-body">
+                    <text class="r-name">{{ r.nickName }}</text>
+                    <text class="r-content"><text v-if="r.replyToUserName" class="r-reply-to">回复 {{ r.replyToUserName }}：</text>{{ r.content }}</text>
+                    <view class="r-foot">
+                      <text class="r-time">{{ r.createTime }}</text>
+                      <text class="r-reply-btn" @tap="startReply(r, c)">回复</text>
+                      <text class="r-like">♡ {{ r.likeCount || 0 }}</text>
+                    </view>
+                  </view>
                 </view>
               </view>
               <text class="view-replies" v-if="(c.replyCount || 0) > PREVIEW_COUNT" @tap="toggleExpand(c)">
@@ -66,16 +71,18 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, nextTick } from 'vue'
 import LoadingState from '@/components/LoadingState.vue'
 import EmptyState from '@/components/EmptyState.vue'
-import { getCommentsApi, addCommentApi } from '@/api/comment'
+import { getCommentsApi, addCommentApi, locateCommentApi, type CommentLocate } from '@/api/comment'
 import type { CommentDto } from '@/types/article'
 
 const props = defineProps<{
   visible: boolean
   targetType: number
   targetId: number
+  /** 通知精准跳转：打开时定位并高亮该评论（只生效一次） */
+  locateCommentId?: number
 }>()
 const emit = defineEmits(['close'])
 
@@ -84,6 +91,9 @@ const comments = ref<CommentDto[]>([])
 const state = ref<'loading' | 'ready'>('loading')
 const total = ref<number>(0)
 const expanded = ref<Record<number, boolean>>({})
+const highlightId = ref<number>(0)
+const scrollInto = ref<string>('')
+let locatedOnce = false
 
 const draft = ref<string>('')
 const sending = ref<boolean>(false)
@@ -99,8 +109,25 @@ async function load() {
   if (!props.targetId) return
   state.value = 'loading'
   expanded.value = {}
+  let page = 1
+  let loc: CommentLocate | null = null
+  const locateId = Number(props.locateCommentId || 0)
+  if (locateId && !locatedOnce) {
+    locatedOnce = true
+    try {
+      loc = await locateCommentApi(locateId)
+      if (loc.deleted) {
+        loc = null
+        uni.showToast({ title: '该评论已被删除', icon: 'none' })
+      } else if (loc.targetType !== props.targetType || loc.targetId !== props.targetId) {
+        loc = null // 定位结果与当前面板不符（防止错跳），按普通打开处理
+      } else {
+        page = loc.pageNum
+      }
+    } catch (e) { loc = null }
+  }
   try {
-    const res = await getCommentsApi(props.targetType, props.targetId)
+    const res = await getCommentsApi(props.targetType, props.targetId, undefined, 20, page)
     comments.value = res.list || []
     total.value = (res as any).total ?? comments.value.length
   } catch (e) {
@@ -109,9 +136,22 @@ async function load() {
   } finally {
     state.value = 'ready'
   }
+  if (loc) {
+    // 二级回复：展开所属一级评论的楼中楼，滚动定位并高亮
+    if (loc.rootId !== loc.commentId) expanded.value = { ...expanded.value, [loc.rootId]: true }
+    highlightId.value = loc.commentId
+    nextTick(() => setTimeout(() => { scrollInto.value = 'c-' + loc.rootId }, 120))
+  }
 }
 
-watch(() => [props.visible, props.targetId], ([v]) => { if (v) load() })
+watch(() => [props.visible, props.targetId], ([v]) => {
+  if (v) {
+    locatedOnce = false
+    highlightId.value = 0
+    scrollInto.value = ''
+    load()
+  }
+})
 
 function isExpanded(c: CommentDto): boolean { return !!expanded.value[c.commentId] }
 function visibleReplies(c: CommentDto): CommentDto[] {
@@ -195,13 +235,22 @@ async function handleSend() {
 .c-like { font-size: 26rpx; color: $edu-text-secondary; margin-left: 28rpx; }
 .c-like-on { color: #FF4D6A; }
 
-.reply-list { margin-top: 16rpx; padding: 16rpx 20rpx; border-radius: 16rpx; background-color: $edu-surface-variant; }
-.reply-item { display: flex; flex-wrap: wrap; align-items: baseline; margin-bottom: 12rpx; }
+/* 楼中楼：扁平带头像，对齐父评论内容列 */
+.reply-list { margin-top: 20rpx; }
+.reply-item { display: flex; align-items: flex-start; margin-bottom: 28rpx; }
 .reply-item:last-child { margin-bottom: 0; }
-.reply-name { font-size: 26rpx; font-weight: 600; color: $edu-text-secondary; flex-shrink: 0; }
-.reply-to { font-size: 26rpx; color: $edu-primary; flex-shrink: 0; }
-.reply-colon { font-size: 26rpx; color: $edu-text-secondary; flex-shrink: 0; }
-.reply-content { font-size: 26rpx; color: $edu-text-primary; line-height: 1.5; flex: 1; min-width: 0; }
-.reply-btn { font-size: 24rpx; color: $edu-primary; padding: 4rpx 12rpx; margin-left: 16rpx; flex-shrink: 0; }
+.r-avatar { width: 56rpx; height: 56rpx; border-radius: 50%; background-color: $edu-primary-container; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.r-avatar-char { font-size: 26rpx; font-weight: 700; color: #0C2C6B; }
+.r-body { flex: 1; min-width: 0; margin-left: 16rpx; }
+.r-name { display: block; font-size: 26rpx; font-weight: 600; color: $edu-text-secondary; }
+.r-content { display: block; font-size: 28rpx; color: $edu-text-primary; line-height: 1.5; margin-top: 6rpx; word-break: break-all; }
+.r-reply-to { color: $edu-primary; }
+.r-foot { display: flex; align-items: center; margin-top: 12rpx; }
+.r-time { font-size: 24rpx; color: $edu-text-hint; }
+.r-reply-btn { font-size: 24rpx; color: $edu-text-secondary; margin-left: 28rpx; padding: 4rpx 0; }
+.r-like { font-size: 26rpx; color: $edu-text-secondary; margin-left: auto; }
 .view-replies { display: block; font-size: 26rpx; color: $edu-primary; margin-top: 12rpx; }
+
+/* 通知定位高亮：目标评论短暂描底 */
+.comment-hl { background-color: rgba(54, 119, 239, 0.08); border-radius: 16rpx; }
 </style>

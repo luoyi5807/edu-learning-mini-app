@@ -8,7 +8,7 @@ export const API_READY = {
     signCalendar: true,
     /** 签到 /api/v1/checkin/*（sign/status/calendar/records/rules，后端已就绪） */
     checkin: true,
-    /** 积分与免广告兑换 /api/v1/points/*（account/exchange，后端已就绪） */
+    /** 积分与免广告兑换 /api/v1/points/*（account/exchange，后端已就绪；account 返回顶层 balance/adFree/adFreeExpireTime/adFreeRemainMinutes） */
     points: true,
     /** GET user/courses */
     myCourses: false,
@@ -69,11 +69,17 @@ export const API_READY = {
     myInteractions: true,
     /** 话题列表 GET /api/v1/topic/list（发布页话题标签选择） */
     topics: true,
-    /** 通知消息 GET/POST notifications（点赞/评论/关注/收藏聚合） */
+    /** 通知消息 GET/POST notifications（点赞/评论/关注/收藏聚合；list 支持 type 服务端过滤；评论/回复通知携带 commentId，配合 GET /comment/locate 精准跳转） */
     notification: true,
-    /** 看激励视频得积分：前端调起广告 + 后端 SSV 回调发奖。
-     *  依赖 learning_ad_reward_log 表 + /api/v1/ad/reward 回调接口（后端未就绪）→ 默认 false，走 mock/隐藏真实加分 */
-    adReward: false
+    /** 看激励视频得积分：POST /api/v1/points/ad/reward 已就绪（看完即报：adId + seconds≥15，每条 +10 分、每天 3 条封顶，非 SSV 回调）。
+     *  但微信流量主激励视频广告位未申请（AD_REWARDED_VIDEO 为空，无真实广告可看）→ 暂保持 false，防无广告场景刷分 */
+    adReward: false,
+    /** 观看/阅读上报 POST /api/v1/points/watch（后端已就绪：post/courseVideo，满 30 秒 +5，内容类 50 分/天封顶，服务端去重） */
+    pointsWatch: true,
+    /** 学习时长上报 POST /api/v1/learn/report（后端已就绪：courseVideo 心跳，记学习时长并内部结算积分；短视频不上报） */
+    learnReport: true,
+    /** 积分商城 /api/v1/shop/*（product/category/order/exchange/address，后端已就绪：兑换当场返回兑换码；地址为独立地址簿，不随兑换提交、无配送状态） */
+    mall: true
 }
 
 function pad(n: number): string {
