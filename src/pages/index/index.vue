@@ -60,6 +60,9 @@
         <text class="tab-label" :style="activeTab === tab.key ? { color: tab.activeColor } : {}">{{ tab.label }}</text>
       </view>
     </view>
+
+    <!-- AI 阿星悬浮入口：仅首页显示 -->
+    <AiXingFab v-if="activeTab === 'home'" />
   </view>
 </template>
 
@@ -70,6 +73,7 @@ import HomePanel from '@/components/HomePanel.vue'
 import ProfilePanel from '@/components/ProfilePanel.vue'
 import CommunityPanel from '@/components/CommunityPanel.vue'
 import VideoPanel from '@/components/VideoPanel.vue'
+import AiXingFab from '@/components/AiXingFab.vue'
 import { useNotification } from '@/composables/useNotification'
 import { useTheme } from '@/composables/useTheme'
 

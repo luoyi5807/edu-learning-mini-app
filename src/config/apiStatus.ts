@@ -10,8 +10,10 @@ export const API_READY = {
     checkin: true,
     /** 积分与免广告兑换 /api/v1/points/*（account/exchange，后端已就绪；account 返回顶层 balance/adFree/adFreeExpireTime/adFreeRemainMinutes） */
     points: true,
-    /** GET user/courses */
-    myCourses: false,
+    /** 我的课程 GET /api/v1/learn/courses?status=learning|completed（后端已就绪：返回 courseId/courseTitle/coverUrl/totalLessons/finishedLessons/progressPercent/lastLessonTitle/lastStudyTime；status 必填，前端合并「在学+已完成」两份；后端无关键字检索，标题过滤在前端本地做） */
+    myCourses: true,
+    /** 智能体 /api/v1/agent/*（chat 同步RAG问答、chat/stream WS流式、sessions+messages 历史、video/summary+ppt/generate 异步任务、tasks/{id} 轮询、sql/ask 自然语言查数）；后端 agent-service 已就绪，流式事件经 /ws/forum 订阅 user:{userId} 推送 */
+    agent: true,
     /** 我的文章 GET /api/v1/post/myList + 删除 POST /api/v1/post/remove（后端已就绪；myList 无 viewCount/分类/时间，列表按缺省补零） */
     myArticles: true,
     /** 社区文章列表：走 /api/v1/post/list（服务端按 categoryId / sortBy / featured 过滤 + 分页，
@@ -71,9 +73,9 @@ export const API_READY = {
     topics: true,
     /** 通知消息 GET/POST notifications（点赞/评论/关注/收藏聚合；list 支持 type 服务端过滤；评论/回复通知携带 commentId，配合 GET /comment/locate 精准跳转） */
     notification: true,
-    /** 看激励视频得积分：POST /api/v1/points/ad/reward 已就绪（看完即报：adId + seconds≥15，每条 +10 分、每天 3 条封顶，非 SSV 回调）。
-     *  但微信流量主激励视频广告位未申请（AD_REWARDED_VIDEO 为空，无真实广告可看）→ 暂保持 false，防无广告场景刷分 */
-    adReward: false,
+    /** 看激励视频得积分：POST /api/v1/points/ad/reward（adId + seconds≥15，每条 +10 分、每天 3 条封顶）；
+     *  无真实广告位时由 AD_SIMULATE 模拟观看，演示/联调均可走通 */
+    adReward: true,
     /** 观看/阅读上报 POST /api/v1/points/watch（后端已就绪：post/courseVideo，满 30 秒 +5，内容类 50 分/天封顶，服务端去重） */
     pointsWatch: true,
     /** 学习时长上报 POST /api/v1/learn/report（后端已就绪：courseVideo 心跳，记学习时长并内部结算积分；短视频不上报） */

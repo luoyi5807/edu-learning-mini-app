@@ -1,8 +1,13 @@
 <template>
   <view class="course-detail-page" :class="themeClass">
     <view class="nav-bar" :style="{ paddingTop: statusBarHeight + 'px' }">
-      <view class="nav-bar-inner" :style="{ height: navContentHeight + 'px' }">
+      <view class="nav-bar-inner" :style="{ height: navContentHeight + 'px', paddingRight: capsuleGap + 'px' }">
         <view class="nav-back" @tap="goBack"><text class="back-icon">←</text></view>
+        <text class="nav-title">课程详情</text>
+        <view class="nav-ask" @tap="askAixing">
+          <view class="nav-ask-avatar"><text class="nav-ask-avatar-emoji">✦</text></view>
+          <text class="nav-ask-text">问阿星</text>
+        </view>
       </view>
     </view>
 
@@ -35,6 +40,10 @@
             <text class="rating-dot">·</text>
             <text class="rating-text">{{ formatCount(course.viewCount || 0) }} 人看过</text>
           </view>
+        </view>
+
+        <view class="section" style="margin-top: 24rpx;">
+          <AdBanner :adpid="AD_PID_BANNER" :unit-id="AD_BANNER_COURSE" scene="课程" />
         </view>
 
         <view class="section">
@@ -103,6 +112,18 @@
         </view>
         <view class="ab-btn ab-study" @tap="handleStudy"><text class="ab-study-text">开始学习</text></view>
       </view>
+
+      <!-- 记笔记弹层（与文章详情页同款） -->
+      <view class="note-mask" v-if="showNote" @tap="closeNoteSheet"></view>
+      <view class="note-sheet" v-if="showNote">
+        <text class="note-sheet-title">记笔记</text>
+        <text class="note-sheet-sub">来源：《{{ course.title }}》</text>
+        <textarea class="note-textarea" v-model="noteContent" placeholder="记录本节要点…" placeholder-class="comment-ph" :maxlength="500" auto-height />
+        <view class="note-actions">
+          <text class="note-btn note-cancel" @tap="closeNoteSheet">取消</text>
+          <text class="note-btn note-save" @tap="saveNote">{{ noteSaving ? '保存中…' : '保存' }}</text>
+        </view>
+      </view>
     </block>
   </view>
 </template>
@@ -113,6 +134,8 @@ import { onLoad } from '@dcloudio/uni-app'
 import LoadingState from '@/components/LoadingState.vue'
 import ErrorState from '@/components/ErrorState.vue'
 import EmptyState from '@/components/EmptyState.vue'
+import AdBanner from '@/components/AdBanner.vue'
+import { AD_BANNER_COURSE } from '@/config/env'
 import { getCourseDetailApi, getCourseRatingsApi, joinCourseApi, leaveCourseApi, formatDuration } from '@/api/course'
 import { toggleLikeApi, toggleFavoriteApi } from '@/api/interaction'
 import { resolveFileUrl } from '@/api/user'
@@ -124,11 +147,15 @@ const { themeClass } = useTheme()
 
 const statusBarHeight = ref<number>(0)
 const navContentHeight = ref<number>(44)
+const capsuleGap = ref<number>(0)
 const sysInfo = uni.getSystemInfoSync()
 statusBarHeight.value = sysInfo.statusBarHeight || 0
 // #ifdef MP-WEIXIN
 const menuButton = uni.getMenuButtonBoundingClientRect()
-if (menuButton) navContentHeight.value = (menuButton.top - statusBarHeight.value) * 2 + menuButton.height
+if (menuButton) {
+  navContentHeight.value = (menuButton.top - statusBarHeight.value) * 2 + menuButton.height
+  capsuleGap.value = Math.max(0, sysInfo.windowWidth - menuButton.left) + 8
+}
 // #endif
 
 const courseId = ref<number>(0)
@@ -136,6 +163,9 @@ const course = ref<CourseDetailDto | null>(null)
 const ratings = ref<CourseRatingDto[]>([])
 const state = ref<'loading' | 'error' | 'ready'>('loading')
 const activeTab = ref<'catalog' | 'rating'>('catalog')
+const showNote = ref<boolean>(false)
+const noteContent = ref<string>('')
+const noteSaving = ref<boolean>(false)
 
 function charOf(name: string): string { return (name || 'U').charAt(0) }
 function formatCount(n: number): string { return n >= 10000 ? (n / 10000).toFixed(1) + '万' : String(n) }
@@ -201,24 +231,37 @@ function playLesson(ls: LessonDto) {
 
 function handleNote() {
   if (!course.value) return
-  uni.showModal({
-    title: '记笔记', editable: true, placeholderText: '记录本节要点…',
-    success: async (m) => {
-      if (!m.confirm) return
-      const text = (m.content || '').trim()
-      if (!text) { uni.showToast({ title: '请输入内容', icon: 'none' }); return }
-      try {
-        await addNoteApi({ sourceType: 2, sourceId: course.value!.courseId, sourceTitle: course.value!.title, title: '《' + course.value!.title + '》笔记', content: text })
-        uni.showToast({ title: '已保存到笔记本', icon: 'success' })
-      } catch (e) { uni.showToast({ title: '保存失败', icon: 'none' }) }
-    }
-  })
+  noteContent.value = ''
+  showNote.value = true
+}
+function closeNoteSheet() { showNote.value = false }
+async function saveNote() {
+  const text = noteContent.value.trim()
+  if (!text) { uni.showToast({ title: '请输入内容', icon: 'none' }); return }
+  if (noteSaving.value || !course.value) return
+  noteSaving.value = true
+  try {
+    await addNoteApi({ sourceType: 2, sourceId: course.value.courseId, sourceTitle: course.value.title, title: '《' + course.value.title + '》笔记', content: text })
+    uni.showToast({ title: '已保存到笔记本', icon: 'success' })
+    showNote.value = false
+  } catch (e) {
+    uni.showToast({ title: '保存失败', icon: 'none' })
+  } finally {
+    noteSaving.value = false
+  }
 }
 
 function goBack() {
   const pages = getCurrentPages()
   if (pages.length > 1) uni.navigateBack()
   else uni.reLaunch({ url: '/pages/index/index' })
+}
+
+/* 问阿星：进入助手并预选本课程（问这门课程） */
+function askAixing() {
+  if (!course.value) return
+  const t = encodeURIComponent(course.value.title)
+  uni.navigateTo({ url: `/pages-sub/agent/assistant?from=course&courseId=${course.value.courseId}&courseTitle=${t}` })
 }
 
 onLoad((query) => {
@@ -231,8 +274,13 @@ onLoad((query) => {
 .course-detail-page { position: relative; min-height: 100vh; background-color: $edu-bg; }
 .nav-bar { position: fixed; top: 0; left: 0; right: 0; z-index: 99; background: transparent; }
 .nav-bar-inner { display: flex; align-items: center; padding-left: 16rpx; }
-.nav-back { width: 72rpx; height: 72rpx; display: flex; align-items: center; justify-content: center; background: rgba(0, 0, 0, 0.25); border-radius: 50%; margin-left: 16rpx; }
-.back-icon { font-size: 44rpx; color: #FFFFFF; }
+.nav-back { width: 72rpx; height: 72rpx; display: flex; align-items: center; justify-content: center; }
+.back-icon { font-size: 44rpx; color: $edu-text-primary; }
+.nav-title { flex: 1; font-size: 40rpx; font-weight: 700; color: $edu-text-primary; margin-left: 8rpx; }
+.nav-ask { display: flex; align-items: center; }
+.nav-ask-avatar { width: 48rpx; height: 48rpx; border-radius: 50%; @include eduBrandGradient; display: flex; align-items: center; justify-content: center; margin-right: 8rpx; }
+.nav-ask-avatar-emoji { font-size: 26rpx; color: #FFFFFF; }
+.nav-ask-text { font-size: 30rpx; font-weight: 600; color: $edu-primary; }
 
 .detail-scroll { position: absolute; top: 0; left: 0; right: 0; bottom: 0; }
 .cover-wrap { width: 100%; height: 440rpx; }
@@ -310,4 +358,19 @@ onLoad((query) => {
 .ab-joined { background-color: $edu-surface-variant; border-color: $edu-outline; .ab-join-text { color: $edu-text-secondary; } }
 .ab-study { flex: 1; @include eduBrandGradient; }
 .ab-study-text { font-size: 30rpx; font-weight: 600; color: #FFFFFF; }
+
+/* ===== 记笔记弹层（与 article/detail.vue 同款） ===== */
+.note-mask { position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 200; background: rgba(0, 0, 0, 0.4); }
+.note-sheet {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 201;
+  background-color: $edu-surface; border-radius: 32rpx 32rpx 0 0;
+  padding: 40rpx 32rpx calc(40rpx + env(safe-area-inset-bottom));
+}
+.note-sheet-title { display: block; font-size: 34rpx; font-weight: 700; color: $edu-text-primary; }
+.note-sheet-sub { display: block; font-size: 24rpx; color: $edu-text-hint; margin-top: 8rpx; }
+.note-textarea { width: 100%; min-height: 220rpx; margin-top: 24rpx; padding: 24rpx; box-sizing: border-box; border-radius: 20rpx; background-color: $edu-surface-variant; font-size: 30rpx; color: $edu-text-primary; line-height: 1.6; }
+.note-actions { display: flex; align-items: center; justify-content: flex-end; margin-top: 24rpx; }
+.note-btn { font-size: 30rpx; padding: 16rpx 48rpx; border-radius: 44rpx; margin-left: 24rpx; }
+.note-cancel { color: $edu-text-secondary; background-color: $edu-surface-variant; }
+.note-save { color: #FFFFFF; font-weight: 600; @include eduBrandGradient; }
 </style>

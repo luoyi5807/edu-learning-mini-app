@@ -2,6 +2,29 @@ import { get, post, del, v1 } from '@/utils/request'
 import { API_READY } from '@/config/apiStatus'
 import { BASE_URL } from '@/config/env'
 import type { Course, CourseDetailDto, ChapterDto, LessonDto, PlayInfoDto, CourseRatingDto } from '@/types/course'
+import { getUserPublicProfileApi } from './user'
+
+/* ===== 作者资料回填：/search/video 不返回 nickName/avatar，用 publicProfile 按 userId 补查（每个用户只查一次） ===== */
+const authorCache = new Map<number, { nickName: string; avatar: string }>()
+async function backfillAuthors(rows: Course[]): Promise<void> {
+    const ids = Array.from(new Set(
+        rows.map((r) => r.instructorId).filter((x): x is number => !!x && !authorCache.has(x))
+    ))
+    await Promise.all(ids.map(async (uid) => {
+        try {
+            const p = await getUserPublicProfileApi(uid)
+            authorCache.set(uid, { nickName: p.nickName || '', avatar: p.avatar || '' })
+        } catch (e) {
+            authorCache.set(uid, { nickName: '', avatar: '' })
+        }
+    }))
+    rows.forEach((r) => {
+        const hit = r.instructorId ? authorCache.get(r.instructorId) : undefined
+        if (!hit) return
+        if (hit.nickName) r.instructorName = hit.nickName
+        if (hit.avatar) r.instructorAvatar = absUrl(hit.avatar)
+    })
+}
 
 const mockCourses: Course[] = [
     { courseId: 1, title: 'Machine Learning 从入门到实战', coverUrl: '', instructorName: '张老师', studentCount: 1200, categoryId: 3, categoryName: 'IT 解决方案', videoType: 2, isFree: 1, duration: 3696, viewCount: 12000, likeCount: 236, favoriteCount: 96, commentCount: 6, averageScore: 4.4, ratingCount: 128, totalLessons: 5 },
@@ -244,7 +267,9 @@ export async function getShortVideosApi(params: { pageNum?: number; pageSize?: n
         pageSize: params.pageSize ?? 20
     })
     const rows: BackendShortVideo[] = (body && Array.isArray(body.rows)) ? body.rows : []
-    return rows.map(normalizeShortVideo)
+    const list = rows.map(normalizeShortVideo)
+    await backfillAuthors(list)
+    return list
 }
 
 /* ===================== 课程详情 / 章节目录 ===================== */

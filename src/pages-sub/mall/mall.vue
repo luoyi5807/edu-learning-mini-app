@@ -21,12 +21,10 @@
       </view>
       <view class="bc-right">
         <text class="bc-sub">今日内容已赚 {{ contentPoints }} 分</text>
-        <view class="bc-links">
-          <text class="bc-tip">兑换扣减即时生效</text>
-          <view class="bc-records-btn" @tap.stop="goRecords">
-            <text class="bc-records-text">兑换记录 ›</text>
-          </view>
+        <view class="bc-records-btn" @tap.stop="goRecords">
+          <text class="bc-records-text">兑换记录 ›</text>
         </view>
+        <text class="bc-tip">兑换扣减即时生效</text>
       </view>
     </view>
 
@@ -211,8 +209,8 @@ onShow(load)
 .bc-arrow { font-size: 40rpx; color: rgba(255, 255, 255, 0.85); margin-left: 12rpx; }
 .bc-right { display: flex; flex-direction: column; align-items: flex-end; }
 .bc-sub { font-size: 24rpx; color: rgba(255, 255, 255, 0.9); }
-.bc-links { display: flex; align-items: center; justify-content: space-between; margin-top: 8rpx; }
 .bc-records-btn {
+  margin-top: 12rpx;
   padding: 8rpx 20rpx;
   border-radius: 28rpx;
   background: rgba(255, 255, 255, 0.7);
@@ -236,9 +234,9 @@ onShow(load)
 .cat-chip-active .cat-chip-text { color: $edu-primary; font-weight: 600; }
 
 /* ===== 价格区间 + 只兑得起 ===== */
-.filter-row { display: flex; align-items: center; margin-top: 20rpx; }
-.price-chips { display: flex; align-items: center; flex: 1; }
-.p-chip { height: 56rpx; padding: 0 24rpx; border-radius: 28rpx; display: flex; align-items: center; margin-right: 16rpx; border: 2rpx solid transparent; background-color: rgba(255, 255, 255, 0.7); }
+.filter-row { display: flex; align-items: center; flex-wrap: wrap; margin-top: 20rpx; }
+.price-chips { display: flex; align-items: center; flex: 1; flex-wrap: wrap; row-gap: 12rpx; }
+.p-chip { flex-shrink: 0; white-space: nowrap; height: 56rpx; padding: 0 24rpx; border-radius: 28rpx; display: flex; align-items: center; margin-right: 16rpx; border: 2rpx solid transparent; background-color: rgba(255, 255, 255, 0.7); }
 .p-chip-active { border-color: $edu-primary; background-color: $edu-surface; }
 .p-chip-text { font-size: 24rpx; color: $edu-text-secondary; }
 .p-chip-active .p-chip-text { color: $edu-primary; font-weight: 600; }

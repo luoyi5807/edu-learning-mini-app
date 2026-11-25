@@ -131,13 +131,9 @@ function goBack() {
   else uni.reLaunch({ url: '/pages/index/index' })
 }
 
-// 视频笔记 → 播放器对应进度；文章笔记 → 文章详情
+// 点击笔记 → 笔记详情（查看来源在详情页内完成）
 function openNote(n: NoteDto) {
-  if (n.sourceType === 2) {
-    uni.showToast({ title: `跳播放器进度 ${n.videoTimestamp}（开发中）`, icon: 'none' })
-  } else {
-    uni.navigateTo({ url: `/pages-sub/article/detail?articleId=${n.sourceId}` })
-  }
+  uni.navigateTo({ url: `/pages-sub/note/note-detail?noteId=${n.noteId}` })
 }
 
 onLoad(() => {

@@ -11,95 +11,98 @@
         :current="currentIndex"
         @change="onSwiperChange"
     >
-      <swiper-item v-for="(item, idx) in list" :key="item.courseId">
-        <view class="video-slide">
-          <!-- 视频层：始终渲染，避免 v-if 挂载时序问题 -->
+      <swiper-item v-for="(s, idx) in slides" :key="s.key">
+        <!-- 信息流广告 slide：全屏广告卡 -->
+        <view v-if="s.kind === 'ad'" class="ad-slide">
+          <view class="ad-slide-card">
+            <view class="ad-slide-media">
+              <text class="ad-slide-brand">{{ adCreativeOf(idx).brand }}</text>
+              <text class="ad-slide-slogan">{{ adCreativeOf(idx).slogan }}</text>
+            </view>
+            <view class="ad-slide-bar">
+              <view class="ad-slide-cta"><text class="ad-slide-cta-text">{{ adCreativeOf(idx).cta }}</text></view>
+              <text class="ad-slide-badge">广告</text>
+            </view>
+          </view>
+        </view>
+
+        <!-- 视频 slide -->
+        <view v-else class="video-slide">
           <video
-              :id="'video-' + item.courseId"
+              :id="'video-' + s.item.courseId"
               class="video-media"
-              :src="playUrlMap[item.courseId] || ''"
-              :poster="item.coverUrl"
+              :src="playUrlMap[s.item.courseId] || ''"
+              :poster="s.item.coverUrl"
               :controls="false"
               :show-center-play-btn="false"
               :show-play-btn="false"
               :show-fullscreen-btn="false"
               :enable-progress-gesture="false"
               :loop="true"
-              :autoplay="idx === currentIndex && !!playUrlMap[item.courseId]"
+              :autoplay="idx === currentIndex && !!playUrlMap[s.item.courseId]"
               object-fit="cover"
-              @play="onPlay(item)"
-              @pause="onPause(item)"
-              @timeupdate="onTimeUpdate(item, $event)"
-              @error="onVideoError(item, $event)"
+              @play="onPlay(s.item)"
+              @pause="onPause(s.item)"
+              @timeupdate="onTimeUpdate(s.item, $event)"
+              @error="onVideoError(s.item, $event)"
           />
-
-          <!-- 透明点击层：单击切换播放/暂停；上下滑手动切页（规避原生 video 拦截竖向手势） -->
           <view
               class="video-tap-layer"
-              @tap="togglePlay(item)"
+              @tap="togglePlay(s.item)"
               @touchstart="onTouchStart"
               @touchmove="onTouchMove"
               @touchend="onTouchEnd"
           ></view>
-
-          <!-- 顶部压黑，保证固定标题可读 -->
           <view class="video-top-scrim"></view>
-
-          <!-- 底部压黑，保证文字可读 -->
           <view class="video-scrim"></view>
-
-          <!-- 暂停态中央徽标 -->
-          <view class="paused-badge" v-if="pausedMap[item.courseId]">
+          <view class="paused-badge" v-if="pausedMap[s.item.courseId]">
             <text class="paused-glyph">▶</text>
           </view>
-
-          <!-- 右侧操作栏 -->
           <view class="action-bar">
-            <view class="action-item" @tap.stop="handleLike(item)">
+            <view class="action-item" @tap.stop="handleLike(s.item)">
               <view class="action-icon-wrap">
-                <text class="action-icon" :class="{ 'action-icon-liked': item.isLiked }">{{ item.isLiked ? '♥' : '♡' }}</text>
+                <text class="action-icon" :class="{ 'action-icon-liked': s.item.isLiked }">{{ s.item.isLiked ? '♥' : '♡' }}</text>
               </view>
-              <text class="action-label">{{ formatCount(item.likeCount || 0) }}</text>
+              <text class="action-label">{{ formatCount(s.item.likeCount || 0) }}</text>
             </view>
-            <view class="action-item" @tap.stop="openComments(item)">
+            <view class="action-item" @tap.stop="openComments(s.item)">
               <view class="action-icon-wrap"><text class="action-icon">💬</text></view>
-              <text class="action-label">{{ formatCount(item.commentCount || 0) }}</text>
+              <text class="action-label">{{ formatCount(s.item.commentCount || 0) }}</text>
             </view>
-            <view class="action-item" @tap.stop="handleFavorite(item)">
+            <view class="action-item" @tap.stop="handleFavorite(s.item)">
               <view class="action-icon-wrap">
-                <text class="action-icon" :class="{ 'action-icon-faved': item.isFavorited }">{{ item.isFavorited ? '★' : '⚑' }}</text>
+                <text class="action-icon" :class="{ 'action-icon-faved': s.item.isFavorited }">{{ s.item.isFavorited ? '★' : '⚑' }}</text>
               </view>
-              <text class="action-label">{{ item.isFavorited ? '已收藏' : '收藏' }}</text>
+              <text class="action-label">{{ s.item.isFavorited ? '已收藏' : '收藏' }}</text>
             </view>
-            <view class="action-item" @tap.stop="handleShare(item)">
+            <view class="action-item" @tap.stop="handleShare(s.item)">
               <view class="action-icon-wrap"><text class="action-icon">↗</text></view>
               <text class="action-label">分享</text>
             </view>
           </view>
-
-          <!-- 左下信息 -->
           <view class="video-info">
             <view class="instructor-row">
-              <view class="instructor-avatar" @tap.stop="goInstructor(item)">
-                <image v-if="item.instructorAvatar" class="instructor-avatar-img" :src="item.instructorAvatar" mode="aspectFill" />
-                <text v-else class="instructor-char">{{ charOf(item.instructorName) }}</text>
+              <view class="instructor-avatar" @tap.stop="goInstructor(s.item)">
+                <image v-if="s.item.instructorAvatar" class="instructor-avatar-img" :src="s.item.instructorAvatar" mode="aspectFill" />
+                <text v-else class="instructor-char">{{ charOf(s.item.instructorName) }}</text>
               </view>
-              <text class="instructor-name" @tap.stop="goInstructor(item)">{{ item.instructorName }}</text>
+              <text class="instructor-name" @tap.stop="goInstructor(s.item)">{{ s.item.instructorName }}</text>
+              <view v-if="!isSelfInstructor(s.item)" class="follow-pill" :class="{ 'follow-pill-done': followedMap[s.item.instructorId] }" @tap.stop="toggleFollowInstructor(s.item)">
+                <text class="follow-pill-text">{{ followedMap[s.item.instructorId] ? '已关注' : '＋ 关注' }}</text>
+              </view>
             </view>
-            <text class="video-title" @tap.stop="goDetail(item)">{{ item.title }}</text>
+            <text class="video-title" @tap.stop="goDetail(s.item)">{{ s.item.title }}</text>
             <view class="video-meta">
-              <text class="video-duration">时长 {{ formatDuration(item.duration || 0) }}</text>
-              <text class="video-views">{{ formatCount(item.viewCount || 0) }} 次播放</text>
+              <text class="video-duration">时长 {{ formatDuration(s.item.duration || 0) }}</text>
+              <text class="video-views">{{ formatCount(s.item.viewCount || 0) }} 次播放</text>
             </view>
           </view>
-
-          <!-- 底部进度条 -->
           <view class="faux-progress">
             <view class="faux-progress-track">
-              <view class="faux-progress-bar" :style="{ width: progressPct(item) + '%' }"></view>
+              <view class="faux-progress-bar" :style="{ width: progressPct(s.item) + '%' }"></view>
             </view>
-            <text class="faux-time faux-time-l">{{ formatDuration(currentTimeMap[item.courseId] || 0) }}</text>
-            <text class="faux-time faux-time-r">{{ formatDuration(item.duration || 0) }}</text>
+            <text class="faux-time faux-time-l">{{ formatDuration(currentTimeMap[s.item.courseId] || 0) }}</text>
+            <text class="faux-time faux-time-r">{{ formatDuration(s.item.duration || 0) }}</text>
           </view>
         </view>
       </swiper-item>
@@ -110,17 +113,22 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, nextTick, getCurrentInstance, onMounted, onUnmounted } from 'vue'
+import { ref, reactive, computed, nextTick, getCurrentInstance, onMounted, onUnmounted } from 'vue'
 import LoadingState from '@/components/LoadingState.vue'
 import ErrorState from '@/components/ErrorState.vue'
 import EmptyState from '@/components/EmptyState.vue'
 import CommentsSheet from '@/components/CommentsSheet.vue'
+import AdBanner from '@/components/AdBanner.vue'
 import { getShortVideosApi, getPlayInfoApi, formatDuration } from '@/api/course'
 import { toggleLikeApi, toggleFavoriteApi, reportShareApi, getInteractionStatusApi, reportHistoryApi, getHistoryProgressApi } from '@/api/interaction'
 import { locateCommentApi } from '@/api/comment'
+import { useAuthStore } from '@/store/auth'
+import { followUserApi, unfollowUserApi, getFollowStatusApi } from '@/api/user'
 import type { Course } from '@/types/course'
+import { AD_BANNER_FEED, AD_PID_BANNER } from '@/config/env'
 
 const instance = getCurrentInstance()
+const auth = useAuthStore()
 
 const list = ref<Course[]>([])
 const state = ref<'loading' | 'error' | 'ready'>('loading')
@@ -134,15 +142,54 @@ let loadingMore = false
 const playUrlMap = reactive<Record<number, string>>({})
 const pausedMap = reactive<Record<number, boolean>>({})
 const currentTimeMap = reactive<Record<number, number>>({})
+/** 关注态：按作者 instructorId 记录（短视频流多位作者） */
+const followedMap = reactive<Record<number, boolean>>({})
 
 function charOf(name: string): string { return (name || 'U').charAt(0) }
 function formatCount(n: number): string { return n >= 10000 ? (n / 10000).toFixed(1) + '万' : String(n) }
 function indexOf(item: Course): number { return list.value.findIndex((x) => x.courseId === item.courseId) }
+
+/** 底部进度条百分比（当前播放时间 / 总时长） */
 function progressPct(item: Course): number {
   const total = item.duration || 0
   if (total <= 0) return 0
   const cur = currentTimeMap[item.courseId] || 0
   return Math.max(0, Math.min(100, (cur / total) * 100))
+}
+
+/* ===== 信息流广告：每 AD_EVERY 条视频后插 1 条广告 slide（仅渲染层，list 数据不动） ===== */
+const AD_EVERY = 4
+interface SlideVideo { kind: 'video'; item: Course; key: string }
+interface SlideAd { kind: 'ad'; key: string }
+type SlideItem = SlideVideo | SlideAd
+
+const slides = computed<SlideItem[]>(() => {
+  const out: SlideItem[] = []
+  list.value.forEach((item, i) => {
+    out.push({ kind: 'video', item, key: 'v-' + item.courseId })
+    if ((i + 1) % AD_EVERY === 0 && i < list.value.length - 1) out.push({ kind: 'ad', key: 'ad-' + i })
+  })
+  return out
+})
+
+/* 信息流模拟广告素材（按位置轮换，看起来像不同广告主投放） */
+const AD_CREATIVES = [
+  { brand: '网易云课堂', slogan: '限时秒杀 · 好课 1 折起', cta: '立即抢购' },
+  { brand: '得到 APP', slogan: '每天听本书，通勤也能涨知识', cta: '免费试听' },
+  { brand: 'B 站课堂', slogan: '大学生都在学的编程课', cta: '了解详情' },
+  { brand: '菜鸟教程', slogan: '零基础入门，边学边练', cta: '开始学习' },
+]
+function adCreativeOf(idx: number) { return AD_CREATIVES[idx % AD_CREATIVES.length] }
+
+/** 当前 slide 对应的视频（广告 slide 返回 null） */
+function currentVideo(): Course | null {
+  const s = slides.value[currentIndex.value]
+  return s && s.kind === 'video' ? s.item : null
+}
+
+/** 视频在 list 中的下标 → 含广告 slide 后的页码 */
+function slideIdxOfVideo(videoIdx: number): number {
+  return videoIdx + Math.floor(videoIdx / AD_EVERY)
 }
 
 /** 获取 video context（传组件实例，解决子组件内查找问题） */
@@ -174,6 +221,7 @@ async function loadVideos() {
     list.value = res || []
     state.value = 'ready'
     backfillInteraction()
+    backfillFollow()
     await Promise.all(list.value.slice(0, 3).map(ensurePlayUrl))
   } catch (e) {
     state.value = 'error'
@@ -198,17 +246,20 @@ async function onSwiperChange(e: any) {
 /** 统一的切页逻辑：swiper 手势与手动滑动都走这里，用时间戳去重防双切 */
 let lastSwitchTs = 0
 function switchTo(next: number) {
-  if (next < 0 || next >= list.value.length) return
+  if (next < 0 || next >= slides.value.length) return
   const now = Date.now()
   if (now - lastSwitchTs < 350) return
   lastSwitchTs = now
   const prev = currentIndex.value
-  if (prev !== next && list.value[prev]) {
-    const oldCtx = getCtx(list.value[prev].courseId)
-    if (oldCtx) oldCtx.pause()
+  if (prev !== next) {
+    const ps = slides.value[prev]
+    if (ps && ps.kind === 'video') {
+      const oldCtx = getCtx(ps.item.courseId)
+      if (oldCtx) oldCtx.pause()
+    }
   }
   currentIndex.value = next
-  if (currentIndex.value >= list.value.length - 2) loadMore()
+  if (currentIndex.value >= slides.value.length - 2) loadMore()
   activateCurrent()
 }
 
@@ -237,7 +288,7 @@ function onTouchEnd(e: any) {
 
 /** 滑动后手动播放当前（autoplay prop 对已挂载元素不重新触发） */
 async function activateCurrent() {
-  const cur = list.value[currentIndex.value]
+  const cur = currentVideo()
   if (!cur) return
   await ensurePlayUrl(cur)
   if (!playUrlMap[cur.courseId]) return
@@ -250,10 +301,10 @@ async function activateCurrent() {
     if (!ctx) return
     ctx.play()
     if (shouldSeek) {
-      // seek 延后到播放器就绪，过早 seek 会触发黑屏重载
       setTimeout(() => {
         const c2 = getCtx(id)
-        if (c2 && currentIndex.value === indexOf(cur)) c2.seek(pos)
+        const cs = currentVideo()
+        if (c2 && cs && cs.courseId === id) c2.seek(pos)
       }, 800)
     }
     resumeApplied[id] = true
@@ -353,6 +404,30 @@ function goInstructor(item: Course) {
   uni.navigateTo({ url: `/pages-sub/mine/blog-home?userId=${uid}` })
 }
 
+/* ===== 关注作者（复用 /api/v1/follow add/cancel/status，本人不显示）===== */
+function isSelfInstructor(item: Course): boolean {
+  const myId = auth.state.user?.userId
+  return !!item.instructorId && Number(item.instructorId) === Number(myId)
+}
+async function backfillFollow() {
+  const ids = Array.from(new Set(list.value.map((x) => x.instructorId).filter((n) => !!n)))
+  if (!ids.length) return
+  try {
+    const followed = await getFollowStatusApi(ids)
+    followed.forEach((id) => { followedMap[id] = true })
+  } catch (e) { /* 静默，按钮保持未关注 */ }
+}
+async function toggleFollowInstructor(item: Course) {
+  const target = item.instructorId
+  if (!target) { uni.showToast({ title: '作者信息待完善', icon: 'none' }); return }
+  const cur = !!followedMap[target]
+  try {
+    const res = cur ? await unfollowUserApi(target) : await followUserApi(target)
+    followedMap[target] = !!res.active
+    uni.showToast({ title: followedMap[target] ? '已关注' : '已取消关注', icon: 'none' })
+  } catch (e) { uni.showToast({ title: '操作失败', icon: 'none' }) }
+}
+
 onMounted(() => { loadVideos() })
 onUnmounted(() => {
   list.value.forEach((it) => {
@@ -368,7 +443,7 @@ async function onOpenById(videoId: number) {
     await new Promise((r) => setTimeout(r, 300))
   }
   const idx = list.value.findIndex((x) => x.courseId === videoId)
-  if (idx >= 0) switchTo(idx)
+  if (idx >= 0) switchTo(slideIdxOfVideo(idx))
   else uni.showToast({ title: '该视频已下架', icon: 'none' })
 }
 
@@ -433,6 +508,10 @@ onUnmounted(() => { uni.$off('video:locate', onLocateFromNotification) })
 .instructor-avatar-img { width: 100%; height: 100%; border-radius: 50%; }
 .instructor-char { font-size: 28rpx; font-weight: 700; color: #0C2C6B; }
 .instructor-name { font-size: 30rpx; font-weight: 600; color: #FFFFFF; }
+.follow-pill { margin-left: 16rpx; height: 48rpx; padding: 0 20rpx; border-radius: 24rpx; border: 2rpx solid rgba(255, 255, 255, 0.9); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.follow-pill-text { font-size: 24rpx; color: #FFFFFF; }
+.follow-pill-done { background-color: rgba(255, 255, 255, 0.18); border-color: rgba(255, 255, 255, 0.5); }
+.follow-pill-done .follow-pill-text { color: rgba(255, 255, 255, 0.82); }
 .video-title { display: block; font-size: 32rpx; font-weight: 700; color: #FFFFFF; line-height: 1.4; margin-bottom: 12rpx; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .video-meta { display: flex; align-items: center; }
 .video-duration { font-size: 26rpx; color: rgba(255, 255, 255, 0.8); margin-right: 24rpx; }
@@ -442,4 +521,14 @@ onUnmounted(() => { uni.$off('video:locate', onLocateFromNotification) })
 .faux-progress-track { flex: 1; height: 4rpx; border-radius: 2rpx; background: rgba(255, 255, 255, 0.3); margin: 0 16rpx; position: relative; }
 .faux-progress-bar { position: absolute; left: 0; top: 0; height: 4rpx; border-radius: 2rpx; background: #FFFFFF; }
 .faux-time { font-size: 22rpx; color: rgba(255, 255, 255, 0.85); }
+
+.ad-slide { position: relative; width: 100%; height: 100%; background-color: #101318; overflow: hidden; }
+.ad-slide-card { width: 100%; height: 100%; display: flex; flex-direction: column; }
+.ad-slide-media { flex: 1; min-height: 0; display: flex; flex-direction: column; justify-content: center; padding: 0 60rpx; background: linear-gradient(160deg, #5B9BFF 0%, #3677EF 100%); }
+.ad-slide-brand { font-size: 48rpx; font-weight: 800; color: #FFFFFF; }
+.ad-slide-slogan { font-size: 30rpx; color: rgba(255, 255, 255, 0.92); margin-top: 20rpx; }
+.ad-slide-bar { display: flex; align-items: center; justify-content: space-between; padding: 28rpx 48rpx calc(28rpx + env(safe-area-inset-bottom)); background-color: #0b0d12; }
+.ad-slide-cta { height: 72rpx; padding: 0 40rpx; border-radius: 36rpx; background-color: #3677EF; display: flex; align-items: center; }
+.ad-slide-cta-text { font-size: 30rpx; color: #FFFFFF; font-weight: 600; }
+.ad-slide-badge { font-size: 22rpx; color: rgba(255, 255, 255, 0.5); }
 </style>

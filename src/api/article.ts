@@ -2,6 +2,7 @@ import { get, post, v1 } from '@/utils/request'
 import { API_READY } from '@/config/apiStatus'
 import { BASE_URL } from '@/config/env'
 import type { ArticleDto, ArticleDetailDto, ArticleTag } from '@/types/article'
+import { getUserPublicProfileApi } from './user'
 
 /* ===================== 社区文章列表（GET articles） ===================== */
 
@@ -134,7 +135,6 @@ export interface MyArticleDto {
 
 export const ARTICLE_STATUS_TABS: { label: string; value: number | '' }[] = [
     { label: '全部', value: '' },
-    { label: '草稿', value: 0 },
     { label: '待审核', value: 1 },
     { label: '已发布', value: 2 },
     { label: '驳回', value: 3 }
@@ -195,16 +195,29 @@ function normalizeMyPost(p: BackendPostSummary): MyArticleDto {
     }
 }
 
+/** myList 行不带阅读数：用 /post/info 回填真实 viewCount（自己的文章量小，逐篇补查可接受） */
+async function fillMyViewCounts(list: MyArticleDto[]): Promise<void> {
+    await Promise.all(list.map(async (a) => {
+        try {
+            const body: any = await get(v1('/post/info'), { postId: a.articleId }, { showError: false })
+            const d: any = (body && body.data) ? body.data : body
+            a.viewCount = Number(d && d.viewCount) || 0
+        } catch (e) { /* 补不到就保持 0，不打扰用户 */ }
+    }))
+}
+
 /** 我的发布：GET /api/v1/post/myList（分页，一次多取，状态 Tab 前端过滤） */
 export function getMyArticlesApi(status?: number): Promise<MyArticleDto[]> {
     if (!API_READY.myArticles) {
         const list = mockArticles.slice().sort((a, b) => b.articleId - a.articleId)
         return Promise.resolve(status === undefined || status === null ? list : list.filter((a) => a.status === status))
     }
-    return get(v1('/post/myList'), { pageNum: 1, pageSize: 100 }).then((body: any) => {
+    return get(v1('/post/myList'), { pageNum: 1, pageSize: 100 }).then(async (body: any) => {
         const rows: BackendPostSummary[] = (body && Array.isArray(body.rows)) ? body.rows : []
         const list = rows.map(normalizeMyPost)
-        return status === undefined || status === null ? list : list.filter((a) => a.status === status)
+        const filtered = status === undefined || status === null ? list : list.filter((a) => a.status === status)
+        await fillMyViewCounts(filtered)
+        return filtered
     })
 }
 
@@ -366,7 +379,7 @@ function normalizePostDetail(d: BackendPostDetail): ArticleDetailDto {
         content: mdToHtml(d.content || ''),
         authorId: d.userId,
         authorName: d.userName || '用户',
-        authorAvatar: d.avatar || '',
+        authorAvatar: absUrl(d.avatar),
         categoryName: d.categoryName || '',
         tags: [],
         viewCount: d.viewCount || 0,
@@ -390,7 +403,16 @@ export async function getArticleDetailApi(articleId: number): Promise<ArticleDet
     }
     const body: any = await get(v1('/post/info'), { postId: articleId })
     const data: BackendPostDetail = (body && body.data) ? body.data : (body as BackendPostDetail)
-    return normalizePostDetail(data)
+    const dto = normalizePostDetail(data)
+    // 后端详情 SQL 没带 avatar 时，用 publicProfile 兜底补一次作者昵称/头像
+    if (!dto.authorAvatar && dto.authorId) {
+        try {
+            const p = await getUserPublicProfileApi(dto.authorId)
+            if (p.avatar) dto.authorAvatar = absUrl(p.avatar)
+            if (p.nickName && dto.authorName === '用户') dto.authorName = p.nickName
+        } catch (e) { /* 静默：保留首字兜底 */ }
+    }
+    return dto
 }
 
 /** 话题标签池：GET /api/v1/topic/list（后端就绪则取真实话题；关闭时回落本地 TAG_POOL） */
@@ -438,21 +460,17 @@ export interface PublishArticleParams {
     coverUrl?: string
     categoryId: number
     tagIds?: number[]
-    publish: number   // 0 草稿  1 提交审核
 }
 
-/** POST /api/v1/post/add（JSON）—— 提交审核；后端统一先审后发（落 status=3），无草稿接口 */
+/** POST /api/v1/post/add（JSON）—— 发布即提交审核；后端统一先审后发（落 status=3），无草稿接口 */
 export function publishArticleApi(params: PublishArticleParams): Promise<{ articleId: number; status: number }> {
     if (!API_READY.articlePublish) {
         const id = mockArticles.reduce((m, a) => Math.max(m, a.articleId), 100) + 1
         mockArticles.push({
             articleId: id, title: params.title, summary: params.summary, categoryName: '',
-            status: params.publish === 1 ? 1 : 0, viewCount: 0, likeCount: 0, commentCount: 0, publishTime: ''
+            status: 1, viewCount: 0, likeCount: 0, commentCount: 0, publishTime: ''
         })
-        return Promise.resolve({ articleId: id, status: params.publish === 1 ? 1 : 0 })
-    }
-    if (params.publish === 0) {
-        return Promise.reject({ code: 501, msg: '后端暂不支持草稿，请直接发布提交审核' })
+        return Promise.resolve({ articleId: id, status: 1 })
     }
     // 后端 /add 的 JSON 出口按 Map<String,String> 绑定，字段值统一转字符串
     return post(v1('/post/add'), {

@@ -134,6 +134,36 @@
       </view>
       <view class="mall-entry-btn"><text class="mall-entry-btn-text">进入商城</text></view>
     </view>
+
+    <!-- 模拟激励视频：全屏播放真实视频 + 倒计时领取 -->
+    <view class="sim-ad-mask" v-if="simAdVisible">
+      <view class="sim-ad-top">
+        <text class="sim-ad-tag">广告</text>
+        <text class="sim-ad-count">{{ simCanReward ? '奖励已就绪' : simCountdown + ' 秒后可领取' }}</text>
+      </view>
+      <view class="sim-ad-stage">
+        <video
+          v-if="simVideoUrl"
+          class="sim-ad-player"
+          :src="simVideoUrl"
+          autoplay
+          loop
+          :controls="false"
+          :show-center-play-btn="false"
+          :show-fullscreen-btn="false"
+          object-fit="cover"
+        />
+        <view v-else class="sim-ad-fallback">
+          <text class="sim-ad-play">▶</text>
+          <text class="sim-ad-title">激励视频广告加载中…</text>
+        </view>
+      </view>
+      <view class="sim-ad-foot">
+        <view class="sim-ad-btn" :class="{ 'sim-ad-btn-on': simCanReward }" @tap="claimSimReward">
+          <text class="sim-ad-btn-text">{{ simCanReward ? '领取奖励' : '观看中 ' + simCountdown + 's' }}</text>
+        </view>
+      </view>
+    </view>
   </view>
 </template>
 
@@ -146,6 +176,9 @@ import { CONTINUOUS_REWARDS, CONTENT_DAILY_CAP } from '@/composables/pointsRule'
 import { API_READY } from '@/config/apiStatus'
 import { useAuthStore } from '@/store/auth'
 import { showRewardedAd } from '@/composables/useRewardedAd'
+import { reportAdRewardApi } from '@/api/points'
+import { getShortVideosApi } from '@/api/course'
+import { AD_SIMULATE } from '@/config/env'
 import { useTheme } from '@/composables/useTheme'
 
 const auth = useAuthStore()
@@ -220,12 +253,70 @@ async function handleCheckin() {
 }
 
 const adReady = API_READY.adReward
+
+/* ===== 模拟激励视频 ===== */
+const simAdVisible = ref<boolean>(false)
+const simCountdown = ref<number>(5)
+const simCanReward = ref<boolean>(false)
+const simVideoUrl = ref<string>('')
+let simTimer: ReturnType<typeof setInterval> | null = null
+
+async function openSimAd() {
+  if (!simVideoUrl.value) {
+    try {
+      const res = await getShortVideosApi()
+      const hit = (res || []).find((x: any) => x.playUrl) || (res || [])[0]
+      simVideoUrl.value = (hit && hit.playUrl) || ''
+    } catch (e) { simVideoUrl.value = '' }
+  }
+  simAdVisible.value = true
+  simCountdown.value = 5
+  simCanReward.value = false
+  if (simTimer) clearInterval(simTimer)
+  simTimer = setInterval(() => {
+    simCountdown.value--
+    if (simCountdown.value <= 0) {
+      if (simTimer) { clearInterval(simTimer); simTimer = null }
+      simCanReward.value = true
+    }
+  }, 1000)
+}
+
+async function claimSimReward() {
+  if (!simCanReward.value) { uni.showToast({ title: '看完视频才能领取哦', icon: 'none' }); return }
+  simAdVisible.value = false
+  try {
+    const r = await reportAdRewardApi('ad-' + Date.now(), 15)
+    uni.showToast({
+      title: r.awardedPoints > 0
+        ? `已获得 ${r.awardedPoints} 积分（今日 ${r.todayAdCount}/${r.todayAdLimit}）`
+        : '今日广告奖励已达上限，明天再来',
+      icon: 'none'
+    })
+  } catch (e: any) {
+    uni.showToast({ title: (e && e.msg) ? e.msg : '奖励发放失败，请稍后重试', icon: 'none' })
+  }
+  setTimeout(loadAll, 800)
+}
+
 async function handleWatchAd() {
   if (!adReady) { uni.showToast({ title: '看广告领积分即将上线', icon: 'none' }); return }
+  if (AD_SIMULATE) { openSimAd(); return }
   const uid = auth.state.user?.userId
   const finished = await showRewardedAd(uid, 10)
-  if (finished) { uni.showToast({ title: '奖励发放中…', icon: 'none' }); setTimeout(loadAll, 2000) }
-  else uni.showToast({ title: '看完视频才能领取积分哦', icon: 'none' })
+  if (!finished) { uni.showToast({ title: '看完视频才能领取积分哦', icon: 'none' }); return }
+  try {
+    const r = await reportAdRewardApi('ad-' + Date.now())
+    uni.showToast({
+      title: r.awardedPoints > 0
+        ? `已获得 ${r.awardedPoints} 积分（今日 ${r.todayAdCount}/${r.todayAdLimit}）`
+        : '今日广告奖励已达上限，明天再来',
+      icon: 'none'
+    })
+  } catch (e: any) {
+    uni.showToast({ title: (e && e.msg) ? e.msg : '奖励发放失败，请稍后重试', icon: 'none' })
+  }
+  setTimeout(loadAll, 800)
 }
 
 /* ===== 交互 ===== */
@@ -355,4 +446,19 @@ onShow(loadAll)
 .mall-entry-sub { display: block; font-size: 24rpx; color: $edu-text-hint; margin-top: 8rpx; }
 .mall-entry-btn { height: 72rpx; padding: 0 40rpx; border-radius: 36rpx; display: flex; align-items: center; justify-content: center; @include eduBrandGradient; flex-shrink: 0; }
 .mall-entry-btn-text { font-size: 28rpx; font-weight: 600; color: #FFFFFF; }
+
+/* ===== 模拟激励视频弹层 ===== */
+.sim-ad-mask { position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 9999; background: #000000; display: flex; flex-direction: column; }
+.sim-ad-top { display: flex; align-items: center; justify-content: space-between; padding: 100rpx 32rpx 20rpx; }
+.sim-ad-tag { font-size: 22rpx; color: #FFFFFF; background: rgba(0, 0, 0, 0.45); padding: 6rpx 16rpx; border-radius: 8rpx; }
+.sim-ad-count { font-size: 26rpx; color: #FFFFFF; background: rgba(0, 0, 0, 0.45); padding: 6rpx 20rpx; border-radius: 24rpx; }
+.sim-ad-stage { flex: 1; min-height: 0; position: relative; }
+.sim-ad-player { width: 100%; height: 100%; }
+.sim-ad-fallback { width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+.sim-ad-play { width: 140rpx; height: 140rpx; border-radius: 50%; background: rgba(255, 255, 255, 0.15); color: #FFFFFF; font-size: 60rpx; display: flex; align-items: center; justify-content: center; }
+.sim-ad-title { font-size: 30rpx; color: rgba(255, 255, 255, 0.85); margin-top: 32rpx; }
+.sim-ad-foot { padding: 32rpx 32rpx calc(48rpx + env(safe-area-inset-bottom)); display: flex; justify-content: center; }
+.sim-ad-btn { height: 96rpx; width: 480rpx; border-radius: 48rpx; display: flex; align-items: center; justify-content: center; background: rgba(255, 255, 255, 0.2); }
+.sim-ad-btn-on { background: $edu-accent-yellow; }
+.sim-ad-btn-text { font-size: 32rpx; font-weight: 700; color: #FFFFFF; }
 </style>

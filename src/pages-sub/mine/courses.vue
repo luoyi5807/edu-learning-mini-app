@@ -33,11 +33,12 @@
         </view>
         <view class="info">
           <text class="title">{{ c.title }}</text>
-          <text class="meta">{{ c.instructorName }} · 共 {{ c.totalLessons }} 节</text>
+          <text class="meta">共 {{ c.totalLessons }} 节 · 已学 {{ c.finishedLessons }} 节</text>
           <view class="progress-row">
             <view class="progress-track"><view class="progress-bar" :style="{ width: c.studyProgress + '%' }"></view></view>
             <text class="progress-pct">{{ c.studyProgress }}%</text>
           </view>
+          <text class="last-time" v-if="c.lastLessonTitle">上次学到：{{ c.lastLessonTitle }}</text>
           <text class="last-time">最近学习：{{ c.lastStudyTime }}</text>
         </view>
       </view>

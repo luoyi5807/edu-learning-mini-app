@@ -61,8 +61,8 @@
       </view>
     </view>
 
-    <!-- 广告位预留（接入 Taku 后原位替换；当前为占位） -->
-    <view class="ad-slot"><text class="ad-slot-text">广告位</text></view>
+    <!-- 广告位：真实流量主 Banner 或演示占位（AdBanner 内部判断） -->
+    <AdBanner :adpid="AD_PID_BANNER" :unit-id="AD_BANNER_HOME" scene="首页" />
 
     <!-- 排序标签：高分 / 热门 / 最新 -->
     <view class="sort-tabs">
@@ -110,6 +110,8 @@ import { getCourseListApi } from '@/api/course'
 import { getBannerListApi, type Banner } from '@/api/banner'
 import { getCourseCategoryListApi } from '@/api/category'
 import { useNotification } from '@/composables/useNotification'
+import AdBanner from '@/components/AdBanner.vue'
+import { AD_BANNER_HOME } from '@/config/env'
 
 const { hasUnread } = useNotification()
 

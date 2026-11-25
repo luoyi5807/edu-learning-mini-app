@@ -13,19 +13,26 @@
         <EmptyState v-else-if="comments.length === 0" text="还没有评论，抢占沙发" />
         <view v-else class="comment-list">
           <view v-for="c in comments" :key="c.commentId" :id="'c-' + c.commentId" class="comment-item" :class="{ 'comment-hl': highlightId === c.commentId }">
-            <view class="c-avatar"><text class="c-avatar-char">{{ charOf(c.nickName) }}</text></view>
+            <view class="c-avatar">
+              <image v-if="c.avatar" class="c-avatar-img" :src="c.avatar" mode="aspectFill" />
+              <text v-else class="c-avatar-char">{{ charOf(c.nickName) }}</text>
+            </view>
             <view class="c-body">
               <text class="c-name">{{ c.nickName }}</text>
               <text class="c-content">{{ c.content }}</text>
               <view class="c-foot">
                 <text class="c-time">{{ c.createTime }}</text>
                 <text class="c-reply-btn" @tap="startReply(c)">回复</text>
+                <text class="c-like" :class="{ 'c-like-on': c.isLiked }" @tap="toggleCommentLike(c)">{{ c.isLiked ? '♥' : '♡' }} {{ c.likeCount || 0 }}</text>
               </view>
 
               <!-- 楼中楼：每条带头像，昵称 / 内容 / 时间分行，预览 2 条 + 展开/收起 -->
               <view class="reply-list" v-if="visibleReplies(c).length">
                 <view class="reply-item" v-for="r in visibleReplies(c)" :key="r.commentId" :id="'r-' + r.commentId" :class="{ 'comment-hl': highlightId === r.commentId }">
-                  <view class="r-avatar"><text class="r-avatar-char">{{ charOf(r.nickName) }}</text></view>
+                  <view class="r-avatar">
+                    <image v-if="r.avatar" class="r-avatar-img" :src="r.avatar" mode="aspectFill" />
+                    <text v-else class="r-avatar-char">{{ charOf(r.nickName) }}</text>
+                  </view>
                   <view class="r-body">
                     <text class="r-name">{{ r.nickName }}</text>
                     <text class="r-content"><text v-if="r.replyToUserName" class="r-reply-to">回复 {{ r.replyToUserName }}：</text>{{ r.content }}</text>
@@ -74,7 +81,7 @@
 import { ref, computed, watch, nextTick } from 'vue'
 import LoadingState from '@/components/LoadingState.vue'
 import EmptyState from '@/components/EmptyState.vue'
-import { getCommentsApi, addCommentApi, locateCommentApi, type CommentLocate } from '@/api/comment'
+import { getCommentsApi, addCommentApi, locateCommentApi, likeCommentApi, type CommentLocate } from '@/api/comment'
 import type { CommentDto } from '@/types/article'
 
 const props = defineProps<{
@@ -104,6 +111,14 @@ const replyTarget = ref<ReplyTarget | null>(null)
 const placeholder = computed<string>(() => (replyTarget.value ? '回复 @' + replyTarget.value.nickName : '说点什么...'))
 
 function charOf(name: string): string { return (name || 'U').charAt(0) }
+
+/** 点赞一级评论：本地乐观更新（后端接口就绪前不落库，重开面板会复位） */
+async function toggleCommentLike(c: CommentDto) {
+  const before = !!c.isLiked
+  c.isLiked = !before
+  c.likeCount = Math.max(0, (c.likeCount || 0) + (c.isLiked ? 1 : -1))
+  try { await likeCommentApi(c.commentId, before) } catch (e) {}
+}
 
 async function load() {
   if (!props.targetId) return
@@ -192,6 +207,7 @@ async function handleSend() {
     sending.value = false
   }
 }
+
 </script>
 
 <style lang="scss" scoped>
@@ -204,9 +220,9 @@ async function handleSend() {
 
 }
 .sheet-handle { width: 72rpx; height: 8rpx; border-radius: 4rpx; background: $edu-outline; margin: 16rpx auto 0; }
-.sheet-header { display: flex; align-items: baseline; justify-content: space-between; padding: 20rpx 32rpx 8rpx; }
+.sheet-header { display: flex; align-items: baseline; padding: 20rpx 32rpx 8rpx; }
 .sheet-title { font-size: 34rpx; font-weight: 700; color: $edu-text-primary; }
-.sheet-count { font-size: 26rpx; color: $edu-text-hint; }
+.sheet-count { font-size: 26rpx; color: $edu-text-hint; margin-left: 12rpx; }
 
 /* 顶部输入框 */
 .input-area { padding: 16rpx 32rpx calc(16rpx + env(safe-area-inset-bottom)); border-top: 2rpx solid $edu-divider; }
@@ -226,13 +242,14 @@ async function handleSend() {
 .comment-item { display: flex; align-items: flex-start; margin-bottom: 32rpx; }
 .c-avatar { width: 64rpx; height: 64rpx; border-radius: 50%; background-color: $edu-primary-container; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
 .c-avatar-char { font-size: 30rpx; font-weight: 700; color: #0C2C6B; }
+.c-avatar-img { width: 100%; height: 100%; border-radius: 50%; }
 .c-body { flex: 1; margin-left: 16rpx; min-width: 0; }
 .c-name { display: block; font-size: 28rpx; font-weight: 600; color: $edu-text-secondary; }
 .c-content { display: block; font-size: 30rpx; color: $edu-text-primary; line-height: 1.5; margin-top: 8rpx; }
 .c-foot { display: flex; align-items: center; margin-top: 12rpx; }
 .c-time { font-size: 24rpx; color: $edu-text-hint; }
-.c-reply-btn { font-size: 24rpx; color: $edu-text-secondary; margin-left: auto; padding: 4rpx 0; }
-.c-like { font-size: 26rpx; color: $edu-text-secondary; margin-left: 28rpx; }
+.c-reply-btn { font-size: 24rpx; color: $edu-text-secondary; margin-left: 28rpx; padding: 4rpx 0; }
+.c-like { font-size: 26rpx; color: $edu-text-secondary; margin-left: auto; }
 .c-like-on { color: #FF4D6A; }
 
 /* 楼中楼：扁平带头像，对齐父评论内容列 */
@@ -241,6 +258,7 @@ async function handleSend() {
 .reply-item:last-child { margin-bottom: 0; }
 .r-avatar { width: 56rpx; height: 56rpx; border-radius: 50%; background-color: $edu-primary-container; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
 .r-avatar-char { font-size: 26rpx; font-weight: 700; color: #0C2C6B; }
+.r-avatar-img { width: 100%; height: 100%; border-radius: 50%; }
 .r-body { flex: 1; min-width: 0; margin-left: 16rpx; }
 .r-name { display: block; font-size: 26rpx; font-weight: 600; color: $edu-text-secondary; }
 .r-content { display: block; font-size: 28rpx; color: $edu-text-primary; line-height: 1.5; margin-top: 6rpx; word-break: break-all; }

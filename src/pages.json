@@ -26,6 +26,21 @@
 					}
 				},
 				{
+					"path": "agent/assistant",
+					"style": {
+						"navigationBarTitleText": "阿星",
+						"navigationStyle": "custom"
+					}
+				},
+				{
+					"path": "agent/present",
+					"style": {
+						"navigationBarTitleText": "全屏演示",
+						"navigationStyle": "custom",
+						"backgroundColor": "#000000"
+					}
+				},
+				{
 					"path": "auth/login",
 					"style": {
 						"navigationBarTitleText": "账号登录",
@@ -81,6 +96,15 @@
 						"navigationStyle": "custom"
 					}
 				},
+				{
+					"path": "note/note-detail",
+					"style": {
+						"navigationBarTitleText": "笔记详情",
+						"navigationStyle": "custom"
+					}
+				},
+
+
 				{
 					"path": "mine/blog-home",
 					"style": {

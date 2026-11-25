@@ -34,6 +34,8 @@
 
     <!-- 右侧：目录开关 -->
     <view class="catalog-btn" @tap="toggleCatalog"><text class="catalog-btn-text">目录</text></view>
+    <!-- 右侧：阿星总结（视频总结，video_id = 当前小节） -->
+    <view class="ai-summary-btn" @tap="askSummary"><text class="ai-summary-btn-text">✦ 总结</text></view>
 
     <!-- 小节目录抽屉 -->
     <view class="catalog-mask" v-if="showCatalog" @tap="showCatalog = false"></view>
@@ -53,6 +55,18 @@
         </view>
       </view>
     </scroll-view>
+
+    <!-- 视频总结弹层 -->
+    <view class="sum-mask" v-if="summaryVisible" @tap="summaryVisible = false"></view>
+    <scroll-view class="sum-sheet" scroll-y v-if="summaryVisible">
+      <view class="sum-head">
+        <text class="sum-title">阿星 · 视频总结</text>
+        <text class="sum-close" @tap="summaryVisible = false">✕</text>
+      </view>
+      <text class="sum-meta" v-if="summaryMeta">{{ summaryMeta }}</text>
+      <LoadingState v-if="summaryLoading" text="阿星正在总结这条视频…" />
+      <text v-else class="sum-text">{{ summaryText }}</text>
+    </scroll-view>
   </view>
 </template>
 
@@ -64,6 +78,9 @@ import ErrorState from '@/components/ErrorState.vue'
 import { getCourseDetailApi, formatDuration } from '@/api/course'
 import { reportStudyApi } from '@/api/study'
 import { reportHistoryApi, getHistoryProgressApi } from '@/api/interaction'
+import { videoSummaryApi, pollTask } from '@/api/agent'
+import { safeParseJson } from '@/types/agent'
+import { API_READY } from '@/config/apiStatus'
 import type { CourseDetailDto, LessonDto } from '@/types/course'
 
 const statusBarHeight = ref<number>(0)
@@ -83,6 +100,12 @@ const state = ref<'loading' | 'error' | 'ready'>('loading')
 const showCatalog = ref<boolean>(false)
 const initialTime = ref<number>(0)
 let explicitLesson = false
+
+/* ===== 阿星视频总结 ===== */
+const summaryVisible = ref<boolean>(false)
+const summaryLoading = ref<boolean>(false)
+const summaryText = ref<string>('')
+const summaryMeta = ref<string>('')
 
 const speeds = [1, 1.25, 1.5, 2, 0.75]
 const speedIndex = ref<number>(0)
@@ -179,6 +202,33 @@ function cycleSpeed() {
 }
 
 function toggleCatalog() { showCatalog.value = !showCatalog.value }
+
+/** 总结当前小节视频：POST /agent/video/summary → 轮询任务 → 展示 summary */
+async function askSummary() {
+  const vid = currentLessonId.value
+  if (!vid) { uni.showToast({ title: '当前无可总结视频', icon: 'none' }); return }
+  summaryVisible.value = true
+  summaryMeta.value = currentLesson.value ? currentLesson.value.title : ''
+  if (!API_READY.agent) { summaryLoading.value = false; summaryText.value = '（后端智能体未接入）'; return }
+  summaryLoading.value = true
+  summaryText.value = ''
+  try {
+    const taskId = await videoSummaryApi(vid)
+    const task = await pollTask(taskId, { interval: 2000, timeout: 180000 })
+    if (task.status === 'SUCCESS') {
+      const out = safeParseJson(task.outputJson) || {}
+      summaryText.value = out.summary || '（无总结内容）'
+      summaryMeta.value = [out.videoTitle, out.durationMinutes ? out.durationMinutes + ' 分钟' : '', out.fallback ? '（基于元数据）' : ''].filter(Boolean).join(' · ')
+    } else {
+      summaryText.value = '总结失败：' + (task.errorMsg || '未知错误')
+    }
+  } catch (e: any) {
+    summaryText.value = '总结失败：' + ((e && (e.msg || e.message)) || '服务暂不可用')
+  } finally {
+    summaryLoading.value = false
+  }
+}
+
 function goBack() {
   const pages = getCurrentPages()
   if (pages.length > 1) uni.navigateBack()
@@ -213,16 +263,18 @@ onLoad((query) => {
 .catalog-btn { position: absolute; right: 24rpx; bottom: 200rpx; z-index: 20; padding: 16rpx 28rpx; border-radius: 32rpx; background: rgba(255, 255, 255, 0.18); }
 .catalog-btn-text { font-size: 26rpx; color: #FFFFFF; }
 
-.catalog-mask { position: absolute; top: 0; left: 0; right: 0; bottom: 0; z-index: 30; background: rgba(0, 0, 0, 0.4); }
-.catalog-drawer {
-  position: absolute; right: 0; top: 0; bottom: 0; width: 60%; max-width: 560rpx; z-index: 31;
-  background: rgba(20, 24, 34, 0.96); padding: calc(80rpx + env(safe-area-inset-top)) 24rpx 40rpx; box-sizing: border-box;
+.ai-summary-btn { position: absolute; right: 24rpx; bottom: 288rpx; z-index: 20; padding: 16rpx 28rpx; border-radius: 32rpx; background: rgba(54, 119, 239, 0.85); }
+.ai-summary-btn-text { font-size: 26rpx; color: #FFFFFF; font-weight: 600; }
+
+.sum-mask { position: absolute; top: 0; left: 0; right: 0; bottom: 0; z-index: 40; background: rgba(0, 0, 0, 0.5); }
+.sum-sheet {
+  position: absolute; left: 0; right: 0; bottom: 0; z-index: 41; max-height: 70vh;
+  background-color: $edu-surface; border-radius: 32rpx 32rpx 0 0;
+  padding: 32rpx 32rpx calc(40rpx + env(safe-area-inset-bottom)); box-sizing: border-box;
 }
-.drawer-title { display: block; font-size: 32rpx; font-weight: 700; color: #FFFFFF; margin-bottom: 24rpx; }
-.drawer-chapter { margin-bottom: 24rpx; }
-.drawer-chapter-title { display: block; font-size: 28rpx; font-weight: 600; color: rgba(255, 255, 255, 0.7); margin-bottom: 12rpx; }
-.drawer-lesson { display: flex; align-items: center; justify-content: space-between; padding: 20rpx 12rpx; border-radius: 12rpx; }
-.drawer-lesson-active { background: rgba(54, 119, 239, 0.28); }
-.drawer-lesson-title { flex: 1; font-size: 28rpx; color: #FFFFFF; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.drawer-lesson-duration { font-size: 24rpx; color: rgba(255, 255, 255, 0.6); margin-left: 16rpx; }
+.sum-head { display: flex; align-items: center; justify-content: space-between; }
+.sum-title { font-size: 34rpx; font-weight: 700; color: $edu-text-primary; }
+.sum-close { font-size: 36rpx; color: $edu-text-hint; padding: 0 12rpx; }
+.sum-meta { display: block; font-size: 24rpx; color: $edu-text-hint; margin-top: 12rpx; }
+.sum-text { display: block; font-size: 30rpx; color: $edu-text-primary; line-height: 1.7; margin-top: 24rpx; white-space: pre-wrap; }
 </style>

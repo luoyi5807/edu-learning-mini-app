@@ -40,39 +40,36 @@
       </view>
     </view>
 
-    <!-- 广告位：微信流量主 Banner（AD_BANNER_COMMUNITY 为空时不渲染） -->
-    <ad v-if="AD_BANNER_COMMUNITY" class="ad-slot" :unit-id="AD_BANNER_COMMUNITY"></ad>
-    <view v-else class="ad-slot"><text class="ad-slot-text">广告位 · community_home_banner</text></view>
+    <!-- 广告位：真实流量主 Banner 或演示占位（AdBanner 内部判断） -->
+    <AdBanner :adpid="AD_PID_BANNER" :unit-id="AD_BANNER_COMMUNITY" scene="社区" />
 
     <LoadingState v-if="state === 'loading'" text="正在加载文章…" />
     <ErrorState v-else-if="state === 'error'" text="文章加载失败" @retry="loadArticles" />
     <EmptyState v-else-if="list.length === 0" text="还没有文章，点右上角＋写第一篇吧" />
     <view class="article-list" v-else>
-      <view
-          v-for="a in list"
-          :key="a.articleId"
-          class="article-card"
-          hover-class="article-card-pressed"
-          @tap="handleOpen(a)"
-      >
-        <view class="article-title-row">
-          <text class="essence-badge" v-if="a.essence === 1">精华</text>
-          <text class="article-title">{{ a.title }}</text>
+      <block v-for="(it, idx) in feedItems" :key="it.kind === 'a' ? 'a-' + it.a.articleId : 'ad-' + idx">
+        <!-- 信息流广告卡：每 5 篇文章插 1 条 -->
+        <AdBanner v-if="it.kind === 'ad'" :adpid="AD_PID_BANNER" :unit-id="AD_BANNER_COMMUNITY" scene="社区" />
+        <view v-else class="article-card" hover-class="article-card-pressed" @tap="handleOpen(it.a)">
+          <view class="article-title-row">
+            <text class="essence-badge" v-if="it.a.essence === 1">精华</text>
+            <text class="article-title">{{ it.a.title }}</text>
+          </view>
+          <text class="article-summary" v-if="it.a.summary">{{ it.a.summary }}</text>
+          <view class="article-meta">
+            <image
+                v-if="it.a.authorAvatar"
+                class="author-avatar author-avatar-img"
+                :src="it.a.authorAvatar"
+                mode="aspectFill"
+            />
+            <view v-else class="author-avatar"><text class="author-char">{{ charOf(it.a.authorName) }}</text></view>
+            <text class="author-name">{{ it.a.authorName }}</text>
+            <text class="meta-count">{{ it.a.viewCount }} 阅读</text>
+            <text class="meta-count">{{ it.a.commentCount }} 评论</text>
+          </view>
         </view>
-        <text class="article-summary" v-if="a.summary">{{ a.summary }}</text>
-        <view class="article-meta">
-          <image
-              v-if="a.authorAvatar"
-              class="author-avatar author-avatar-img"
-              :src="a.authorAvatar"
-              mode="aspectFill"
-          />
-          <view v-else class="author-avatar"><text class="author-char">{{ charOf(a.authorName) }}</text></view>
-          <text class="author-name">{{ a.authorName }}</text>
-          <text class="meta-count">{{ a.viewCount }} 阅读</text>
-          <text class="meta-count">{{ a.commentCount }} 评论</text>
-        </view>
-      </view>
+      </block>
     </view>
 
     <view class="load-more" v-if="list.length > 0 && hasMore" @tap="handleLoadMore">
@@ -89,6 +86,7 @@ import { ref, computed, onMounted } from 'vue'
 import LoadingState from '@/components/LoadingState.vue'
 import ErrorState from '@/components/ErrorState.vue'
 import EmptyState from '@/components/EmptyState.vue'
+import AdBanner from '@/components/AdBanner.vue'
 import { getArticleListApi } from '@/api/article'
 import { getArticleCategoryTreeApi, type CategoryNode } from '@/api/category'
 import type { ArticleDto } from '@/types/article'
@@ -111,6 +109,18 @@ const pageNum = ref<number>(1)
 const state = ref<'loading' | 'error' | 'ready'>('loading')
 const loadingMore = ref<boolean>(false)
 const hasMore = computed<boolean>(() => list.value.length < total.value)
+
+/* ===== 信息流广告：每 FEED_AD_EVERY 篇文章后插 1 条广告卡（仅渲染层，list 数据不动，点击/分页逻辑零影响） ===== */
+const FEED_AD_EVERY = 3
+type FeedItem = { kind: 'a'; a: ArticleDto } | { kind: 'ad'; a: null }
+const feedItems = computed<FeedItem[]>(() => {
+  const out: FeedItem[] = []
+  list.value.forEach((item, i) => {
+    out.push({ kind: 'a', a: item })
+    if ((i + 1) % FEED_AD_EVERY === 0 && i < list.value.length - 1) out.push({ kind: 'ad', a: null })
+  })
+  return out
+})
 
 function charOf(name: string): string {
   return (name || 'U').charAt(0)

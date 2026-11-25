@@ -101,3 +101,27 @@ export async function reportWatchApi(targetType: 'post' | 'courseVideo', targetI
     setTodayContentPoints(out.todayContentPoints)
     return out
 }
+
+/* ===================== 激励视频奖励上报 ===================== */
+
+/** POST /api/v1/points/ad/reward 返回 */
+export interface AdRewardResult {
+    awardedPoints: number
+    todayAdCount: number
+    todayAdLimit: number
+}
+
+/**
+ * 看完广告后上报。服务端约束：adId ≤64 字符且同 adId 只计 1 次、seconds ≥15、每天最多 3 条。
+ * @param adId 本次广告唯一标识（前端生成，模拟模式也用真实上报以验证服务端链路）
+ * @param seconds 观看秒数，模拟模式按 15 保底
+ */
+export async function reportAdRewardApi(adId: string, seconds = 15): Promise<AdRewardResult> {
+    if (!API_READY.adReward) return { awardedPoints: 10, todayAdCount: 1, todayAdLimit: 3 }
+    const res: any = await post(v1('/points/ad/reward'), { adId, seconds: String(seconds) }, { showError: false })
+    return {
+        awardedPoints: Number(res?.awardedPoints) || 0,
+        todayAdCount: Number(res?.todayAdCount) || 0,
+        todayAdLimit: Number(res?.todayAdLimit) || 3
+    }
+}

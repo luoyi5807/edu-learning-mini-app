@@ -4,7 +4,6 @@
       <view class="nav-bar-inner" :style="{ height: navContentHeight + 'px' }">
         <view class="nav-back" @tap="goBack"><text class="back-icon">←</text></view>
         <text class="nav-title">{{ isEdit ? '编辑文章' : '发布文章' }}</text>
-        <view class="nav-draft" @tap="handleSave(0)"><text class="nav-draft-text">存草稿</text></view>
       </view>
     </view>
     <view class="nav-placeholder" :style="{ height: (statusBarHeight + navContentHeight) + 'px' }"></view>
@@ -73,8 +72,7 @@
     </scroll-view>
 
     <view class="submit-bar">
-      <view class="submit-btn submit-draft" @tap="handleSave(0)"><text class="submit-draft-text">保存草稿</text></view>
-      <view class="submit-btn submit-publish" :class="{ 'submit-disabled': submitting || !canPublish }" @tap="handleSave(1)">
+      <view class="submit-btn submit-publish" :class="{ 'submit-disabled': submitting || !canPublish }" @tap="handlePublish">
         <text class="submit-publish-text">{{ submitting ? '提交中…' : '发布' }}</text>
       </view>
     </view>
@@ -168,13 +166,11 @@ function insertImage() {
   })
 }
 
-async function handleSave(publish: number) {
+async function handlePublish() {
   if (submitting.value) return
   if (!form.title.trim()) { uni.showToast({ title: '请填写标题', icon: 'none' }); return }
-  if (publish === 1) {
-    if (!form.content.trim()) { uni.showToast({ title: '请填写正文', icon: 'none' }); return }
-    if (!form.categoryId) { uni.showToast({ title: '请选择分类', icon: 'none' }); return }
-  }
+  if (!form.content.trim()) { uni.showToast({ title: '请填写正文', icon: 'none' }); return }
+  if (!form.categoryId) { uni.showToast({ title: '请选择分类', icon: 'none' }); return }
   submitting.value = true
   try {
     const summary = form.summary.trim() || form.content.trim().slice(0, 60)
@@ -184,15 +180,14 @@ async function handleSave(publish: number) {
       content: form.content,
       coverUrl: form.coverUrl,
       categoryId: form.categoryId,
-      tagIds: form.tagIds,
-      publish
+      tagIds: form.tagIds
     }
     if (isEdit.value && editId.value) {
       await updateArticleApi(editId.value, params)
       uni.showToast({ title: '已保存', icon: 'success' })
     } else {
       await publishArticleApi(params)
-      uni.showToast({ title: publish === 1 ? '已提交审核' : '已存草稿', icon: 'success' })
+      uni.showToast({ title: '已提交审核', icon: 'success' })
     }
     setTimeout(goBack, 700)
   } catch (e: any) {
@@ -221,6 +216,10 @@ onLoad(async (query) => {
       form.summary = a.summary || ''
       form.categoryName = a.categoryName || ''
     }
+  } else if (query) {
+    // 阿星「发到论坛」预填
+    if (query.title) form.title = decodeURIComponent(String(query.title))
+    if (query.content) form.content = decodeURIComponent(String(query.content))
   }
 })
 </script>
@@ -235,8 +234,6 @@ onLoad(async (query) => {
 .nav-back { width: 72rpx; height: 72rpx; display: flex; align-items: center; justify-content: center; }
 .back-icon { font-size: 44rpx; color: $edu-text-primary; }
 .nav-title { font-size: 40rpx; font-weight: 700; color: $edu-text-primary; margin-left: 8rpx; flex: 1; }
-.nav-draft { padding: 8rpx 16rpx; }
-.nav-draft-text { font-size: 30rpx; color: $edu-text-secondary; }
 
 .form-scroll { flex: 1; min-height: 0; padding: 8rpx 32rpx; box-sizing: border-box; }
 
@@ -276,8 +273,6 @@ onLoad(async (query) => {
   border-top: 2rpx solid $edu-divider;
 }
 .submit-btn { flex: 1; height: 92rpx; border-radius: 46rpx; display: flex; align-items: center; justify-content: center; }
-.submit-draft { margin-right: 24rpx; background-color: $edu-surface-variant; }
-.submit-draft-text { font-size: 30rpx; color: $edu-text-secondary; font-weight: 600; }
 .submit-publish { @include eduBrandGradient; box-shadow: 0 8rpx 24rpx rgba(54, 119, 239, 0.3); }
 .submit-publish-text { font-size: 30rpx; color: #FFFFFF; font-weight: 600; }
 .submit-disabled { opacity: 0.4; }

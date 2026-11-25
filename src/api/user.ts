@@ -159,7 +159,7 @@ export function getSignCalendarApi(year: number, month: number): Promise<SignCal
 
 /* ===================== 我的课程 ===================== */
 
-/** 契约 GET user/courses → MyCourseDto（studyProgress 百分比 + lastStudyTime） */
+/** 契约 GET /api/v1/learn/courses → MyCourseDto（progressPercent 百分比 + lastStudyTime + lastLessonTitle） */
 export interface MyCourseDto {
     courseId: number
     title: string
@@ -169,6 +169,7 @@ export interface MyCourseDto {
     finishedLessons: number
     studyProgress: number
     lastStudyTime: string
+    lastLessonTitle?: string
 }
 
 function mockMyCourses(): MyCourseDto[] {
@@ -185,7 +186,30 @@ export function getMyCoursesApi(keyword?: string): Promise<MyCourseDto[]> {
         const list = mockMyCourses()
         return Promise.resolve(kw ? list.filter((c) => c.title.indexOf(kw) >= 0) : list)
     }
-    return get(v1('/user/courses'), { keyword })
+    const kw = (keyword || '').trim()
+    // 后端字段（snake→camel）：courseTitle/progressPercent/lastLessonTitle 与旧契约命名不同，在此统一映射
+    const mapRow = (r: any): MyCourseDto => ({
+        courseId: r.courseId,
+        title: r.courseTitle || '',
+        coverUrl: r.coverUrl || '',
+        instructorName: '',
+        totalLessons: Number(r.totalLessons) || 0,
+        finishedLessons: Number(r.finishedLessons) || 0,
+        studyProgress: Number(r.progressPercent) || 0,
+        lastStudyTime: r.lastStudyTime || '',
+        lastLessonTitle: r.lastLessonTitle || ''
+    })
+    // status 后端必填（learning/completed），「我的课程」取在学 + 已完成两份合并
+    return Promise.all([
+        get(v1('/learn/courses'), { status: 'learning', pageNum: 1, pageSize: 50 }),
+        get(v1('/learn/courses'), { status: 'completed', pageNum: 1, pageSize: 50 })
+    ]).then(([learning, completed]: any[]) => {
+        const rows: MyCourseDto[] = []
+        ;(learning?.rows || []).forEach((x: any) => rows.push(mapRow(x)))
+        ;(completed?.rows || []).forEach((x: any) => rows.push(mapRow(x)))
+        rows.sort((a, b) => String(b.lastStudyTime || '').localeCompare(String(a.lastStudyTime || '')))
+        return kw ? rows.filter((c) => c.title.indexOf(kw) >= 0) : rows
+    })
 }
 
 /* ===================== 我的下载 ===================== */

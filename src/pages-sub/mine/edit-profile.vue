@@ -209,7 +209,13 @@ async function handleSave() {
       remark: form.bio.trim(),
       avatar: form.avatarPath
     })
-    await auth.fetchUserInfo()
+    auth.setUser({
+      nickName: form.nickName.trim(),
+      userName: form.nickName.trim(),
+      sex: form.sex,
+      remark: form.bio.trim(),
+      avatar: form.avatarPath
+    })
     uni.$emit('profile:updated')
     uni.showToast({ title: '保存成功', icon: 'success', duration: 800 })
     setTimeout(goBack, 800)

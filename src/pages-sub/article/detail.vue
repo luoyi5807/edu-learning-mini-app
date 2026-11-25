@@ -4,7 +4,12 @@
       <view class="nav-bar-inner" :style="{ height: navContentHeight + 'px', paddingRight: capsuleGap + 'px' }">
         <view class="nav-back" @tap="goBack"><text class="back-icon">←</text></view>
         <text class="nav-title">文章详情</text>
-        <view class="nav-more" @tap="handleMore"><text class="more-icon">⋮</text></view>
+        <view class="nav-ai-group">
+          <view class="nav-ask" @tap="askAixing">
+            <view class="nav-ask-avatar"><text class="nav-ask-avatar-emoji">✦</text></view>
+            <text class="nav-ask-text">问阿星</text>
+          </view>
+        </view>
       </view>
     </view>
     <view class="nav-placeholder" :style="{ height: (statusBarHeight + navContentHeight) + 'px' }"></view>
@@ -17,13 +22,21 @@
 
         <view class="author-row">
           <view class="author-left" @tap="goAuthor">
-            <view class="author-avatar"><text class="author-char">{{ charOf(article.authorName) }}</text></view>
+            <view class="author-avatar">
+              <image v-if="article.authorAvatar" class="author-avatar-img" :src="article.authorAvatar" mode="aspectFill" />
+              <text v-else class="author-char">{{ charOf(article.authorName) }}</text>
+            </view>
             <view class="author-info">
               <text class="author-name">{{ article.authorName }}</text>
               <text class="publish-time">{{ article.publishTime }}</text>
             </view>
           </view>
-          <text class="category-tag" v-if="article.categoryName">{{ article.categoryName }}</text>
+          <view class="author-right">
+            <text class="category-tag" v-if="article.categoryName">{{ article.categoryName }}</text>
+            <view class="follow-btn" v-if="!isSelfAuthor" :class="{ 'follow-btn-done': isFollowed }" @tap="toggleFollowAuthor">
+              <text class="follow-btn-text">{{ isFollowed ? '已关注' : '＋ 关注' }}</text>
+            </view>
+          </view>
         </view>
 
         <view class="tag-row" v-if="article.tags && article.tags.length">
@@ -37,12 +50,15 @@
           <text class="pn-item pn-right" v-if="article.nextArticle" @tap="goArticle(article.nextArticle!.articleId)">{{ article.nextArticle.title }} ›</text>
         </view>
 
+        <AdBanner :adpid="AD_PID_BANNER" :unit-id="AD_BANNER_ARTICLE" scene="文章" />
+
         <view class="comment-section">
           <text class="comment-header">评论 {{ article.commentCount }}</text>
           <EmptyState v-if="comments.length === 0" text="还没有评论，抢占沙发" />
           <view v-for="c in comments" :key="c.commentId" :id="'comment-' + c.commentId" class="comment-item" :class="{ 'comment-hl': highlightComment === c.commentId }">
             <view class="author-avatar sm" @tap="goUser(c.userId)">
-              <text class="author-char">{{ charOf(c.nickName) }}</text>
+              <image v-if="c.avatar" class="author-avatar-img" :src="c.avatar" mode="aspectFill" />
+              <text v-else class="author-char">{{ charOf(c.nickName) }}</text>
             </view>
             <view class="comment-body">
               <text class="comment-name" @tap="goUser(c.userId)">{{ c.nickName }}</text>
@@ -125,6 +141,9 @@
           <text class="note-btn note-save" @tap="saveNote">{{ noteSaving ? '保存中…' : '保存' }}</text>
         </view>
       </view>
+
+      <!-- 问阿星：帖子内半屏问答弹层（图11/12）-->
+      <AgentPostSheet :visible="askVisible" :title="article.title" @close="askVisible = false" />
     </block>
   </view>
 </template>
@@ -135,15 +154,19 @@ import { onLoad, onUnload } from '@dcloudio/uni-app'
 import LoadingState from '@/components/LoadingState.vue'
 import ErrorState from '@/components/ErrorState.vue'
 import EmptyState from '@/components/EmptyState.vue'
+import AdBanner from '@/components/AdBanner.vue'
+import { AD_BANNER_ARTICLE } from '@/config/env'
 import { useAuthStore } from '@/store/auth'
 import { getArticleDetailApi } from '@/api/article'
 import { getCommentsApi, getRepliesApi, addCommentApi, likeCommentApi, locateCommentApi } from '@/api/comment'
 import { toggleLikeApi, toggleFavoriteApi, reportShareApi } from '@/api/interaction'
 import { addNoteApi } from '@/api/notes'
+import { followUserApi, unfollowUserApi, getFollowStatusApi } from '@/api/user'
 import { reportWatchApi } from '@/api/points'
 import { reportHistoryApi } from '@/api/interaction'
 import { CONTENT_MIN_SECONDS } from '@/composables/pointsRule'
 import { useTheme } from '@/composables/useTheme'
+import AgentPostSheet from '@/components/AgentPostSheet.vue'
 import type { ArticleDetailDto, ArticleTag, CommentDto } from '@/types/article'
 
 const auth = useAuthStore()
@@ -188,18 +211,36 @@ const showNote = ref<boolean>(false)
 const noteContent = ref<string>('')
 const noteSaving = ref<boolean>(false)
 
-const expandedReplies = ref<Record<number, boolean>>({})
-function isReplyExpanded(c: CommentDto): boolean { return !!expandedReplies.value[c.commentId] }
-function visibleReplies(c: CommentDto): CommentDto[] {
-  const l = c.replies || []
-  return isReplyExpanded(c) ? l : l.slice(0, 2)
-}
-async function toggleReplies(c: CommentDto) {
-  if (!isReplyExpanded(c) && (c.replies || []).length < (c.replyCount || 0)) await handleViewReplies(c)
-  expandedReplies.value = { ...expandedReplies.value, [c.commentId]: !isReplyExpanded(c) }
+const askVisible = ref<boolean>(false)
+
+/* 问阿星：打开帖子内问答弹层（不再跳助手页） */
+function askAixing() {
+  if (!article.value) return
+  askVisible.value = true
 }
 
-function charOf(name: string): string { return (name || 'U').charAt(0) }
+/* ===== 关注作者（复用 /api/v1/follow add/cancel/status，本人不显示）===== */
+const isFollowed = ref<boolean>(false)
+const isSelfAuthor = computed<boolean>(() => {
+  const myId = auth.state.user?.userId
+  return !!article.value && Number(article.value.authorId) === Number(myId)
+})
+async function loadFollowState() {
+  if (!article.value || isSelfAuthor.value) { isFollowed.value = false; return }
+  try {
+    const ids = await getFollowStatusApi([article.value.authorId])
+    isFollowed.value = ids.indexOf(article.value.authorId) >= 0
+  } catch (e) { isFollowed.value = false }
+}
+async function toggleFollowAuthor() {
+  if (!article.value || isSelfAuthor.value) return
+  const target = article.value.authorId
+  try {
+    const res = isFollowed.value ? await unfollowUserApi(target) : await followUserApi(target)
+    isFollowed.value = !!res.active
+    uni.showToast({ title: isFollowed.value ? '已关注' : '已取消关注', icon: 'none' })
+  } catch (e) { uni.showToast({ title: '操作失败', icon: 'none' }) }
+}
 
 /* ===== 阅读计时：停留满 30 秒上报一次，服务端按天去重 ===== */
 let readTimer: ReturnType<typeof setTimeout> | null = null
@@ -217,6 +258,7 @@ async function loadDetail() {
   try {
     article.value = await getArticleDetailApi(articleId.value)
     state.value = 'ready'
+    loadFollowState()
     loadComments()
     startReadTimer()
     reportHistoryApi({ targetType: 'post', targetId: articleId.value }).catch(() => {})
@@ -402,20 +444,30 @@ onUnload(stopReadTimer)
 .nav-back { width: 72rpx; height: 72rpx; display: flex; align-items: center; justify-content: center; }
 .back-icon { font-size: 44rpx; color: $edu-text-primary; }
 .nav-title { flex: 1; font-size: 40rpx; font-weight: 700; color: $edu-text-primary; margin-left: 8rpx; }
-.nav-more { width: 72rpx; height: 72rpx; display: flex; align-items: center; justify-content: center; }
 .more-icon { font-size: 44rpx; color: $edu-text-primary; }
+.nav-ai-group { display: flex; align-items: center; }
+.nav-ask { display: flex; align-items: center; margin-right: 24rpx; }
+.nav-ask-avatar { width: 48rpx; height: 48rpx; border-radius: 50%; @include eduBrandGradient; display: flex; align-items: center; justify-content: center; margin-right: 8rpx; }
+.nav-ask-avatar-emoji { font-size: 26rpx; color: #FFFFFF; }
+.nav-ask-text { font-size: 30rpx; font-weight: 600; color: $edu-primary; }
 
 .content-scroll { flex: 1; min-height: 0; padding: 0 32rpx; box-sizing: border-box; }
 .article-title { display: block; font-size: 48rpx; font-weight: 800; color: $edu-text-primary; line-height: 1.35; margin-top: 24rpx; }
 .author-row { display: flex; align-items: center; justify-content: space-between; margin-top: 28rpx; }
 .author-left { display: flex; align-items: center; }
-.author-avatar { width: 72rpx; height: 72rpx; border-radius: 50%; background-color: $edu-primary-container; display: flex; align-items: center; justify-content: center; }
+.author-avatar { width: 72rpx; height: 72rpx; border-radius: 50%; background-color: $edu-primary-container; display: flex; align-items: center; justify-content: center; overflow: hidden; }
 .author-avatar.sm { width: 64rpx; height: 64rpx; }
+.author-avatar-img { width: 100%; height: 100%; border-radius: 50%; }
 .author-char { font-size: 30rpx; color: #0C2C6B; font-weight: 700; }
 .author-info { display: flex; flex-direction: column; margin-left: 16rpx; }
 .author-name { font-size: 30rpx; font-weight: 600; color: $edu-text-primary; }
 .publish-time { font-size: 24rpx; color: $edu-text-hint; margin-top: 6rpx; }
 .category-tag { font-size: 26rpx; color: $edu-primary; background-color: $edu-primary-container; padding: 8rpx 20rpx; border-radius: 12rpx; }
+.author-right { display: flex; align-items: center; }
+.follow-btn { margin-left: 16rpx; height: 56rpx; padding: 0 28rpx; border-radius: 28rpx; background-color: $edu-primary; display: flex; align-items: center; justify-content: center; }
+.follow-btn-text { font-size: 26rpx; color: #FFFFFF; }
+.follow-btn-done { background-color: $edu-surface-variant; }
+.follow-btn-done .follow-btn-text { color: $edu-text-secondary; }
 
 .tag-row { display: flex; flex-wrap: wrap; margin-top: 24rpx; }
 .tag-chip { font-size: 26rpx; color: $edu-primary; background-color: rgba(54, 119, 239, 0.08); padding: 8rpx 20rpx; border-radius: 12rpx; margin: 0 16rpx 16rpx 0; }

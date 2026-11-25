@@ -1,4 +1,6 @@
 import { get, post, v1 } from '@/utils/request'
+import { BASE_URL } from '@/config/env'
+import { fillProfiles } from './profileCache'
 import { API_READY } from '@/config/apiStatus'
 import { getMockArticleCommentCount } from './article'
 import type { CommentDto } from '@/types/article'
@@ -142,6 +144,18 @@ function normalizeComment(c: BackendComment): CommentDto {
     }
 }
 
+function absAvatar(u?: string): string {
+    if (!u) return ''
+    return u.startsWith('http') ? u : BASE_URL + (u.startsWith('/') ? '' : '/') + u
+}
+
+/** 后端评论 SQL 不带头像：按评论人 userId 批量补查（共享缓存，去重后通常 1~3 个请求） */
+async function backfillAvatars(arr: CommentDto[]): Promise<void> {
+    const flat: CommentDto[] = []
+    arr.forEach((c) => { flat.push(c); (c.replies || []).forEach((r) => flat.push(r)) })
+    await fillProfiles(flat, (r) => r.userId, (r, p) => { if (p.avatar && !r.avatar) r.avatar = absAvatar(p.avatar) })
+}
+
 /** GET /api/v1/comment/list —— 一级评论（含内联 children），total 为一级评论数；pageNum 供通知定位跳页 */
 export async function getCommentsApi(targetType: number, targetId: number, cursor?: string, size = 20, pageNum = 1): Promise<CommentPage> {
     if (!API_READY.comment) {
@@ -150,6 +164,7 @@ export async function getCommentsApi(targetType: number, targetId: number, curso
     const body: any = await get(v1('/comment/list'), { targetType, targetId, pageNum, pageSize: size })
     const rows: BackendComment[] = (body && Array.isArray(body.rows)) ? body.rows : []
     const arr = rows.map(normalizeComment)
+    await backfillAvatars(arr)
     const total = (body && body.total != null) ? Number(body.total) : arr.length
     return { list: arr, nextCursor: '', hasMore: false, total }
 }
@@ -217,7 +232,9 @@ export async function addCommentApi(params: AddCommentParams): Promise<{ comment
     return { commentId: Number((res && res.commentId) || 0), status: 1 }
 }
 
-/** 评论点赞：后端无该接口，纯本地、不发请求 */
+/** 评论点赞：后端暂无该接口，纯本地状态、不发请求。
+ *  后端就绪后的契约（转给队友）：POST /api/v1/comment/like { commentId }，
+ *  learning_comment 加 like_count 列 + isLiked 按当前用户查询，/comment/list 返回真实值 */
 export function likeCommentApi(commentId: number, isLikedNow: boolean): Promise<{ isLiked: boolean }> {
     return Promise.resolve({ isLiked: !isLikedNow })
 }

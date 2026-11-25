@@ -100,7 +100,7 @@ import LoadingState from '@/components/LoadingState.vue'
 import ErrorState from '@/components/ErrorState.vue'
 import EmptyState from '@/components/EmptyState.vue'
 import { useAuthStore } from '@/store/auth'
-import { resolveFileUrl, getUserPublicProfileApi, followUserApi, unfollowUserApi, getFollowStatusApi, getFollowCountApi, getFansListApi } from '@/api/user'
+import { resolveFileUrl, getProfileApi, getUserPublicProfileApi, followUserApi, unfollowUserApi, getFollowStatusApi, getFollowCountApi, getFansListApi } from '@/api/user'
 import { getMyArticlesApi, getUserPublishedArticlesApi, deleteArticleApi, type MyArticleDto } from '@/api/article'
 import { useNotification } from '@/composables/useNotification'
 import { useTheme } from '@/composables/useTheme'
@@ -148,8 +148,12 @@ function resolveGender(sex?: string): string {
   return '未知'
 }
 
-/** 本人主页：直接读 auth store */
-function loadSelfProfile() {
+/** 本人主页：先拉服务端最新资料刷新 store，再读缓存渲染（头像/昵称跨会话同步） */
+async function loadSelfProfile() {
+  try {
+    const res: any = await getProfileApi()
+    if (res && res.info) auth.setUser(res.info)
+  } catch (e) { /* 拉取失败退回 store 缓存 */ }
   const u = auth.state.user
   nickname.value = u?.nickName || u?.userName || '未登录'
   avatarChar.value = (nickname.value || 'U').charAt(0)
